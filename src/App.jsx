@@ -12,11 +12,13 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 
+
 function App() {
   return (
     <Routes>
 
       <Route path="/" element={<Home />} />
+      
 
       <Route path="/login/:role" element={<Login />} />
 
