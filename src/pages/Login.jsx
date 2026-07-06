@@ -1,94 +1,117 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import Header from "../components/Header";
 import "../App.css";
 
 function Login() {
   const navigate = useNavigate();
   const { role } = useParams();
-
   const [employeeId, setEmployeeId] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({});
 
-  const users = [
-    {
-      employeeId: "EMP1001",
-      password: "emp123",
-      role: "Employee",
-    },
-    {
-      employeeId: "MGR1001",
-      password: "mgr123",
-      role: "Manager",
-    },
-    {
-      employeeId: "ADM1001",
-      password: "admin123",
-      role: "Admin",
-    },
-  ];
+  const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : "";
 
-  const handleLogin = () => {
-    if (employeeId.trim() === "" || password.trim() === "") {
-      alert("Please enter Employee ID and Password");
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    if (!employeeId.trim()) newErrors.employeeId = "Employee ID is required";
+    if (!password.trim()) newErrors.password = "Password is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
-    const user = users.find(
-      (u) =>
-        u.employeeId === employeeId.trim() &&
-        u.password === password.trim() &&
-        u.role.toLowerCase() === role
-    );
+    localStorage.setItem("user", JSON.stringify({
+      employeeId: employeeId.trim(),
+      role: roleLabel,
+      name: employeeId.trim(),
+    }));
 
-    if (!user) {
-      alert("Invalid Credentials or Wrong Role");
-      return;
-    }
+    const paths = {
+      employee: "/employee-dashboard",
+      manager: "/manager-dashboard",
+      admin: "/admin-dashboard",
+    };
+    navigate(paths[role] || "/employee-dashboard");
+  };
 
-    if (user.role === "Employee") {
-      navigate("/employee-dashboard");
-    } else if (user.role === "Manager") {
-      navigate("/manager-dashboard");
-    } else if (user.role === "Admin") {
-      navigate("/admin-dashboard");
-    }
+  const roleIcon = {
+    employee: "bi-person-badge",
+    manager: "bi-people",
+    admin: "bi-shield-check",
   };
 
   return (
-    <div className="login-container">
+    <div className="login-page">
       <div className="login-card">
-        <Header />
+        <div className="text-center mb-4">
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "14px",
+              background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: "1.6rem",
+              marginBottom: "0.75rem",
+            }}
+          >
+            <i className={`bi ${roleIcon[role] || "bi-person"}`} />
+          </div>
+          <h4 className="fw-bold mb-1" style={{ color: "var(--gray-800)" }}>{roleLabel} Login</h4>
+          <p style={{ color: "var(--gray-500)", fontSize: "0.88rem", margin: 0 }}>Sign in to your account</p>
+        </div>
 
-        <h2>
-          {role.charAt(0).toUpperCase() + role.slice(1)} Login
-        </h2>
+        <form onSubmit={handleLogin} className="form-custom">
+          <div className="mb-3">
+            <label className="form-label">Employee ID</label>
+            <div className="position-relative">
+              <i className="bi bi-person" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--gray-400)", zIndex: 5 }} />
+              <input
+                type="text"
+                className={`form-control ps-5 ${errors.employeeId ? "is-invalid" : ""}`}
+                placeholder="Enter your Employee ID"
+                value={employeeId}
+                onChange={(e) => { setEmployeeId(e.target.value); setErrors({ ...errors, employeeId: "" }); }}
+              />
+              {errors.employeeId && <div className="invalid-feedback">{errors.employeeId}</div>}
+            </div>
+          </div>
 
-        <br />
+          <div className="mb-4">
+            <label className="form-label">Password</label>
+            <div className="position-relative">
+              <i className="bi bi-lock" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--gray-400)", zIndex: 5 }} />
+              <input
+                type="password"
+                className={`form-control ps-5 ${errors.password ? "is-invalid" : ""}`}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setErrors({ ...errors, password: "" }); }}
+              />
+              {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+            </div>
+          </div>
 
-        <input
-          type="text"
-          placeholder="Employee ID"
-          value={employeeId}
-          onChange={(e) => setEmployeeId(e.target.value)}
-        />
+          <button type="submit" className="btn-custom-primary w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+            <i className="bi bi-box-arrow-in-right" />
+            Sign In
+          </button>
+        </form>
 
-        <br />
-        <br />
-
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <br />
-        <br />
-
-        <button onClick={handleLogin}>
-          Login
-        </button>
+        <div className="text-center mt-3">
+          <button
+            className="btn btn-link p-0 text-decoration-none"
+            style={{ color: "var(--gray-500)", fontSize: "0.85rem" }}
+            onClick={() => navigate("/")}
+          >
+            <i className="bi bi-arrow-left me-1" /> Back to Home
+          </button>
+        </div>
       </div>
     </div>
   );
