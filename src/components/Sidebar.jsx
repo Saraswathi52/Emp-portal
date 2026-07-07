@@ -3,14 +3,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 const menuConfig = {
   employee: [
     { label: "Dashboard", path: "/employee-dashboard", icon: "bi-speedometer2" },
-    { label: "My Profile", path: "/profile", icon: "bi-person-badge" },
+
     { label: "Leave Management", path: "/leave", icon: "bi-calendar-check" },
     { label: "Expense Management", path: "/expenses", icon: "bi-wallet2" },
     { label: "Documents", path: "/documents", icon: "bi-folder2-open" },
   ],
   manager: [
     { label: "Dashboard", path: "/manager-dashboard", icon: "bi-speedometer2" },
-    { label: "My Profile", path: "/profile", icon: "bi-person-badge" },
+
     { label: "Employees", path: "/employees", icon: "bi-people" },
     { label: "Leave Management", path: "/leave", icon: "bi-calendar-check" },
     { label: "Expense Management", path: "/expenses", icon: "bi-wallet2" },
@@ -18,7 +18,7 @@ const menuConfig = {
   ],
   admin: [
     { label: "Dashboard", path: "/admin-dashboard", icon: "bi-speedometer2" },
-    { label: "My Profile", path: "/profile", icon: "bi-person-badge" },
+
     { label: "Employees", path: "/employees", icon: "bi-people" },
     { label: "Leave Management", path: "/leave", icon: "bi-calendar-check" },
     { label: "Expense Management", path: "/expenses", icon: "bi-wallet2" },

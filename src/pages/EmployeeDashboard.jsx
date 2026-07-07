@@ -55,14 +55,7 @@ function EmployeeDashboard() {
               <h4>Welcome back, {employee?.name || 'Employee'}!</h4>
               <p>{todayStr}</p>
             </div>
-            <div className="d-flex gap-2">
-              <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={() => navigate("/leave")}>
-                <i className="bi bi-plus-lg" /> Apply Leave
-              </button>
-              <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={() => navigate("/profile")}>
-                <i className="bi bi-person-gear" /> My Profile
-              </button>
-            </div>
+
           </div>
 
           <div className="row g-3 mb-4">

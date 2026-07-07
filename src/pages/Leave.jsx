@@ -213,11 +213,11 @@ function Leave() {
             </div>
             {!isManagerOrAdmin && (
               <button
-                className={`btn-custom-${showForm ? "danger" : "primary"} d-flex align-items-center gap-2`}
-                onClick={() => { setShowForm(!showForm); if (showForm) resetForm(); }}
+                className="btn-custom-primary d-flex align-items-center gap-2"
+                onClick={() => setShowForm(true)}
               >
-                <i className={`bi ${showForm ? "bi-x-lg" : "bi-plus-lg"}`} />
-                {showForm ? "Cancel" : "Apply Leave"}
+                <i className="bi bi-plus-lg" />
+                Apply Leave
               </button>
             )}
           </div>
@@ -374,54 +374,67 @@ function Leave() {
           )}
 
           {showForm && !isManagerOrAdmin && (
-            <div className="card-dashboard p-4 mb-4">
-              <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
-                <i className="bi bi-calendar-plus me-2" style={{ color: "var(--primary)" }} />
-                Apply Leave
-              </h5>
-              <div className="row g-3 form-custom">
-                <div className="col-md-4">
-                  <label className="form-label">Leave Type</label>
-                  <select className="form-select" value={leaveType} onChange={(e) => setLeaveType(e.target.value)}>
-                    <option value="Annual">Annual Leave</option>
-                    <option value="Sick">Sick Leave</option>
-                    <option value="Personal">Personal Leave</option>
-                    <option value="WFH">Work From Home (WFH)</option>
-                  </select>
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label">From Date</label>
-                  <input type="date" className={`form-control ${errors.startDate ? "is-invalid" : ""}`} value={startDate}
-                    onChange={(e) => { setStartDate(e.target.value); setErrors({ ...errors, startDate: false }); }}
-                    onFocus={(e) => e.currentTarget.showPicker?.()} />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label">To Date</label>
-                  <input type="date" className={`form-control ${errors.endDate ? "is-invalid" : ""}`} value={endDate}
-                    onChange={(e) => { setEndDate(e.target.value); setErrors({ ...errors, endDate: false }); }}
-                    onFocus={(e) => e.currentTarget.showPicker?.()} />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label">Reason</label>
-                  <textarea className={`form-control ${errors.reason ? "is-invalid" : ""}`} rows="2" placeholder="Enter reason for leave" value={reason}
-                    onChange={(e) => { setReason(e.target.value); setErrors({ ...errors, reason: false }); }} />
-                </div>
-                <div className="col-md-3 d-flex align-items-end gap-3">
-                  <div className="form-check">
-                    <input className="form-check-input" type="checkbox" id="halfDay" checked={halfDay}
-                      onChange={(e) => setHalfDay(e.target.checked)} disabled={wfh} />
-                    <label className="form-check-label" htmlFor="halfDay" style={{ fontSize: "0.88rem" }}>Half Day</label>
+            <div className="modal-overlay" onClick={() => { setShowForm(false); resetForm(); }}>
+              <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                <button className="modal-close-btn" onClick={() => { setShowForm(false); resetForm(); }}>
+                  <i className="bi bi-x-lg" />
+                </button>
+                <div className="text-center mb-4">
+                  <div className="modal-icon">
+                    <i className="bi bi-calendar-plus" />
                   </div>
-                  <div className="form-check">
-                    <input className="form-check-input" type="checkbox" id="wfh" checked={wfh}
-                      onChange={(e) => { setWfh(e.target.checked); if (e.target.checked) { setHalfDay(false); setLeaveType('WFH'); } }} />
-                    <label className="form-check-label" htmlFor="wfh" style={{ fontSize: "0.88rem" }}>Work From Home</label>
-                  </div>
+                  <h4 className="modal-title">Apply Leave</h4>
+                  <p className="modal-subtitle">Submit your leave request</p>
                 </div>
-                <div className="col-md-3 d-flex align-items-end justify-content-end">
-                  <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={handleApply}>
-                    <i className="bi bi-send" /> Submit Application
-                  </button>
+                <div className="row g-3 form-custom">
+                  <div className="col-md-4">
+                    <label className="form-label">Leave Type</label>
+                    <select className="form-select" value={leaveType} onChange={(e) => setLeaveType(e.target.value)}>
+                      <option value="Annual">Annual Leave</option>
+                      <option value="Sick">Sick Leave</option>
+                      <option value="Personal">Personal Leave</option>
+                      <option value="WFH">Work From Home (WFH)</option>
+                    </select>
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">From Date</label>
+                    <input type="date" className={`form-control ${errors.startDate ? "is-invalid" : ""}`} value={startDate}
+                      onChange={(e) => { setStartDate(e.target.value); setErrors({ ...errors, startDate: false }); }}
+                      onFocus={(e) => e.currentTarget.showPicker?.()} />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label">To Date</label>
+                    <input type="date" className={`form-control ${errors.endDate ? "is-invalid" : ""}`} value={endDate}
+                      onChange={(e) => { setEndDate(e.target.value); setErrors({ ...errors, endDate: false }); }}
+                      onFocus={(e) => e.currentTarget.showPicker?.()} />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label">Reason</label>
+                    <textarea className={`form-control ${errors.reason ? "is-invalid" : ""}`} rows="2" placeholder="Enter reason for leave" value={reason}
+                      onChange={(e) => { setReason(e.target.value); setErrors({ ...errors, reason: false }); }} />
+                  </div>
+                  <div className="col-12">
+                    <div className="d-flex gap-4">
+                      <div className="form-check">
+                        <input className="form-check-input" type="checkbox" id="halfDay" checked={halfDay}
+                          onChange={(e) => setHalfDay(e.target.checked)} disabled={wfh} />
+                        <label className="form-check-label" htmlFor="halfDay" style={{ fontSize: "0.88rem" }}>Half Day</label>
+                      </div>
+                      <div className="form-check">
+                        <input className="form-check-input" type="checkbox" id="wfh" checked={wfh}
+                          onChange={(e) => { setWfh(e.target.checked); if (e.target.checked) { setHalfDay(false); setLeaveType('WFH'); } }} />
+                        <label className="form-check-label" htmlFor="wfh" style={{ fontSize: "0.88rem" }}>Work From Home</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-12 d-flex gap-3 mt-2">
+                    <button className="btn-custom-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2" onClick={handleApply}>
+                      <i className="bi bi-send" /> Submit Application
+                    </button>
+                    <button className="btn-custom-secondary d-flex align-items-center justify-content-center gap-2" onClick={() => { setShowForm(false); resetForm(); }}>
+                      <i className="bi bi-x-lg" /> Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

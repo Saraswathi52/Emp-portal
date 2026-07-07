@@ -69,10 +69,10 @@
   justify-content: space-between;
   align-items: center;
 
-  background: rgba(255,255,255,0.92);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(10px);
 
-  box-shadow: 0 2px 15px rgba(0,0,0,.08);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, .08);
 
   z-index: 1000;
 }
@@ -98,10 +98,13 @@
 
 .home-content {
   text-align: center;
-  margin-top: 120px;
-  margin-bottom: 100px;
-  max-width: 800px;
+  margin-top: 70px;
+  margin-bottom: 40px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
+
 .home-content h1 {
   font-size: 48px;
   font-weight: 700;
@@ -122,7 +125,7 @@
   border-radius: 16px;
   padding: 25px;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
   transition: .3s;
   height: 100%;
 }
@@ -151,7 +154,7 @@
 .popup-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15,23,42,.45);
+  background: rgba(15, 23, 42, .45);
   backdrop-filter: blur(6px);
 
   display: flex;
@@ -173,7 +176,7 @@
 
   padding: 30px;
 
-  box-shadow: 0 25px 60px rgba(0,0,0,.18);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, .18);
 
   animation: popup .25s ease;
 }
@@ -198,7 +201,7 @@
 
 .role-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 25px rgba(0,0,0,.08);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, .08);
 }
 
 .role-icon {
@@ -234,6 +237,111 @@
 
 .close-btn:hover {
   color: #2563eb;
+}
+
+/* ================= Apply Leave Modal ================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.modal-card {
+  position: relative;
+  width: 600px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  padding: 40px 36px;
+  animation: modalFadeIn 0.25s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes modalFadeIn {
+  from {
+    transform: scale(0.92) translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #94a3b8;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.modal-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.modal-subtitle {
+  color: #94a3b8;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.btn-custom-secondary {
+  background: transparent;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+  padding: 0.6rem 1.4rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.25s;
+  cursor: pointer;
+}
+
+.btn-custom-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
 }
 
 /* ================= Animation ================= */
