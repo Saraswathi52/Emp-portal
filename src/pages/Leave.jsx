@@ -230,14 +230,57 @@ function Leave() {
               { label: "Total", value: displayLeaves.length, color: "#3b82f6", bg: "#eff6ff", icon: "bi-calculator" },
             ].map((s) => (
               <div key={s.label} className="col-6 col-xl-3">
-                <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: s.bg }}>
-                  <div className="stat-icon" style={{ background: s.color, width: 40, height: 40, fontSize: "1.1rem", margin: 0 }}>
-                    <i className={`bi ${s.icon}`} />
-                  </div>
-                  <div>
-                    <div className="stat-label" style={{ fontSize: "0.7rem" }}>{s.label}</div>
-                    <div className="stat-value" style={{ color: s.color, fontSize: "1.3rem" }}>{s.value}</div>
-                  </div>
+                <div
+                className="stat-card card-dashboard d-flex align-items-center "
+                 style={{
+                   background: s.bg,
+                   borderLeft: `5px solid ${s.color}`,
+                   padding: "22px",
+                   transition: "0.3s",
+                   cursor: "pointer",
+                     }}
+                    >
+                      <div
+  className="stat-icon"
+  style={{
+    background: s.color,
+    width: 52,
+    height: 52,
+    fontSize: "1.3rem",
+    marginRight: "18px",
+    flexShrink: 0,
+  }}
+>
+  <i className={`bi ${s.icon}`} />
+</div>
+                 <div className="flex-grow-1 ms-3">
+
+    <div
+        className="stat-label"
+        style={{
+            fontSize: "0.75rem",
+            color: "#64748b",
+            textTransform: "uppercase",
+            letterSpacing: "1px",
+            marginBottom: "6px"
+        }}
+    >
+        {s.label}
+    </div>
+
+    <div
+        className="stat-value"
+        style={{
+            color: s.color,
+            fontSize: "2rem",
+            fontWeight: "700",
+            lineHeight: "1"
+        }}
+    >
+        {s.value}
+    </div>
+
+</div>
                 </div>
               </div>
             ))}
@@ -262,13 +305,21 @@ function Leave() {
                       const pct = b.total > 0 ? (b.used / b.total) * 100 : 0;
                       return (
                         <div key={b.label} className="col-sm-6">
-                          <div className="p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)" }}>
+                          <div
+  className="p-3 shadow-sm"
+  style={{
+    background: "#ffffff",
+    borderRadius: "16px",
+    border: `1px solid ${b.color}30`,
+    transition: "0.3s ease"
+  }}
+>
                             <div className="d-flex justify-content-between align-items-center mb-1">
                               <small style={{ color: "var(--gray-500)", fontSize: "0.72rem", fontWeight: 600 }}>{b.label}</small>
                               <small style={{ color: b.color, fontWeight: 700, fontSize: "0.8rem" }}>{remaining} left</small>
                             </div>
-                            <div className="progress" style={{ height: 6, borderRadius: 3, background: "var(--gray-200)" }}>
-                              <div className="progress-bar" style={{ width: `${pct}%`, background: b.color, borderRadius: 3 }} />
+                            <div className="progress" style={{ height: "10px", borderRadius: "20px", background: "#e5e7eb", overflow: "hidden",marginTop: "10px",marginBottom: "8px" }}>
+                             <div className="progress-bar" style={{ width: `${pct}%`, background: b.color, borderRadius: "20px"  }} />
                             </div>
                             <small style={{ color: "var(--gray-400)", fontSize: "0.68rem" }}>{b.used} used of {b.total}</small>
                           </div>
@@ -286,9 +337,29 @@ function Leave() {
                   </h5>
                   <div style={{ maxHeight: 180, overflowY: "auto" }}>
                     {holidays.sort((a, b) => new Date(a.date) - new Date(b.date)).map(h => (
-                      <div key={h.date} className="d-flex justify-content-between align-items-center py-1" style={{ borderBottom: "1px solid var(--gray-100)" }}>
-                        <span style={{ fontSize: "0.82rem", color: "var(--gray-700)" }}>
-                          <i className="bi bi-star-fill me-1" style={{ color: "var(--warning)", fontSize: "0.6rem" }} />
+                     <div
+  key={h.date}
+  className="d-flex justify-content-between align-items-center p-2 mb-2"
+  style={{
+    background: "#f8fafc",
+    borderRadius: "10px",
+    border: "1px solid #e5e7eb"
+  }}
+>
+                       <span
+  style={{
+    fontSize: "0.9rem",
+    fontWeight: "600",
+    color: "#1e293b"
+  }}
+>
+                        <i
+  className="bi bi-calendar-event me-2"
+  style={{
+    color: "#2563eb",
+    fontSize: "0.9rem"
+  }}
+/>
                           {h.name}
                         </span>
                         <small style={{ color: "var(--gray-400)" }}>
