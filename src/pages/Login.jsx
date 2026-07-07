@@ -70,7 +70,17 @@ function Login() {
           </div>
 
           <div className="mb-4">
-            <label className="form-label">Password</label>
+            <div className="d-flex justify-content-between align-items-center mb-1">
+              <label className="form-label mb-0">Password</label>
+              <button
+                type="button"
+                className="btn btn-link p-0 text-decoration-none"
+                style={{ fontSize: "0.85rem" }}
+                onClick={() => alert("Forgot Password functionality to be implemented")}
+              >
+                Forgot password?
+              </button>
+            </div>
             <div className="position-relative">
               <i className="bi bi-lock" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--gray-400)", zIndex: 5 }} />
               <input
