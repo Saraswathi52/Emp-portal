@@ -43,27 +43,14 @@ function Login() {
   };
 
   return (
-    <div className="login-page">
+    <div className="page-bg login-page">
       <div className="login-card">
         <div className="text-center mb-4">
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: "14px",
-              background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: "1.6rem",
-              marginBottom: "0.75rem",
-            }}
-          >
+          <div className="login-icon">
             <i className={`bi ${roleIcon[role] || "bi-person"}`} />
           </div>
-          <h4 className="fw-bold mb-1" style={{ color: "var(--gray-800)" }}>{roleLabel} Login</h4>
-          <p style={{ color: "var(--gray-500)", fontSize: "0.88rem", margin: 0 }}>Sign in to your account</p>
+          <h4 className="login-title">{roleLabel} Login</h4>
+          <p className="login-subtitle">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleLogin} className="form-custom">

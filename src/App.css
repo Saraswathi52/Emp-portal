@@ -1,11 +1,59 @@
-/* ================= Home Page ================= */
+/* ================= Base ================= */
 
-.login-page {
+.page-bg {
   min-height: 100vh;
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #bfdbfe 100%);
+}
+
+/* ================= Home Page ================= */
+
+.home-page {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* ================= Login Page ================= */
+
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 500px;
+  max-width: 94%;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  padding: 40px 36px;
+}
+
+.login-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.login-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.login-subtitle {
+  color: #94a3b8;
+  font-size: 0.88rem;
+  margin: 0;
 }
 
 /* ================= Header ================= */

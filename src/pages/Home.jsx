@@ -31,7 +31,7 @@ function Home() {
   const [showPopup, setShowPopup] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   return (
-    <div className="login-page">
+    <div className="page-bg home-page">
 
       {/* Navbar */}
       <nav className="header">
