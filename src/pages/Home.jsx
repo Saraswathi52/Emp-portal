@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 
@@ -26,6 +26,15 @@ const roles = [
   },
 ];
 
+const features = [
+  { icon: "bi-person-check-fill", bg: "#eff6ff", color: "#2563eb", title: "Role-Based Access", desc: "Tailored dashboards and permissions for Employees, Managers, and Admins." },
+  { icon: "bi-lightning-charge-fill", bg: "#f5f3ff", color: "#8b5cf6", title: "Faster Approvals", desc: "Streamlined workflows that cut leave and expense approval time in half." },
+  { icon: "bi-folder-check", bg: "#f0fdf4", color: "#10b981", title: "Secure Documents", desc: "Centralized storage with controlled access for all employee documents." },
+  { icon: "bi-bar-chart-fill", bg: "#fef2f2", color: "#ef4444", title: "Employee Records", desc: "Complete digital history of employee info, roles, and activity logs." },
+  { icon: "bi-clock-history", bg: "#fffbeb", color: "#f59e0b", title: "Real-Time Tracking", desc: "Live updates on leave requests, expenses, and approval statuses." },
+  { icon: "bi-shield-lock-fill", bg: "#f0f9ff", color: "#0ea5e9", title: "Reliable & Secure", desc: "Enterprise-grade security with encryption and access controls built in." },
+];
+
 function Home() {
   const navigate = useNavigate();
   const [showPopup, setShowPopup] = useState(false);
@@ -33,7 +42,6 @@ function Home() {
   return (
     <div className="page-bg home-page">
 
-      {/* Navbar */}
       <nav className="header">
 
   <div className="logo">
@@ -67,20 +75,6 @@ function Home() {
       About
     </a>
 
-    <a
-      href="#features"
-      onClick={(e) => {
-        e.preventDefault();
-        document
-          .getElementById("features")
-          ?.scrollIntoView({
-            behavior: "smooth",
-          });
-      }}
-    >
-      Features
-    </a>
-
     <button
       className="btn btn-primary px-4"
       onClick={() => setShowPopup(true)}
@@ -92,75 +86,42 @@ function Home() {
 
 </nav>
 
-      {/* Hero Section */}
-
-      <div className="home-content">
-        <p
-  style={{
-    color: "#2563eb",
-    fontWeight: "600",
-    letterSpacing: "2px",
-    textTransform: "uppercase",
-    marginBottom: "10px",
-  }}
->
-  Welcome to SHAHO
-</p>
-
-        <h1>Smart Employee Management</h1>
-
-        <p>
-          Securely manage employees, leave requests,
-          expenses, documents and approvals from one place.
-        </p>
-
-
-
-      </div>
-
-      {/* Features */}
-
-      <div className="container mt-5" id="features">
-
-        <div className="row g-4">
-
-          <div className="col-md-3">
-            <div className="feature-card">
-              <i className="bi bi-calendar-check"></i>
-              <h5>Leave Management</h5>
-              <p>Apply, track and approve leave requests.</p>
-            </div>
-          </div>
-
-          <div className="col-md-3">
-            <div className="feature-card">
-              <i className="bi bi-cash-stack"></i>
-              <h5>Expense Management</h5>
-              <p>Submit expenses with receipt uploads.</p>
-            </div>
-          </div>
-
-          <div className="col-md-3">
-            <div className="feature-card">
-              <i className="bi bi-folder2-open"></i>
-              <h5>Documents</h5>
-              <p>Upload and manage employee documents.</p>
-            </div>
-          </div>
-
-          <div className="col-md-3">
-            <div className="feature-card">
-              <i className="bi bi-people"></i>
-              <h5>Employees</h5>
-              <p>Manage employees and departments.</p>
-            </div>
-          </div>
-
+      <div className="hero-section">
+        <div className="hero-badge">
+          <i className="bi bi-buildings me-2"></i>
+          Welcome to SHAHO
         </div>
 
-      </div>
+        <h1 className="hero-title">
+          Smart Employee <span className="text-primary">Management</span>
+        </h1>
 
-      {/* Welcome Popup */}
+        <p className="hero-description">
+          Securely manage employees, leave requests, expenses, documents and approvals
+          from one centralized platform. Empowering your workforce with efficiency.
+        </p>
+
+        <div className="hero-actions">
+          <button
+            className="btn btn-primary btn-lg px-5 py-3"
+            onClick={() => setShowPopup(true)}
+          >
+            <i className="bi bi-box-arrow-in-right me-2"></i>
+            Get Started
+          </button>
+          <button
+            className="btn btn-outline-secondary btn-lg px-5 py-3"
+            onClick={() => {
+              document
+                .getElementById("about")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            <i className="bi bi-info-circle me-2"></i>
+            Learn More
+          </button>
+        </div>
+      </div>
 
 {showWelcome && (
   <div
@@ -255,7 +216,7 @@ function Home() {
   </div>
 )}
 <div
-  className="container py-5"
+  className="container py-5" style={{ scrollMarginTop: "100px", paddingTop: "5rem" }}
   id="about"
   style={{ scrollMarginTop: "100px" }}
 >
@@ -269,11 +230,7 @@ function Home() {
       className="text-muted mx-auto"
       style={{ maxWidth: "800px", lineHeight: "1.8" }}    
     >
-    SHAHO Employee Management Portal is a secure and user-friendly platform
-    designed to simplify employee management. It enables employees,
-    managers, and administrators to efficiently manage leave requests,
-    expense claims, employee records, and official documents through a
-    centralized system.
+    SHAHO centralizes leave, expenses, records, and documents into a single professional platform — empowering employees, managers, and admins to work faster and smarter.
     </p>
 
   </div>
@@ -286,78 +243,28 @@ function Home() {
     </h2>
 
     <p className="text-muted">
-      Designed to simplify daily HR operations with a secure,
-      efficient and user-friendly experience.
+      Purpose-built to streamline HR operations with security, speed, and simplicity.
     </p>
   </div>
 
   <div className="row g-4">
 
-    <div className="col-md-4">
-      <div className="feature-card">
-        <i className="bi bi-person-check-fill"></i>
-        <h5>Role-Based Access</h5>
-        <p>
-          Dedicated access for Employees, Managers and Administrators.
-        </p>
+    {features.map((f) => (
+      <div key={f.title} className="col-md-4">
+        <div className="feature-card">
+          <div className="feature-icon-box" style={{ background: f.bg, color: f.color }}>
+            <i className={`bi ${f.icon}`}></i>
+          </div>
+          <h5>{f.title}</h5>
+          <p>{f.desc}</p>
+        </div>
       </div>
-    </div>
-
-    <div className="col-md-4">
-      <div className="feature-card">
-        <i className="bi bi-lightning-charge-fill"></i>
-        <h5>Faster Approvals</h5>
-        <p>
-          Speed up leave and expense approval workflows.
-        </p>
-      </div>
-    </div>
-
-    <div className="col-md-4">
-      <div className="feature-card">
-        <i className="bi bi-folder-check"></i>
-        <h5>Secure Documents</h5>
-        <p>
-          Store and manage employee documents securely.
-        </p>
-      </div>
-    </div>
-
-    <div className="col-md-4">
-      <div className="feature-card">
-        <i className="bi bi-bar-chart-fill"></i>
-        <h5>Employee Records</h5>
-        <p>
-          Maintain accurate employee information and history.
-        </p>
-      </div>
-    </div>
-
-    <div className="col-md-4">
-      <div className="feature-card">
-        <i className="bi bi-clock-history"></i>
-        <h5>Real-Time Tracking</h5>
-        <p>
-          Monitor leave requests and expense status instantly.
-        </p>
-      </div>
-    </div>
-
-    <div className="col-md-4">
-      <div className="feature-card">
-        <i className="bi bi-shield-lock-fill"></i>
-        <h5>Reliable & Secure</h5>
-        <p>
-          Built with security and reliability for everyday business use.
-        </p>
-      </div>
-    </div>
+    ))}
 
   </div>
 
 </div>
 </div>
-{/* Footer */}
 
 <footer
   style={{
@@ -372,7 +279,6 @@ function Home() {
 
     <div className="row">
 
-      {/* Company */}
       <div className="col-md-4 mb-4">
         <h4 className="fw-bold">
           <i className="bi bi-buildings me-2"></i>
@@ -386,7 +292,6 @@ function Home() {
         </p>
       </div>
 
-      {/* Quick Links */}
       <div className="col-md-4 mb-4">
         <h5>Quick Links</h5>
 
@@ -420,7 +325,6 @@ function Home() {
         </ul>
       </div>
 
-      {/* Contact */}
       <div className="col-md-4 mb-4">
 
         <h5>Contact</h5>
@@ -443,7 +347,7 @@ function Home() {
 
     <div className="text-center">
 
-      © 2026 SHAHO Employee Management Portal
+      Ac 2026 SHAHO Employee Management Portal
 
       <br />
 
@@ -455,8 +359,6 @@ function Home() {
 
   </div>
 </footer>
-
-      {/* Popup */}
 
       {showPopup && (
 
@@ -533,7 +435,6 @@ function Home() {
                 </button>
 
               </div>
-              
 
             ))}
 
