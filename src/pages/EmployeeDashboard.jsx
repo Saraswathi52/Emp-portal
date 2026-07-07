@@ -166,13 +166,19 @@ function EmployeeDashboard() {
               </div>
             </div>
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: "#ecfdf5" }}>
+              <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: "#ecfdf5", position: "relative", overflow: "hidden" }}>
                 <div className="stat-icon" style={{ background: "#10b981", width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
-                  <i className="bi bi-briefcase" />
+                  <i className="bi bi-piggy-bank" />
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div className="stat-label">Leave Balance</div>
-                  <div className="stat-value" style={{ color: "#10b981", fontSize: "1.5rem" }}>{(leaveBal.annual - leaveBal.annualUsed) + (leaveBal.sick - leaveBal.sickUsed) + (leaveBal.personal - leaveBal.personalUsed)}</div>
+                  <div className="stat-value d-flex align-items-baseline gap-1" style={{ color: "#10b981", fontSize: "1.5rem" }}>
+                    {(leaveBal.annual - leaveBal.annualUsed) + (leaveBal.sick - leaveBal.sickUsed) + (leaveBal.personal - leaveBal.personalUsed)}
+                    <span style={{ fontSize: "0.65rem", color: "var(--gray-400)", fontWeight: 400 }}>remaining</span>
+                  </div>
+                  <div className="progress" style={{ height: "3px", borderRadius: "10px", background: "#d1fae5", marginTop: "6px", marginBottom: "4px" }}>
+                    <div className="progress-bar" style={{ width: `${((leaveBal.annualUsed + leaveBal.sickUsed + leaveBal.personalUsed) / (leaveBal.annual + leaveBal.sick + leaveBal.personal) * 100)}%`, background: "#10b981", borderRadius: "10px" }} />
+                  </div>
                   <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{leaveBal.annual - leaveBal.annualUsed} Annual | {leaveBal.sick - leaveBal.sickUsed} Sick | {leaveBal.personal - leaveBal.personalUsed} Personal</small>
                 </div>
               </div>
@@ -190,13 +196,19 @@ function EmployeeDashboard() {
               </div>
             </div>
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: "#f5f3ff" }}>
+              <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: "#f5f3ff", position: "relative", overflow: "hidden" }}>
                 <div className="stat-icon" style={{ background: "#8b5cf6", width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
-                  <i className="bi bi-wallet2" />
+                  <i className="bi bi-house-door" />
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div className="stat-label">WFH Balance</div>
-                  <div className="stat-value" style={{ color: "#8b5cf6", fontSize: "1.5rem" }}>{leaveBal.wfh - leaveBal.wfhUsed}</div>
+                  <div className="stat-value d-flex align-items-baseline gap-1" style={{ color: "#8b5cf6", fontSize: "1.5rem" }}>
+                    {leaveBal.wfh - leaveBal.wfhUsed}
+                    <span style={{ fontSize: "0.65rem", color: "var(--gray-400)", fontWeight: 400 }}>remaining</span>
+                  </div>
+                  <div className="progress" style={{ height: "3px", borderRadius: "10px", background: "#ede9fe", marginTop: "6px", marginBottom: "4px" }}>
+                    <div className="progress-bar" style={{ width: `${(leaveBal.wfhUsed / leaveBal.wfh * 100)}%`, background: "#8b5cf6", borderRadius: "10px" }} />
+                  </div>
                   <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{leaveBal.wfhUsed} used of {leaveBal.wfh}</small>
                 </div>
               </div>

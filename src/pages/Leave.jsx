@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployee, getLeaveBalances, getLeaveRequests, getAllLeaveRequests, addLeaveRequest, updateLeaveStatus, getHolidays, getNextLeaveId } from "../services/dataService";
@@ -91,11 +91,15 @@ function Leave() {
   const allLeaves = getLeaveRequests(empId);
   const leaveBal = getLeaveBalances(empId);
   const holidays = getHolidays();
+  const upcomingHolidays = holidays
+    .filter(h => h.name !== 'Ambedkar Jayanti' && h.name !== 'Independence Day')
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
   const allRequests = getAllLeaveRequests();
 
   const isManagerOrAdmin = role === 'manager' || role === 'admin';
 
   const [showForm, setShowForm] = useState(false);
+  const [showAllHolidays, setShowAllHolidays] = useState(false);
   const [leaveType, setLeaveType] = useState('Annual');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -231,56 +235,56 @@ function Leave() {
             ].map((s) => (
               <div key={s.label} className="col-6 col-xl-3">
                 <div
-                className="stat-card card-dashboard d-flex align-items-center "
-                 style={{
-                   background: s.bg,
-                   borderLeft: `5px solid ${s.color}`,
-                   padding: "22px",
-                   transition: "0.3s",
-                   cursor: "pointer",
-                     }}
+                  className="stat-card card-dashboard d-flex align-items-center "
+                  style={{
+                    background: s.bg,
+                    borderLeft: `5px solid ${s.color}`,
+                    padding: "22px",
+                    transition: "0.3s",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    className="stat-icon"
+                    style={{
+                      background: s.color,
+                      width: 52,
+                      height: 52,
+                      fontSize: "1.3rem",
+                      marginRight: "18px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <i className={`bi ${s.icon}`} />
+                  </div>
+                  <div className="flex-grow-1 ms-3">
+
+                    <div
+                      className="stat-label"
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        letterSpacing: "1px",
+                        marginBottom: "6px"
+                      }}
                     >
-                      <div
-  className="stat-icon"
-  style={{
-    background: s.color,
-    width: 52,
-    height: 52,
-    fontSize: "1.3rem",
-    marginRight: "18px",
-    flexShrink: 0,
-  }}
->
-  <i className={`bi ${s.icon}`} />
-</div>
-                 <div className="flex-grow-1 ms-3">
+                      {s.label}
+                    </div>
 
-    <div
-        className="stat-label"
-        style={{
-            fontSize: "0.75rem",
-            color: "#64748b",
-            textTransform: "uppercase",
-            letterSpacing: "1px",
-            marginBottom: "6px"
-        }}
-    >
-        {s.label}
-    </div>
+                    <div
+                      className="stat-value"
+                      style={{
+                        color: s.color,
+                        fontSize: "2rem",
+                        fontWeight: "700",
+                        lineHeight: "1"
+                      }}
+                    >
+                      {s.value}
+                    </div>
 
-    <div
-        className="stat-value"
-        style={{
-            color: s.color,
-            fontSize: "2rem",
-            fontWeight: "700",
-            lineHeight: "1"
-        }}
-    >
-        {s.value}
-    </div>
-
-</div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -288,40 +292,61 @@ function Leave() {
 
           {!isManagerOrAdmin && (
             <div className="row g-3 mb-4">
-              <div className="col-lg-7">
-                <div className="card-dashboard p-4">
+              <div className="col-lg-6 d-flex">
+                <div className="card-dashboard p-4 flex-fill">
                   <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)", fontSize: "0.95rem" }}>
                     <i className="bi bi-piggy-bank me-2" style={{ color: "var(--primary)" }} />
                     Leave Balance
                   </h5>
-                  <div className="row g-2">
+                  <div className="row g-3">
                     {[
-                      { label: 'Annual Leave', used: leaveBal.annualUsed, total: leaveBal.annual, color: '#3b82f6' },
-                      { label: 'Sick Leave', used: leaveBal.sickUsed, total: leaveBal.sick, color: '#10b981' },
-                      { label: 'Personal Leave', used: leaveBal.personalUsed, total: leaveBal.personal, color: '#f59e0b' },
-                      { label: 'WFH Days', used: leaveBal.wfhUsed, total: leaveBal.wfh, color: '#8b5cf6' },
+                      { label: 'Annual Leave', used: leaveBal.annualUsed, total: leaveBal.annual, color: '#3b82f6', bg: '#eff6ff', icon: 'bi-sun' },
+                      { label: 'Sick Leave', used: leaveBal.sickUsed, total: leaveBal.sick, color: '#10b981', bg: '#ecfdf5', icon: 'bi-heart-pulse' },
+                      { label: 'Personal Leave', used: leaveBal.personalUsed, total: leaveBal.personal, color: '#f59e0b', bg: '#fffbeb', icon: 'bi-person' },
+                      { label: 'WFH Days', used: leaveBal.wfhUsed, total: leaveBal.wfh, color: '#8b5cf6', bg: '#f5f3ff', icon: 'bi-house-door' },
                     ].map((b) => {
                       const remaining = b.total - b.used;
                       const pct = b.total > 0 ? (b.used / b.total) * 100 : 0;
                       return (
                         <div key={b.label} className="col-sm-6">
-                          <div
-  className="p-3 shadow-sm"
-  style={{
-    background: "#ffffff",
-    borderRadius: "16px",
-    border: `1px solid ${b.color}30`,
-    transition: "0.3s ease"
-  }}
->
-                            <div className="d-flex justify-content-between align-items-center mb-1">
-                              <small style={{ color: "var(--gray-500)", fontSize: "0.72rem", fontWeight: 600 }}>{b.label}</small>
-                              <small style={{ color: b.color, fontWeight: 700, fontSize: "0.8rem" }}>{remaining} left</small>
+                          <div className="leave-bal-card" style={{
+                            background: "#fff",
+                            borderRadius: "16px",
+                            border: `1px solid ${b.color}20`,
+                            padding: "1.25rem 1.25rem 1rem",
+                            transition: "all 0.3s ease",
+                            cursor: "default",
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
+                            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 25px ${b.color}20`; e.currentTarget.style.transform = 'translateY(-3px)' }}
+                            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}>
+                            <div className="d-flex align-items-center gap-3 mb-3">
+                              <div style={{
+                                width: 46, height: 46, borderRadius: "14px",
+                                background: b.bg, color: b.color,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: "1.25rem", flexShrink: 0
+                              }}>
+                                <i className={`bi ${b.icon}`} />
+                              </div>
+                              <div>
+                                <div style={{ fontSize: "0.72rem", color: "var(--gray-500)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "2px" }}>
+                                  {b.label}
+                                </div>
+                                <div style={{ fontSize: "1.65rem", fontWeight: 700, color: b.color, lineHeight: 1.2 }}>
+                                  {remaining}
+                                  <span style={{ fontSize: "0.65rem", color: "var(--gray-400)", fontWeight: 400, marginLeft: "6px" }}>remaining</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="progress" style={{ height: "10px", borderRadius: "20px", background: "#e5e7eb", overflow: "hidden",marginTop: "10px",marginBottom: "8px" }}>
-                             <div className="progress-bar" style={{ width: `${pct}%`, background: b.color, borderRadius: "20px"  }} />
+                            <div className="progress" style={{ height: "7px", borderRadius: "10px", background: "#e5e7eb", overflow: "hidden", marginBottom: "6px" }}>
+                              <div className="progress-bar" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${b.color}, ${b.color}cc)`, borderRadius: "10px", transition: "width 0.6s ease" }} />
                             </div>
-                            <small style={{ color: "var(--gray-400)", fontSize: "0.68rem" }}>{b.used} used of {b.total}</small>
+                            <div className="d-flex justify-content-between align-items-center">
+                              <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{b.used} used</small>
+                              <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{b.total} total</small>
+                            </div>
                           </div>
                         </div>
                       );
@@ -329,45 +354,180 @@ function Leave() {
                   </div>
                 </div>
               </div>
-              <div className="col-lg-5">
-                <div className="card-dashboard p-4">
+              <div className="col-lg-6 d-flex">
+                <div
+                  className="card-dashboard p-4 flex-fill d-flex flex-column"
+                  onClick={() => setShowAllHolidays(true)}
+                  style={{
+                    height: "430px",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 30px rgba(0,0,0,0.1)"; e.currentTarget.style.transform = "translateY(-2px)" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)" }}
+                >
                   <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)", fontSize: "0.95rem" }}>
-                    <i className="bi bi-star me-2" style={{ color: "var(--warning)" }} />
+                    <i className="bi bi-calendar-event me-2" style={{ color: "var(--warning)" }} />
                     Public Holidays
+                    <span style={{
+                      float: "right",
+                      background: "#f1f5f9", color: "#64748b",
+                      fontSize: "0.68rem", fontWeight: 600,
+                      padding: "2px 10px", borderRadius: "20px",
+                    }}>
+                      {upcomingHolidays.length} holidays
+                    </span>
                   </h5>
-                  <div style={{ maxHeight: 180, overflowY: "auto" }}>
-                    {holidays.sort((a, b) => new Date(a.date) - new Date(b.date)).map(h => (
-                     <div
-  key={h.date}
-  className="d-flex justify-content-between align-items-center p-2 mb-2"
-  style={{
-    background: "#f8fafc",
-    borderRadius: "10px",
-    border: "1px solid #e5e7eb"
-  }}
->
-                       <span
-  style={{
-    fontSize: "0.9rem",
-    fontWeight: "600",
-    color: "#1e293b"
-  }}
->
-                        <i
-  className="bi bi-calendar-event me-2"
-  style={{
-    color: "#2563eb",
-    fontSize: "0.9rem"
-  }}
-/>
-                          {h.name}
-                        </span>
-                        <small style={{ color: "var(--gray-400)" }}>
-                          {new Date(h.date).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        </small>
-                      </div>
-                    ))}
+                  <div
+                    style={{
+                      maxHeight: "360px",
+                      overflowY: "scroll",
+                      overflowX: "hidden",
+                      paddingRight: "6px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
+                    {(() => {
+                      const sorted = [...upcomingHolidays];
+                      const today = new Date(); today.setHours(0, 0, 0, 0);
+                      const nextIdx = sorted.findIndex(h => new Date(h.date) >= today);
+                      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                      return sorted.slice(0, 5).map((h, idx) => {
+                        const d = new Date(h.date);
+                        const isNext = idx === nextIdx;
+                        const month = months[d.getMonth()];
+                        const day = d.getDate();
+                        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+                        return (
+                          <div key={h.date}
+                            style={{
+                              display: "flex", alignItems: "center", gap: "14px",
+                              padding: "12px 14px",
+                              background: isNext ? "#fffbeb" : "#fff",
+                              borderRadius: "14px",
+                              border: isNext ? "1.5px solid #f59e0b" : "1px solid #e5e7eb",
+                              transition: "all 0.25s ease",
+                              cursor: "default",
+                              position: "relative",
+                              overflow: "hidden",
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.transform = "translateX(4px)" }}
+                            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateX(0)" }}>
+                            <div style={{
+                              display: "flex", flexDirection: "column", alignItems: "center",
+                              minWidth: "50px", padding: "6px 0",
+                              background: isNext ? "#f59e0b" : "#f1f5f9",
+                              borderRadius: "10px",
+                              color: isNext ? "#fff" : "#475569",
+                              flexShrink: 0,
+                            }}>
+                              <span style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", lineHeight: 1 }}>{month}</span>
+                              <span style={{ fontSize: "1.25rem", fontWeight: 800, lineHeight: 1.2 }}>{day}</span>
+                              <span style={{ fontSize: "0.55rem", fontWeight: 600, textTransform: "uppercase", lineHeight: 1 }}>{dayName}</span>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e293b", marginBottom: "2px" }}>{h.name}</div>
+                              <small style={{ color: "#94a3b8", fontSize: "0.72rem" }}>
+                                <i className="bi bi-calendar3 me-1" style={{ fontSize: "0.65rem" }} />
+                                {d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                              </small>
+                            </div>
+                            {isNext && (
+                              <span style={{
+                                background: "#f59e0b", color: "#fff",
+                                fontSize: "0.58rem", fontWeight: 700,
+                                padding: "3px 10px", borderRadius: "20px",
+                                textTransform: "uppercase", letterSpacing: "0.5px",
+                                position: "absolute", top: "-6px", right: "10px",
+                                boxShadow: "0 2px 6px rgba(245,158,11,0.4)",
+                              }}>
+                                <i className="bi bi-arrow-up me-1" style={{ fontSize: "0.55rem" }} />Next
+                              </span>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showAllHolidays && (
+            <div className="modal-overlay" onClick={() => setShowAllHolidays(false)}>
+              <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "600px" }}>
+                <button className="modal-close-btn" onClick={() => setShowAllHolidays(false)}>
+                  <i className="bi bi-x-lg" />
+                </button>
+                <div className="text-center mb-4">
+                  <div className="modal-icon">
+                    <i className="bi bi-calendar-event" style={{ color: "var(--warning)" }} />
+                  </div>
+                  <h4 className="modal-title">Public Holidays</h4>
+                  <p className="modal-subtitle">All public holidays for the year</p>
+                </div>
+                <div style={{ maxHeight: "420px", overflowY: "auto", paddingRight: "4px" }}>
+                  {(() => {
+                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    const sorted = [...upcomingHolidays];
+                    const today = new Date(); today.setHours(0, 0, 0, 0);
+                    const nextIdx = sorted.findIndex(h => new Date(h.date) >= today);
+                    return sorted.map((h, idx) => {
+                      const d = new Date(h.date);
+                      const isNext = idx === nextIdx;
+                      const month = months[d.getMonth()];
+                      const day = d.getDate();
+                      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+                      return (
+                        <div key={h.date}
+                          style={{
+                            display: "flex", alignItems: "center", gap: "14px",
+                            padding: "12px 14px",
+                            background: isNext ? "#fffbeb" : "#fff",
+                            borderRadius: "14px",
+                            border: isNext ? "1.5px solid #f59e0b" : "1px solid #e5e7eb",
+                            marginBottom: "8px",
+                            position: "relative",
+                            overflow: "hidden",
+                          }}>
+                          <div style={{
+                            display: "flex", flexDirection: "column", alignItems: "center",
+                            minWidth: "50px", padding: "6px 0",
+                            background: isNext ? "#f59e0b" : "#f1f5f9",
+                            borderRadius: "10px",
+                            color: isNext ? "#fff" : "#475569",
+                            flexShrink: 0,
+                          }}>
+                            <span style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", lineHeight: 1 }}>{month}</span>
+                            <span style={{ fontSize: "1.25rem", fontWeight: 800, lineHeight: 1.2 }}>{day}</span>
+                            <span style={{ fontSize: "0.55rem", fontWeight: 600, textTransform: "uppercase", lineHeight: 1 }}>{dayName}</span>
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e293b", marginBottom: "2px" }}>{h.name}</div>
+                            <small style={{ color: "#94a3b8", fontSize: "0.72rem" }}>
+                              <i className="bi bi-calendar3 me-1" style={{ fontSize: "0.65rem" }} />
+                              {d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                            </small>
+                          </div>
+                          {isNext && (
+                            <span style={{
+                              background: "#f59e0b", color: "#fff",
+                              fontSize: "0.58rem", fontWeight: 700,
+                              padding: "3px 10px", borderRadius: "20px",
+                              textTransform: "uppercase", letterSpacing: "0.5px",
+                              position: "absolute", top: "-6px", right: "10px",
+                              boxShadow: "0 2px 6px rgba(245,158,11,0.4)",
+                            }}>
+                              <i className="bi bi-arrow-up me-1" style={{ fontSize: "0.55rem" }} />Next
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
+                  })()}
                 </div>
               </div>
             </div>

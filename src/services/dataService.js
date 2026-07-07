@@ -127,13 +127,12 @@ const seedExpenses = [
 const seedHolidays = [
   { date: '2026-01-26', name: 'Republic Day' },
   { date: '2026-03-29', name: 'Holi' },
-  { date: '2026-04-14', name: 'Ambedkar Jayanti' },
   { date: '2026-05-01', name: 'Labor Day' },
-  { date: '2026-08-15', name: 'Independence Day' },
   { date: '2026-10-02', name: 'Gandhi Jayanti' },
   { date: '2026-10-22', name: 'Dussehra' },
   { date: '2026-11-12', name: 'Diwali' },
   { date: '2026-11-15', name: 'Diwali Holiday' },
+  { date: '2026-09-14', name: 'Ganesh Chathurdasi' },
   { date: '2026-12-25', name: 'Christmas' },
 ];
 
