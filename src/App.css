@@ -1,0 +1,275 @@
+/* ================= Base ================= */
+
+.page-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #bfdbfe 100%);
+}
+
+/* ================= Home Page ================= */
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ================= Login Page ================= */
+
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 500px;
+  max-width: 94%;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  padding: 40px 36px;
+}
+
+.login-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.login-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.login-subtitle {
+  color: #94a3b8;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* ================= Header ================= */
+
+.header {
+  position: sticky;
+  top: 0;
+
+  width: 100%;
+  padding: 18px 60px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(10px);
+
+  box-shadow: 0 2px 15px rgba(0,0,0,.08);
+
+  z-index: 1000;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo i {
+  font-size: 34px;
+  color: #2563eb;
+}
+
+.logo span {
+  font-size: 28px;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+/* ================= Hero ================= */
+
+.home-content {
+  text-align: center;
+  margin-top: 120px;
+  margin-bottom: 100px;
+  max-width: 800px;
+}
+.home-content h1 {
+  font-size: 48px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.home-content p {
+  margin-top: 20px;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+/* ================= Feature Cards ================= */
+
+.feature-card {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  transition: .3s;
+  height: 100%;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+}
+
+.feature-card i {
+  font-size: 34px;
+  color: #2563eb;
+  margin-bottom: 15px;
+}
+
+.feature-card h5 {
+  margin-bottom: 10px;
+}
+
+.feature-card p {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* ================= Popup ================= */
+
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.45);
+  backdrop-filter: blur(6px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 999;
+}
+
+.popup-box {
+  position: relative;
+
+  width: 620px;
+  max-width: 90%;
+
+  background: white;
+
+  border-radius: 18px;
+
+  padding: 30px;
+
+  box-shadow: 0 25px 60px rgba(0,0,0,.18);
+
+  animation: popup .25s ease;
+}
+
+/* ================= Role Card ================= */
+
+.role-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 14px;
+
+  padding: 16px 20px;
+
+  margin-bottom: 16px;
+
+  transition: .3s;
+}
+
+.role-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(0,0,0,.08);
+}
+
+.role-icon {
+  width: 52px;
+  height: 52px;
+
+  border-radius: 14px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  font-size: 22px;
+}
+
+/* ================= Close Button ================= */
+
+.close-btn {
+  position: absolute;
+
+  top: 18px;
+  right: 18px;
+
+  background: none;
+  border: none;
+
+  font-size: 22px;
+
+  cursor: pointer;
+
+  color: #64748b;
+}
+
+.close-btn:hover {
+  color: #2563eb;
+}
+
+/* ================= Animation ================= */
+
+@keyframes popup {
+
+  from {
+    transform: scale(.92);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+}
+
+/* ================= Navigation ================= */
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #475569;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.nav-links a:hover {
+  color: #2563eb;
+  transform: translateY(-2px);
+}
