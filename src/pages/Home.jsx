@@ -114,29 +114,7 @@ function Home() {
           expenses, documents and approvals from one place.
         </p>
 
-        <div className="mt-4">
 
-          <button
-          className="btn btn-primary me-3 px-4 py-2"
-          onClick={() => setShowWelcome(true)}
-          > 
-            Get Started
-         </button>
-
-          <button
-          className="btn btn-outline-primary px-4 py-2"
-          onClick={() =>
-          document
-          .getElementById("about")
-          ?.scrollIntoView({
-           behavior: "smooth",
-          })
-        }
-      >
-             Learn More
-      </button>
-
-        </div>
 
       </div>
 
