@@ -121,7 +121,7 @@ function ManagerDashboard() {
               { label: "Expense Claims", value: allExpenses.length, icon: "bi-wallet2", color: "#8b5cf6", bg: "#f5f3ff" },
             ].map((s) => (
               <div key={s.label} className="col-xl-3 col-md-6">
-                <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: s.bg }}>
+                <div className="stat-card card-dashboard h-100 d-flex align-items-center gap-3" style={{ background: s.bg }}>
                   <div className="stat-icon" style={{ background: s.color, width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
                     <i className={`bi ${s.icon}`} />
                   </div>
@@ -135,8 +135,8 @@ function ManagerDashboard() {
           </div>
 
           <div className="row g-4">
-            <div className="col-lg-7">
-              <div className="card-dashboard p-4">
+            <div className="col-lg-6">
+              <div className="card-dashboard p-4 h-100">
                 <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
                   <i className="bi bi-hourglass-split me-2" style={{ color: "var(--warning)" }} />
                   Pending Approvals
@@ -213,7 +213,7 @@ function ManagerDashboard() {
               </div>
             </div>
 
-            <div className="col-lg-5">
+            <div className="col-lg-6 d-flex flex-column gap-4">
               <div className="card-dashboard p-4">
                 <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
                   <i className="bi bi-people me-2" style={{ color: "var(--primary)" }} />
@@ -248,14 +248,9 @@ function ManagerDashboard() {
                     </tbody>
                   </table>
                 </div>
-                <div className="mt-3 d-flex gap-2">
-                  <button className="btn-custom-primary d-flex align-items-center gap-1" onClick={() => navigate("/employees")}>
-                    <i className="bi bi-person-plus" /> Manage Team
-                  </button>
-                </div>
               </div>
 
-              <div className="card-dashboard p-4 mt-4">
+              <div className="card-dashboard p-4">
                 <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
                   <i className="bi bi-graph-up me-2" style={{ color: "var(--success)" }} />
                   Request Summary
