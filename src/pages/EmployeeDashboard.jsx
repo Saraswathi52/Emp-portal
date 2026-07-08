@@ -154,143 +154,68 @@ function EmployeeDashboard() {
 
           <div className="row g-3 mb-4">
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: "#eff6ff" }}>
-                <div className="stat-icon" style={{ background: "#3b82f6", width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
+              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#eff6ff", padding: "1rem" }}>
+                <div className="stat-icon" style={{ background: "#3b82f6", width: 38, height: 38, fontSize: "1rem", margin: 0 }}>
                   <i className="bi bi-calendar-check" />
                 </div>
                 <div>
-                  <div className="stat-label">Attendance</div>
-                  <div className="stat-value" style={{ color: "#3b82f6", fontSize: "1.5rem" }}>{attendancePct}%</div>
-                  <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{presentDays}/{totalDays} days</small>
+                  <div className="stat-label" style={{ fontSize: "0.7rem" }}>Attendance</div>
+                  <div className="stat-value" style={{ color: "#3b82f6", fontSize: "1.25rem" }}>{attendancePct}%</div>
+                  <small style={{ color: "var(--gray-400)", fontSize: "0.65rem" }}>{presentDays}/{totalDays} days</small>
                 </div>
               </div>
             </div>
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: "#ecfdf5", position: "relative", overflow: "hidden" }}>
-                <div className="stat-icon" style={{ background: "#10b981", width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
+              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#ecfdf5", position: "relative", overflow: "hidden", padding: "1rem" }}>
+                <div className="stat-icon" style={{ background: "#10b981", width: 38, height: 38, fontSize: "1rem", margin: 0 }}>
                   <i className="bi bi-piggy-bank" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div className="stat-label">Leave Balance</div>
-                  <div className="stat-value d-flex align-items-baseline gap-1" style={{ color: "#10b981", fontSize: "1.5rem" }}>
+                  <div className="stat-label" style={{ fontSize: "0.7rem" }}>Leave Balance</div>
+                  <div className="stat-value d-flex align-items-baseline gap-1" style={{ color: "#10b981", fontSize: "1.25rem" }}>
                     {(leaveBal.annual - leaveBal.annualUsed) + (leaveBal.sick - leaveBal.sickUsed) + (leaveBal.personal - leaveBal.personalUsed)}
-                    <span style={{ fontSize: "0.65rem", color: "var(--gray-400)", fontWeight: 400 }}>remaining</span>
+                    <span style={{ fontSize: "0.6rem", color: "var(--gray-400)", fontWeight: 400 }}>remaining</span>
                   </div>
-                  <div className="progress" style={{ height: "3px", borderRadius: "10px", background: "#d1fae5", marginTop: "6px", marginBottom: "4px" }}>
+                  <div className="progress" style={{ height: "3px", borderRadius: "10px", background: "#d1fae5", marginTop: "4px", marginBottom: "4px" }}>
                     <div className="progress-bar" style={{ width: `${((leaveBal.annualUsed + leaveBal.sickUsed + leaveBal.personalUsed) / (leaveBal.annual + leaveBal.sick + leaveBal.personal) * 100)}%`, background: "#10b981", borderRadius: "10px" }} />
                   </div>
-                  <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{leaveBal.annual - leaveBal.annualUsed} Annual | {leaveBal.sick - leaveBal.sickUsed} Sick | {leaveBal.personal - leaveBal.personalUsed} Personal</small>
+                  <small style={{ color: "var(--gray-400)", fontSize: "0.65rem" }}>{leaveBal.annual - leaveBal.annualUsed} Ann | {leaveBal.sick - leaveBal.sickUsed} Sic | {leaveBal.personal - leaveBal.personalUsed} Per</small>
                 </div>
               </div>
             </div>
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: "#fffbeb" }}>
-                <div className="stat-icon" style={{ background: "#f59e0b", width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
+              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#fffbeb", padding: "1rem" }}>
+                <div className="stat-icon" style={{ background: "#f59e0b", width: 38, height: 38, fontSize: "1rem", margin: 0 }}>
                   <i className="bi bi-clock" />
                 </div>
                 <div>
-                  <div className="stat-label">Pending Leaves</div>
-                  <div className="stat-value" style={{ color: "#f59e0b", fontSize: "1.5rem" }}>{pendingLeaves}</div>
-                  <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{approvedLeaves} approved</small>
+                  <div className="stat-label" style={{ fontSize: "0.7rem" }}>Pending Leaves</div>
+                  <div className="stat-value" style={{ color: "#f59e0b", fontSize: "1.25rem" }}>{pendingLeaves}</div>
+                  <small style={{ color: "var(--gray-400)", fontSize: "0.65rem" }}>{approvedLeaves} approved</small>
                 </div>
               </div>
             </div>
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: "#f5f3ff", position: "relative", overflow: "hidden" }}>
-                <div className="stat-icon" style={{ background: "#8b5cf6", width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
+              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#f5f3ff", position: "relative", overflow: "hidden", padding: "1rem" }}>
+                <div className="stat-icon" style={{ background: "#8b5cf6", width: 38, height: 38, fontSize: "1rem", margin: 0 }}>
                   <i className="bi bi-house-door" />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div className="stat-label">WFH Balance</div>
-                  <div className="stat-value d-flex align-items-baseline gap-1" style={{ color: "#8b5cf6", fontSize: "1.5rem" }}>
+                  <div className="stat-label" style={{ fontSize: "0.7rem" }}>WFH Balance</div>
+                  <div className="stat-value d-flex align-items-baseline gap-1" style={{ color: "#8b5cf6", fontSize: "1.25rem" }}>
                     {leaveBal.wfh - leaveBal.wfhUsed}
-                    <span style={{ fontSize: "0.65rem", color: "var(--gray-400)", fontWeight: 400 }}>remaining</span>
+                    <span style={{ fontSize: "0.6rem", color: "var(--gray-400)", fontWeight: 400 }}>remaining</span>
                   </div>
-                  <div className="progress" style={{ height: "3px", borderRadius: "10px", background: "#ede9fe", marginTop: "6px", marginBottom: "4px" }}>
+                  <div className="progress" style={{ height: "3px", borderRadius: "10px", background: "#ede9fe", marginTop: "4px", marginBottom: "4px" }}>
                     <div className="progress-bar" style={{ width: `${(leaveBal.wfhUsed / leaveBal.wfh * 100)}%`, background: "#8b5cf6", borderRadius: "10px" }} />
                   </div>
-                  <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{leaveBal.wfhUsed} used of {leaveBal.wfh}</small>
+                  <small style={{ color: "var(--gray-400)", fontSize: "0.65rem" }}>{leaveBal.wfhUsed} used of {leaveBal.wfh}</small>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="row g-4">
-            <div className="col-lg-7">
-              <div className="card-dashboard p-4 h-100">
-                <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
-                  <i className="bi bi-bar-chart me-2" style={{ color: "var(--primary)" }} />
-                  Overall Employee Overview
-                </h5>
-                <div className="row g-3">
-                  {[
-                    { label: 'Working Days (Last 7)', value: `${presentDays}/${totalDays}`, icon: 'bi-check-circle', color: '#10b981', bg: '#ecfdf5' },
-                    { label: 'Leaves Taken', value: leaveBal.annualUsed + leaveBal.sickUsed + leaveBal.personalUsed, icon: 'bi-calendar-x', color: '#f59e0b', bg: '#fffbeb' },
-                    { label: 'WFH Days Used', value: leaveBal.wfhUsed, icon: 'bi-house-door', color: '#8b5cf6', bg: '#f5f3ff' },
-                    { label: 'Upcoming Holidays', value: upcomingHolidays.length, icon: 'bi-star', color: '#3b82f6', bg: '#eff6ff' },
-                  ].map((s) => (
-                    <div key={s.label} className="col-sm-6">
-                      <div className="d-flex align-items-center gap-3 p-3" style={{ background: s.bg, borderRadius: "var(--radius-sm)" }}>
-                        <div style={{ width: 40, height: 40, borderRadius: "10px", background: s.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", flexShrink: 0 }}>
-                          <i className={`bi ${s.icon}`} />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: "0.7rem", color: "var(--gray-500)", fontWeight: 600, textTransform: "uppercase" }}>{s.label}</div>
-                          <div className="fw-bold" style={{ fontSize: "1.1rem", color: s.color }}>{s.value}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {upcomingHolidays.length > 0 && (
-                  <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--gray-100)" }}>
-                    <small className="fw-semibold" style={{ color: "var(--gray-600)" }}>Upcoming Holidays:</small>
-                    {upcomingHolidays.map(h => (
-                      <div key={h.date} className="d-flex justify-content-between align-items-center mt-1" style={{ fontSize: "0.82rem" }}>
-                        <span style={{ color: "var(--gray-600)" }}>{h.name}</span>
-                        <small style={{ color: "var(--gray-400)" }}>{new Date(h.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</small>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="col-lg-5">
-              <div className="card-dashboard p-4 h-100">
-                <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
-                  <i className="bi bi-activity me-2" style={{ color: "var(--primary)" }} />
-                  Recent Leave Activity
-                </h5>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {leaveReqs.slice(-4).reverse().map((l) => {
-                    const statusColor = l.status === 'Approved' ? 'var(--success)' : l.status === 'Rejected' ? 'var(--danger)' : 'var(--warning)';
-                    return (
-                      <div key={l.leaveId} className="d-flex align-items-start gap-3 p-2" style={{ borderBottom: "1px solid var(--gray-100)" }}>
-                        <div style={{ width: 10, height: 10, borderRadius: "50%", background: statusColor, marginTop: 6, flexShrink: 0 }} />
-                        <div>
-                          <div style={{ fontSize: "0.85rem", color: "var(--gray-700)" }}>
-                            {l.leaveType} {l.wfh ? '(WFH)' : l.halfDay ? '(Half Day)' : ''} — {l.startDate === l.endDate ? l.startDate : `${l.startDate} to ${l.endDate}`}
-                          </div>
-                          <small style={{ color: "var(--gray-400)" }}>{l.reason} | <span style={{ color: statusColor }}>{l.status}</span></small>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {leaveReqs.length === 0 && (
-                    <div className="text-center py-4" style={{ color: "var(--gray-400)" }}>
-                      <i className="bi bi-inbox" style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }} />
-                      No leave activity
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3">
-                  <button className="btn-custom-outline w-100 d-flex align-items-center justify-content-center gap-2" onClick={() => navigate("/leave")}>
-                    <i className="bi bi-calendar-check" /> View All Leaves
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

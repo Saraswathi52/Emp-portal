@@ -54,10 +54,10 @@ function Sidebar({ role = "employee", onClose, isOpen = false }) {
               fontSize: "1.2rem",
             }}
           >
-            <i className="bi bi-buildings" />
+            <i className="bi bi-people-fill" />
           </div>
           <div>
-            <div className="fw-bold text-white" style={{ fontSize: "1rem" }}>SHAHO</div>
+            <div className="fw-bold text-white" style={{ fontSize: "1rem" }}>PeopleCore</div>
             <div style={{ fontSize: "0.7rem", color: "var(--gray-400)", marginTop: "-2px" }}>{roleLabel} Panel</div>
           </div>
           <button className="btn d-lg-none text-white ms-auto p-0" onClick={onClose}>

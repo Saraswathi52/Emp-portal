@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 
@@ -45,8 +45,8 @@ function Home() {
       <nav className="header">
 
   <div className="logo">
-    <i className="bi bi-buildings"></i>
-    <span>SHAHO</span>
+    <i className="bi bi-people-fill"></i>
+    <span>PeopleCore</span>
   </div>
 
   <div className="nav-links">
@@ -88,8 +88,8 @@ function Home() {
 
       <div className="hero-section">
         <div className="hero-badge">
-          <i className="bi bi-buildings me-2"></i>
-          Welcome to SHAHO
+          <i className="bi bi-people-fill me-2"></i>
+          Welcome to PeopleCore
         </div>
 
         <h1 className="hero-title">
@@ -142,7 +142,7 @@ function Home() {
       <div className="text-center">
 
         <i
-          className="bi bi-buildings"
+          className="bi bi-people-fill"
           style={{
             fontSize: "60px",
             color: "#2563eb",
@@ -150,7 +150,7 @@ function Home() {
         ></i>
 
         <h2 className="mt-3 fw-bold">
-          Welcome to SHAHO
+          Welcome to PeopleCore
         </h2>
 
         <p className="text-muted">
@@ -166,7 +166,7 @@ function Home() {
 </h5>
 
 <p className="text-muted">
-  Welcome! If you're accessing SHAHO for the first time,
+  Welcome! If you're accessing PeopleCore for the first time,
   follow these steps:
 </p>
 
@@ -224,13 +224,14 @@ function Home() {
   <div className="text-center mb-5">
 
     <h2 className="fw-bold">
-      About SHAHO
+      About PeopleCore
     </h2>
-    <p
-      className="text-muted mx-auto"
-      style={{ maxWidth: "800px", lineHeight: "1.8" }}    
-    >
-    SHAHO centralizes leave, expenses, records, and documents into a single professional platform — empowering employees, managers, and admins to work faster and smarter.
+    <div style={{
+      width: "60px", height: "4px", background: "var(--primary)",
+      borderRadius: "2px", margin: "0 auto 1.5rem"
+    }} />
+    <p style={{ color: "var(--gray-600)", fontSize: "1.1rem", maxWidth: "700px", margin: "0 auto", lineHeight: "1.7" }}>
+    PeopleCore centralizes leave, expenses, records, and documents into a single professional platform — empowering employees, managers, and admins to work faster and smarter.
     </p>
 
   </div>
@@ -239,7 +240,7 @@ function Home() {
 
   <div className="text-center mb-5">
     <h2 className="fw-bold">
-      Why Choose SHAHO?
+      Why Choose PeopleCore?
     </h2>
 
     <p className="text-muted">
@@ -281,8 +282,8 @@ function Home() {
 
       <div className="col-md-4 mb-4">
         <h4 className="fw-bold">
-          <i className="bi bi-buildings me-2"></i>
-          SHAHO
+          <i className="bi bi-people-fill me-2"></i>
+          PeopleCore
         </h4>
 
         <p style={{ color: "#cbd5e1" }}>
@@ -331,7 +332,7 @@ function Home() {
 
         <p>
           <i className="bi bi-envelope-fill me-2"></i>
-          support@shaho.com
+          support@peoplecore.com
         </p>
 
         <p>
@@ -347,7 +348,7 @@ function Home() {
 
     <div className="text-center">
 
-      Ac 2026 SHAHO Employee Management Portal
+      Ac 2026 PeopleCore Employee Management Portal
 
       <br />
 

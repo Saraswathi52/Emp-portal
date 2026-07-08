@@ -1,24 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+import { getCurrentUser, getAllDocuments, getDocuments, addDocument, deleteDocument, getNextDocId } from "../services/dataService";
 
 function DocumentManagement() {
-  const [role] = useState(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored).role.toLowerCase() : "employee";
-  });
+  const currentUser = getCurrentUser() || {};
+  const [role] = useState(() => currentUser.role?.toLowerCase() || "employee");
+  const isManagerOrAdmin = role === 'manager' || role === 'admin';
+  const currentEmpId = currentUser.employeeId || "";
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
-  const [documents, setDocuments] = useState([
-    { id: "DOC001", employeeId: "EMP1001", type: "Resume", fileName: "resume.pdf", status: "Uploaded", size: "1.2 MB" },
-    { id: "DOC002", employeeId: "EMP1002", type: "ID Proof", fileName: "aadhar.pdf", status: "Uploaded", size: "0.8 MB" },
-    { id: "DOC003", employeeId: "EMP1003", type: "Certification", fileName: "certificate.pdf", status: "Uploaded", size: "2.1 MB" },
-  ]);
+  const [documents, setDocuments] = useState([]);
+
+  useEffect(() => {
+    if (isManagerOrAdmin) {
+      setDocuments(getAllDocuments());
+    } else {
+      setDocuments(getDocuments(currentEmpId));
+    }
+  }, [isManagerOrAdmin, currentEmpId]);
 
   const [documentId, setDocumentId] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [documentType, setDocumentType] = useState("");
+  const [otherDescription, setOtherDescription] = useState("");
   const [fileName, setFileName] = useState("");
   const [fileSize, setFileSize] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,6 +34,27 @@ function DocumentManagement() {
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState(null);
   const perPage = 5;
+
+  const openForm = () => {
+    setDocumentId(getNextDocId());
+    setEmployeeId(currentEmpId);
+    setDocumentType("");
+    setOtherDescription("");
+    setFileName("");
+    setFileSize("");
+    setShowForm(true);
+    setErrors({});
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFileName(file.name);
+      const sizeInMB = (file.size / (1024 * 1024)).toFixed(1);
+      setFileSize(sizeInMB >= 0.1 ? `${sizeInMB} MB` : `${Math.round(file.size / 1024)} KB`);
+      setErrors({ ...errors, fileName: false });
+    }
+  };
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -38,6 +66,7 @@ function DocumentManagement() {
     if (!documentId.trim()) newErrors.documentId = true;
     if (!employeeId.trim()) newErrors.employeeId = true;
     if (!documentType.trim()) newErrors.documentType = true;
+    if (documentType === 'Other' && !otherDescription.trim()) newErrors.otherDescription = true;
     if (!fileName.trim()) newErrors.fileName = true;
 
     if (Object.keys(newErrors).length > 0) {
@@ -45,22 +74,26 @@ function DocumentManagement() {
       return;
     }
 
-    setDocuments([...documents, {
+    const newDoc = {
       id: documentId.trim(),
       employeeId: employeeId.trim(),
-      type: documentType.trim(),
+      type: documentType === 'Other' && otherDescription.trim() ? `Other: ${otherDescription.trim()}` : documentType.trim(),
       fileName: fileName.trim(),
       status: "Uploaded",
       size: fileSize || "—",
-    }]);
+    };
 
-    setDocumentId(""); setEmployeeId(""); setDocumentType(""); setFileName(""); setFileSize("");
+    addDocument(newDoc);
+    setDocuments(isManagerOrAdmin ? getAllDocuments() : getDocuments(currentEmpId));
+
+    setDocumentId(""); setEmployeeId(""); setDocumentType(""); setOtherDescription(""); setFileName(""); setFileSize("");
     setErrors({}); setShowForm(false); setCurrentPage(1);
     showToast("Document uploaded successfully!");
   };
 
   const handleDelete = (id) => {
-    setDocuments(documents.filter(d => d.id !== id));
+    deleteDocument(id);
+    setDocuments(isManagerOrAdmin ? getAllDocuments() : getDocuments(currentEmpId));
     showToast("Document deleted", "warning");
   };
 
@@ -96,7 +129,7 @@ function DocumentManagement() {
               <h4>Document Management</h4>
               <p>{documents.length} documents uploaded</p>
             </div>
-            <button className={`btn-custom-${showForm ? "danger" : "primary"} d-flex align-items-center gap-2`} onClick={() => { setShowForm(!showForm); setErrors({}); }}>
+            <button className={`btn-custom-${showForm ? "danger" : "primary"} d-flex align-items-center gap-2`} onClick={() => showForm ? setShowForm(false) : openForm()}>
               <i className={`bi ${showForm ? "bi-x-lg" : "bi-upload"}`} />
               {showForm ? "Cancel" : "Upload Document"}
             </button>
@@ -111,11 +144,11 @@ function DocumentManagement() {
               <div className="row g-3 form-custom">
                 <div className="col-md-3">
                   <label className="form-label">Document ID</label>
-                  <input type="text" className={`form-control ${errors.documentId ? "is-invalid" : ""}`} placeholder="DOC004" value={documentId} onChange={(e) => { setDocumentId(e.target.value); setErrors({ ...errors, documentId: false }); }} />
+                  <input type="text" className="form-control bg-light" value={documentId} readOnly />
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Employee ID</label>
-                  <input type="text" className={`form-control ${errors.employeeId ? "is-invalid" : ""}`} placeholder="EMP1001" value={employeeId} onChange={(e) => { setEmployeeId(e.target.value); setErrors({ ...errors, employeeId: false }); }} />
+                  <input type="text" className="form-control bg-light" value={employeeId} readOnly />
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Document Type</label>
@@ -128,15 +161,33 @@ function DocumentManagement() {
                     <option value="Other">Other</option>
                   </select>
                 </div>
-                <div className="col-md-3">
-                  <label className="form-label">File Name</label>
-                  <input type="text" className={`form-control ${errors.fileName ? "is-invalid" : ""}`} placeholder="document.pdf" value={fileName} onChange={(e) => { setFileName(e.target.value); setErrors({ ...errors, fileName: false }); }} />
+                {documentType === 'Other' && (
+                  <div className="col-md-3">
+                    <label className="form-label">Description for Others</label>
+                    <input type="text" className={`form-control ${errors.otherDescription ? "is-invalid" : ""}`} placeholder="Specify document type..." value={otherDescription} onChange={(e) => { setOtherDescription(e.target.value); setErrors({ ...errors, otherDescription: false }); }} />
+                  </div>
+                )}
+                <div className="col-md-6">
+                  <label className="form-label">Upload File</label>
+                  <div className="d-flex align-items-center gap-3">
+                    <label className={`btn-custom-outline d-flex align-items-center justify-content-center gap-2 m-0 ${errors.fileName ? "border-danger text-danger" : ""}`} style={{ cursor: "pointer", padding: "0.35rem 1rem" }}>
+                      <i className="bi bi-paperclip" /> Select File
+                      <input type="file" onChange={handleFileUpload} style={{ display: 'none' }} />
+                    </label>
+                    <div style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {fileName ? (
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="fw-semibold" style={{ fontSize: "0.9rem", color: "var(--gray-800)" }}>{fileName}</span>
+                          <span style={{ fontSize: "0.8rem", color: "var(--gray-500)" }}>({fileSize})</span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: "0.85rem", color: "var(--gray-400)" }}>No file selected</span>
+                      )}
+                    </div>
+                  </div>
+                  {errors.fileName && <small className="text-danger mt-1 d-block">Please select a file.</small>}
                 </div>
-                <div className="col-md-3">
-                  <label className="form-label">File Size (optional)</label>
-                  <input type="text" className="form-control" placeholder="1.2 MB" value={fileSize} onChange={(e) => setFileSize(e.target.value)} />
-                </div>
-                <div className="col-md-9 d-flex align-items-end">
+                <div className="col-md-12 d-flex justify-content-end mt-4">
                   <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={handleUpload}>
                     <i className="bi bi-cloud-upload" /> Upload Document
                   </button>

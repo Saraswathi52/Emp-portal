@@ -1,11 +1,12 @@
 const KEYS = {
-  EMPLOYEES: 'shaho_employees',
-  ATTENDANCE: 'shaho_attendance',
-  LEAVE_BALANCES: 'shaho_leave_balances',
-  LEAVE_REQUESTS: 'shaho_leave_requests',
-  EXPENSES: 'shaho_expenses',
-  HOLIDAYS: 'shaho_holidays',
-  PROFILE: 'shaho_profile',
+  EMPLOYEES: 'peoplecore_employees',
+  ATTENDANCE: 'peoplecore_attendance',
+  LEAVE_BALANCES: 'peoplecore_leave_balances',
+  LEAVE_REQUESTS: 'peoplecore_leave_requests',
+  EXPENSES: 'peoplecore_expenses',
+  HOLIDAYS: 'peoplecore_holidays',
+  PROFILE: 'peoplecore_profile',
+  DOCUMENTS: 'peoplecore_documents',
 };
 
 const seedEmployees = [
@@ -136,6 +137,12 @@ const seedHolidays = [
   { date: '2026-12-25', name: 'Christmas' },
 ];
 
+const seedDocuments = [
+  { id: "DOC-2026-0001", employeeId: "EMP001", type: "Resume", fileName: "resume.pdf", status: "Uploaded", size: "1.2 MB" },
+  { id: "DOC-2026-0002", employeeId: "EMP002", type: "ID Proof", fileName: "aadhar.pdf", status: "Uploaded", size: "0.8 MB" },
+  { id: "DOC-2026-0003", employeeId: "EMP003", type: "Certification", fileName: "certificate.pdf", status: "Uploaded", size: "2.1 MB" },
+];
+
 function init() {
   if (!localStorage.getItem(KEYS.EMPLOYEES)) {
     localStorage.setItem(KEYS.EMPLOYEES, JSON.stringify(seedEmployees));
@@ -154,6 +161,9 @@ function init() {
   }
   if (!localStorage.getItem(KEYS.HOLIDAYS)) {
     localStorage.setItem(KEYS.HOLIDAYS, JSON.stringify(seedHolidays));
+  }
+  if (!localStorage.getItem(KEYS.DOCUMENTS)) {
+    localStorage.setItem(KEYS.DOCUMENTS, JSON.stringify(seedDocuments));
   }
 }
 
@@ -283,4 +293,41 @@ export function getNextExpenseId() {
   const nums = all.map(e => parseInt(e.id.replace('EXP', '')) || 0);
   const max = nums.length > 0 ? Math.max(...nums) : 0;
   return `EXP${String(max + 1).padStart(3, '0')}`;
+}
+
+export function getAllDocuments() {
+  init();
+  return JSON.parse(localStorage.getItem(KEYS.DOCUMENTS) || '[]');
+}
+
+export function getDocuments(employeeId) {
+  const all = getAllDocuments();
+  return all.filter(d => d.employeeId === employeeId);
+}
+
+export function addDocument(doc) {
+  const all = getAllDocuments();
+  all.push(doc);
+  localStorage.setItem(KEYS.DOCUMENTS, JSON.stringify(all));
+  return doc;
+}
+
+export function deleteDocument(id) {
+  const all = getAllDocuments();
+  const filtered = all.filter(d => d.id !== id);
+  localStorage.setItem(KEYS.DOCUMENTS, JSON.stringify(filtered));
+}
+
+export function getNextDocId() {
+  const all = getAllDocuments();
+  const year = new Date().getFullYear();
+  const prefix = `DOC-${year}-`;
+  const nums = all.map(d => {
+    if (d.id.startsWith(prefix)) {
+      return parseInt(d.id.replace(prefix, '')) || 0;
+    }
+    return 0;
+  });
+  const max = nums.length > 0 ? Math.max(...nums) : 0;
+  return `${prefix}${String(max + 1).padStart(4, '0')}`;
 }

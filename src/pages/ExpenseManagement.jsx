@@ -212,7 +212,7 @@ function ExpenseManagement() {
                 <div className="col-md-4">
                   <label className="form-label">Amount (₹)</label>
                   <input type="number" className={`form-control ${errors.amount ? "is-invalid" : ""}`} placeholder="2500" value={amount}
-                    onChange={(e) => { setAmount(e.target.value); setErrors({ ...errors, amount: false }); }} min="0" step="0.01" />
+                    onChange={(e) => { setAmount(e.target.value); setErrors({ ...errors, amount: false }); }} min="0" step="1" />
                 </div>
                 <div className="col-md-4">
                   <label className="form-label">Date</label>
@@ -305,13 +305,13 @@ function ExpenseManagement() {
                     <th>Payment</th>
                     <th>Receipt</th>
                     <th>Status</th>
-                    <th className="text-center">Actions</th>
+                    {isManagerOrAdmin && <th className="text-center">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {paginated.length === 0 ? (
                     <tr>
-                      <td colSpan={isManagerOrAdmin ? 12 : 11} className="text-center py-4" style={{ color: "var(--gray-400)" }}>
+                      <td colSpan={isManagerOrAdmin ? 12 : 10} className="text-center py-4" style={{ color: "var(--gray-400)" }}>
                         <i className="bi bi-wallet2" style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }} />
                         No expenses found
                       </td>
@@ -338,37 +338,26 @@ function ExpenseManagement() {
                           )}
                         </td>
                         <td><span className={statusBadge(exp.status)}>{exp.status}</span></td>
-                        <td>
-                          <div className="action-btns justify-content-center">
-                            {isManagerOrAdmin && exp.status === "Pending" ? (
-                              <>
-                                <button className="btn-custom-success d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleApprove(exp.id)}>
-                                  <i className="bi bi-check-lg" />
-                                </button>
-                                <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleReject(exp.id)}>
-                                  <i className="bi bi-x-lg" />
-                                </button>
-                              </>
-                            ) : isManagerOrAdmin ? (
-                              <span style={{ color: "var(--gray-400)", fontSize: "0.8rem" }}>
-                                <i className={`bi ${exp.status === "Approved" ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger"} me-1`} />
-                              </span>
-                            ) : exp.status === "Pending" ? (
-                              <span style={{ color: "var(--gray-400)", fontSize: "0.85rem" }}>
-                                <i className="bi bi-hourglass-split me-1" /> Awaiting
-                              </span>
-                            ) : (
-                              <span style={{ color: "var(--gray-400)", fontSize: "0.85rem" }}>
-                                <i className={`bi ${exp.status === "Approved" ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger"} me-1`} />
-                              </span>
-                            )}
-                            {!isManagerOrAdmin && (
-                              <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.5rem", fontSize: "0.72rem" }} onClick={() => handleDelete(exp.id)}>
-                                <i className="bi bi-trash" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
+                        {isManagerOrAdmin && (
+                          <td>
+                            <div className="action-btns justify-content-center">
+                              {exp.status === "Pending" ? (
+                                <>
+                                  <button className="btn-custom-success d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleApprove(exp.id)}>
+                                    <i className="bi bi-check-lg" />
+                                  </button>
+                                  <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleReject(exp.id)}>
+                                    <i className="bi bi-x-lg" />
+                                  </button>
+                                </>
+                              ) : (
+                                <span style={{ color: "var(--gray-400)", fontSize: "0.8rem" }}>
+                                  <i className={`bi ${exp.status === "Approved" ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger"} me-1`} />
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}

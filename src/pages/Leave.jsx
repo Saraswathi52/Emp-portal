@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployee, getLeaveBalances, getLeaveRequests, getAllLeaveRequests, addLeaveRequest, updateLeaveStatus, getHolidays, getNextLeaveId } from "../services/dataService";
@@ -355,7 +355,7 @@ function Leave() {
                 </div>
               </div>
               <div className="col-lg-6 d-flex">
-                <div
+                  <div
                   className="card-dashboard p-4 flex-fill d-flex flex-column"
                   onClick={() => setShowAllHolidays(true)}
                   style={{
@@ -560,13 +560,13 @@ function Leave() {
                     <label className="form-label">From Date</label>
                     <input type="date" className={`form-control ${errors.startDate ? "is-invalid" : ""}`} value={startDate}
                       onChange={(e) => { setStartDate(e.target.value); setErrors({ ...errors, startDate: false }); }}
-                      onFocus={(e) => e.currentTarget.showPicker?.()} />
+                      onFocus={(e) => e.currentTarget.showPicker?.()} min={new Date().toISOString().split("T")[0]} />
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">To Date</label>
                     <input type="date" className={`form-control ${errors.endDate ? "is-invalid" : ""}`} value={endDate}
                       onChange={(e) => { setEndDate(e.target.value); setErrors({ ...errors, endDate: false }); }}
-                      onFocus={(e) => e.currentTarget.showPicker?.()} />
+                      onFocus={(e) => e.currentTarget.showPicker?.()} min={startDate || new Date().toISOString().split("T")[0]} />
                   </div>
                   <div className="col-12">
                     <label className="form-label">Reason</label>
@@ -577,13 +577,13 @@ function Leave() {
                     <div className="d-flex gap-4">
                       <div className="form-check">
                         <input className="form-check-input" type="checkbox" id="halfDay" checked={halfDay}
-                          onChange={(e) => setHalfDay(e.target.checked)} disabled={wfh} />
+                          onChange={(e) => setHalfDay(e.target.checked)} />
                         <label className="form-check-label" htmlFor="halfDay" style={{ fontSize: "0.88rem" }}>Half Day</label>
                       </div>
                       <div className="form-check">
-                        <input className="form-check-input" type="checkbox" id="wfh" checked={wfh}
-                          onChange={(e) => { setWfh(e.target.checked); if (e.target.checked) { setHalfDay(false); setLeaveType('WFH'); } }} />
-                        <label className="form-check-label" htmlFor="wfh" style={{ fontSize: "0.88rem" }}>Work From Home</label>
+                        <input className="form-check-input" type="checkbox" id="fullDay" checked={!halfDay}
+                          onChange={(e) => setHalfDay(!e.target.checked)} />
+                        <label className="form-check-label" htmlFor="fullDay" style={{ fontSize: "0.88rem" }}>Full Day</label>
                       </div>
                     </div>
                   </div>
@@ -632,7 +632,7 @@ function Leave() {
                         <th>To</th>
                         <th>Reason</th>
                         <th>Status</th>
-                        <th className="text-center">Actions</th>
+                        {isManagerOrAdmin && <th className="text-center">Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -659,29 +659,27 @@ function Leave() {
                             <td>{leave.endDate}</td>
                             <td>{leave.reason}</td>
                             <td><span className={statusBadge(leave.status)}>{leave.status}</span></td>
-                            <td>
-                              <div className="action-btns justify-content-center">
-                                {(isManagerOrAdmin || role === 'employee') && leave.status === "Pending" && isManagerOrAdmin ? (
-                                  <>
-                                    <button className="btn-custom-success d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleApprove(leave.leaveId)}>
-                                      <i className="bi bi-check-lg" /> Approve
-                                    </button>
-                                    <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleReject(leave.leaveId)}>
-                                      <i className="bi bi-x-lg" /> Reject
-                                    </button>
-                                  </>
-                                ) : leave.status === "Pending" ? (
-                                  <span style={{ color: "var(--warning)", fontSize: "0.85rem" }}>
-                                    <i className="bi bi-hourglass-split me-1" /> Awaiting
-                                  </span>
-                                ) : (
-                                  <span style={{ color: "var(--gray-400)", fontSize: "0.85rem" }}>
-                                    <i className={`bi ${leave.status === "Approved" ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger"} me-1`} />
-                                    {leave.status}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
+                            {isManagerOrAdmin && (
+                              <td>
+                                <div className="action-btns justify-content-center">
+                                  {leave.status === "Pending" ? (
+                                    <>
+                                      <button className="btn-custom-success d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleApprove(leave.leaveId)}>
+                                        <i className="bi bi-check-lg" /> Approve
+                                      </button>
+                                      <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleReject(leave.leaveId)}>
+                                        <i className="bi bi-x-lg" /> Reject
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span style={{ color: "var(--gray-400)", fontSize: "0.85rem" }}>
+                                      <i className={`bi ${leave.status === "Approved" ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger"} me-1`} />
+                                      {leave.status}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            )}
                           </tr>
                         ))
                       )}

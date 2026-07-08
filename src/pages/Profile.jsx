@@ -3,6 +3,35 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployee, saveEmployee, getAllLeaveRequests, getAllExpenses, updateLeaveStatus, updateExpenseStatus } from "../services/dataService";
 
+const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange }) => {
+  const val = editing ? (form[name] || '') : (value || '');
+  return (
+    <div className="col-md-6">
+      <div className="d-flex align-items-center gap-3 p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)", border: "1px solid var(--gray-100)", minHeight: 56 }}>
+        <div style={{ width: 38, height: 38, borderRadius: "10px", background: "var(--primary-light)", color: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>
+          <i className={`bi ${icon}`} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: "0.7rem", color: "var(--gray-500)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.3px" }}>{label}</div>
+          {editing ? (
+            options ? (
+              <select name={name} value={val} onChange={onChange} className="form-select form-select-sm" style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }}>
+                {options.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            ) : (
+              <input type={type} name={name} value={val} onChange={onChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }} />
+            )
+          ) : (
+            <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--gray-700)", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {type === 'url' && val ? <a href={val} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>{val}</a> : (val || '—')}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function Profile() {
   const user = getCurrentUser();
   const emp = getEmployee(user?.employeeId);
@@ -164,36 +193,55 @@ function Profile() {
     }
   };
 
-  const initials = emp?.name?.split(' ').map(n => n[0]).join('') || 'U';
+  const displayName = emp?.name || user?.name || 'User';
+  const initial = displayName.charAt(0).toUpperCase();
 
-  const Field = ({ label, value, icon, name, type = 'text', options = null }) => {
-    const val = form[name] || '';
-    return (
-      <div className="col-md-6">
-        <div className="d-flex align-items-center gap-3 p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)", border: "1px solid var(--gray-100)", minHeight: 56 }}>
-          <div style={{ width: 38, height: 38, borderRadius: "10px", background: "var(--primary-light)", color: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>
-            <i className={`bi ${icon}`} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: "0.7rem", color: "var(--gray-500)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.3px" }}>{label}</div>
-            {editing ? (
-              options ? (
-                <select name={name} value={val} onChange={handleChange} className="form-select form-select-sm" style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }}>
-                  {options.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              ) : (
-                <input type={type} name={name} value={val} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }} />
-              )
-            ) : (
-              <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--gray-700)", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {type === 'url' && val ? <a href={val} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>{val}</a> : (val || '—')}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  const handleProfileImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 250;
+          const MAX_HEIGHT = 250;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
+          
+          saveEmployee({ 
+            ...(emp || {}), 
+            id: emp?.id || user?.employeeId, 
+            name: emp?.name || user?.name || user?.employeeId,
+            profileImage: compressedDataUrl 
+          });
+          window.location.reload(); 
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
   };
+
+
 
   return (
     <div className="dashboard-wrapper">
@@ -235,24 +283,42 @@ function Profile() {
           <div className="row g-4">
             <div className="col-lg-4">
               <div className="card-dashboard p-4 text-center">
-                <div
-                  style={{
-                    width: 96,
-                    height: 96,
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                    color: "#fff",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "2.5rem",
-                    fontWeight: 700,
-                    marginBottom: "1rem",
-                  }}
-                >
-                  {initials}
+                <div style={{ position: "relative", display: "inline-block", marginBottom: "1rem" }}>
+                  <label style={{ cursor: "pointer", margin: 0 }}>
+                    {emp?.profileImage ? (
+                      <img
+                        src={emp.profileImage}
+                        alt="Profile Avatar"
+                        style={{
+                          width: 120, height: 120, borderRadius: "50%",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.1)", border: "4px solid #fff",
+                          objectFit: "cover"
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: 120, height: 120, borderRadius: "50%",
+                        background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                        color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "3rem", fontWeight: 700,
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.1)", border: "4px solid #fff"
+                      }}>
+                        {initial}
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleProfileImageUpload} />
+                    <div style={{
+                      position: "absolute", bottom: "5px", right: "5px",
+                      background: "var(--primary)", color: "#fff",
+                      width: "32px", height: "32px", borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      border: "2px solid #fff", boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
+                    }}>
+                      <i className="bi bi-camera-fill" style={{ fontSize: "0.85rem" }} />
+                    </div>
+                  </label>
                 </div>
-                <h5 className="fw-bold mb-1" style={{ color: "var(--gray-800)" }}>{emp?.name || 'User'}</h5>
+                <h5 className="fw-bold mb-1" style={{ color: "var(--gray-800)" }}>{displayName}</h5>
                 <p className="mb-2" style={{ color: "var(--primary)", fontSize: "0.9rem", fontWeight: 500 }}>{emp?.designation || emp?.role || ''}</p>
                 <span className="badge-status badge-approved d-inline-block mb-2">{emp?.id || ''}</span>
                 <div style={{ color: "var(--gray-500)", fontSize: "0.85rem" }}>
@@ -327,12 +393,12 @@ function Profile() {
                   Personal Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Full Name" value={emp?.name} icon="bi-person" name="name" />
-                  <Field label="Date of Birth" value={emp?.dob} icon="bi-calendar" name="dob" type="date" />
-                  <Field label="Blood Group" value={emp?.bloodGroup} icon="bi-droplet" name="bloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} />
-                  <Field label="Phone" value={emp?.phone} icon="bi-telephone" name="phone" />
-                  <Field label="Email" value={emp?.email} icon="bi-envelope" name="email" type="email" />
-                  <Field label="Address" value={emp?.address} icon="bi-geo-alt" name="address" />
+                  <Field label="Full Name" value={emp?.name} icon="bi-person" name="name" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Date of Birth" value={emp?.dob} icon="bi-calendar" name="dob" type="date" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Blood Group" value={emp?.bloodGroup} icon="bi-droplet" name="bloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Phone" value={emp?.phone} icon="bi-telephone" name="phone" editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Email" value={emp?.email} icon="bi-envelope" name="email" type="email" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Address" value={emp?.address} icon="bi-geo-alt" name="address" editing={editing} form={form} onChange={handleChange} />
                 </div>
               </div>
 
@@ -342,12 +408,12 @@ function Profile() {
                   Official Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Employee ID" value={emp?.id} icon="bi-person-badge" name="employeeId" />
-                  <Field label="Department" value={emp?.department} icon="bi-building" name="department" />
-                  <Field label="Designation" value={emp?.designation} icon="bi-briefcase" name="designation" />
-                  <Field label="Joining Date" value={emp?.joiningDate} icon="bi-calendar-check" name="joiningDate" type="date" />
-                  <Field label="Manager" value={emp?.manager} icon="bi-person-up" name="manager" />
-                  <Field label="Status" value={emp?.status} icon="bi-check-circle" name="status" options={['Active', 'Inactive', 'On Leave']} />
+                  <Field label="Employee ID" value={emp?.id} icon="bi-person-badge" name="employeeId" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Department" value={emp?.department} icon="bi-building" name="department" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Designation" value={emp?.designation} icon="bi-briefcase" name="designation" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Joining Date" value={emp?.joiningDate} icon="bi-calendar-check" name="joiningDate" type="date" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Manager" value={emp?.manager} icon="bi-person-up" name="manager" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Status" value={emp?.status} icon="bi-check-circle" name="status" options={['Active', 'Inactive', 'On Leave']} editing={false} form={form} onChange={handleChange} />
                 </div>
               </div>
 
