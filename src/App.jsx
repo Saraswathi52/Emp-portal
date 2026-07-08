@@ -11,6 +11,8 @@ import DocumentManagement from "./pages/DocumentManagement";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Departments from "./pages/Departments";
+import Reports from "./pages/Reports";
 
 
 function App() {
@@ -26,12 +28,14 @@ function App() {
       <Route path="/profile" element={<Profile />} />
       <Route path="/leave" element={<Leave />} />
       <Route path="/employees" element={<EmployeeManagement />} />
+      <Route path="/departments" element={<Departments />} />
       <Route path="/expenses" element={<ExpenseManagement />} />
       <Route path="/documents" element={<DocumentManagement />} />
 
       <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
       <Route path="/manager-dashboard" element={<ManagerDashboard />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route path="/reports" element={<Reports />} />
 
     </Routes>
   );

@@ -129,10 +129,12 @@ function DocumentManagement() {
               <h4>Document Management</h4>
               <p>{documents.length} documents uploaded</p>
             </div>
-            <button className={`btn-custom-${showForm ? "danger" : "primary"} d-flex align-items-center gap-2`} onClick={() => showForm ? setShowForm(false) : openForm()}>
-              <i className={`bi ${showForm ? "bi-x-lg" : "bi-upload"}`} />
-              {showForm ? "Cancel" : "Upload Document"}
-            </button>
+            {role !== 'admin' && (
+              <button className={`btn-custom-${showForm ? "danger" : "primary"} d-flex align-items-center gap-2`} onClick={() => showForm ? setShowForm(false) : openForm()}>
+                <i className={`bi ${showForm ? "bi-x-lg" : "bi-upload"}`} />
+                {showForm ? "Cancel" : "Upload Document"}
+              </button>
+            )}
           </div>
 
           {showForm && (

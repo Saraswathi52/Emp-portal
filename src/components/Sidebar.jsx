@@ -17,11 +17,10 @@ const menuConfig = {
   ],
   admin: [
     { label: "Dashboard", path: "/admin-dashboard", icon: "bi-speedometer2" },
-
     { label: "Employees", path: "/employees", icon: "bi-people" },
-    { label: "Leave Management", path: "/leave", icon: "bi-calendar-check" },
-    { label: "Expense Management", path: "/expenses", icon: "bi-wallet2" },
+    { label: "Departments", path: "/departments", icon: "bi-building" },
     { label: "Documents", path: "/documents", icon: "bi-folder2-open" },
+    { label: "Reports", path: "/reports", icon: "bi-file-earmark-bar-graph" },
   ],
 };
 

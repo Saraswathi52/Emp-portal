@@ -91,7 +91,7 @@ function EmployeeManagement() {
   
   let visibleEmployees = employees;
   if (userRole === "manager") {
-    visibleEmployees = employees.filter(e => e.role && e.role.toLowerCase() === "employee");
+    visibleEmployees = employees.filter(e => e.id !== currentUser?.employeeId);
   }
 
   const filtered = visibleEmployees.filter(e => {

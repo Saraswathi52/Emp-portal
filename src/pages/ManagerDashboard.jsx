@@ -1,15 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployees, getAllLeaveRequests, getAllExpenses, updateLeaveStatus, updateExpenseStatus } from "../services/dataService";
+import { getCurrentUser, getEmployees, getAllLeaveRequests, getAllExpenses } from "../services/dataService";
 
 function ManagerDashboard() {
-  const navigate = useNavigate();
   const user = getCurrentUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [toast, setToast] = useState(null);
 
   const employees = getEmployees();
   const allLeaves = getAllLeaveRequests();
@@ -17,252 +13,228 @@ function ManagerDashboard() {
 
   const pendingLeaves = allLeaves.filter(l => l.status === 'Pending');
   const pendingExpenses = allExpenses.filter(e => e.status === 'Pending');
+  const teamMembers = employees.filter(e => e.id !== user?.employeeId);
   const pendingCount = pendingLeaves.length + pendingExpenses.length;
 
-  const teamMembers = employees.filter(e => e.id !== user?.employeeId);
+  // Stats for Today's Attendance
+  const totalTeam = teamMembers.length || 1;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const onLeaveToday = allLeaves.filter(l => l.status === 'Approved' && !l.wfh && todayStr >= l.startDate && todayStr <= l.endDate).length;
+  const wfhToday = allLeaves.filter(l => l.status === 'Approved' && l.wfh && todayStr >= l.startDate && todayStr <= l.endDate).length;
+  const absentToday = 0; // Fixed for now
+  const presentToday = Math.max(0, teamMembers.length - onLeaveToday - wfhToday - absentToday);
+  const attendancePercentage = Math.round(((presentToday + wfhToday) / totalTeam) * 100);
 
-  const mergedPending = [
-    ...pendingLeaves.map(l => ({
-      id: l.leaveId,
+  // Generate a recent activities timeline from all requests
+  const recentActivities = [
+    ...allLeaves.map(l => ({
+      id: `l-${l.leaveId}`,
       employeeName: l.employeeName || l.employeeId,
       type: 'Leave',
-      typeDetail: l.wfh ? 'WFH' : l.leaveType,
-      detail: `${l.startDate} to ${l.endDate}${l.halfDay ? ' (Half Day)' : ''}`,
-      amount: null,
-      reason: l.reason,
-      appliedOn: l.appliedOn,
-      status: l.status,
-      ref: l,
-      kind: 'leave',
+      action: l.status === 'Pending' ? 'applied for leave' : `had their leave ${l.status.toLowerCase()}`,
+      date: new Date(l.appliedOn || 0),
+      icon: "bi-calendar-event",
+      color: "var(--warning)"
     })),
-    ...pendingExpenses.map(e => ({
-      id: e.id,
+    ...allExpenses.map(e => ({
+      id: `e-${e.id}`,
       employeeName: e.employeeName || e.employeeId,
       type: 'Expense',
-      typeDetail: e.expenseType,
-      detail: `₹${parseFloat(e.amount).toLocaleString()}`,
-      amount: e.amount,
-      reason: e.description,
-      appliedOn: e.submittedOn,
-      status: e.status,
-      ref: e,
-      kind: 'expense',
+      action: e.status === 'Pending' ? 'submitted an expense' : `had their expense ${e.status.toLowerCase()}`,
+      date: new Date(e.submittedOn || 0),
+      icon: "bi-wallet2",
+      color: "var(--purple, #8b5cf6)"
     })),
-  ].sort((a, b) => new Date(b.appliedOn || 0) - new Date(a.appliedOn || 0));
+  ].sort((a, b) => b.date - a.date).slice(0, 7);
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const handleApprove = (item) => {
-    if (item.kind === 'leave') {
-      updateLeaveStatus(item.id, 'Approved');
-    } else {
-      updateExpenseStatus(item.id, 'Approved');
-    }
-    showToast(`${item.type} request approved`);
-    setRefreshKey(k => k + 1);
-  };
-
-  const handleReject = (item) => {
-    if (item.kind === 'leave') {
-      updateLeaveStatus(item.id, 'Rejected');
-    } else {
-      updateExpenseStatus(item.id, 'Rejected');
-    }
-    showToast(`${item.type} request rejected`, 'warning');
-    setRefreshKey(k => k + 1);
-  };
-
-  const statusBadge = (status) => {
-    const map = {
-      Pending: "badge-pending",
-      Approved: "badge-approved",
-      Rejected: "badge-rejected",
-    };
-    return `badge-status ${map[status] || "badge-pending"}`;
+  const timeAgo = (date) => {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    let interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " mins ago";
+    return "Just now";
   };
 
   return (
-    <div className="dashboard-wrapper" key={refreshKey}>
-      {toast && (
-        <div className="toast-message">
-          <div className={`alert alert-${toast.type === "warning" ? "warning" : "success"} d-flex align-items-center gap-2 shadow-sm`} style={{ borderRadius: "10px", border: "none", padding: "0.75rem 1.25rem" }}>
-            <i className={`bi ${toast.type === "warning" ? "bi-exclamation-circle" : "bi-check-circle"}`} />
-            {toast.message}
-          </div>
-        </div>
-      )}
+    <div className="dashboard-wrapper">
       <Sidebar role="manager" onClose={() => setSidebarOpen(false)} isOpen={sidebarOpen} />
       <div className="main-content">
         <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        <div className="page-content">
-          <div className="section-header">
+        <div className="page-content bg-light" style={{ minHeight: "calc(100vh - 70px)" }}>
+          <div className="section-header d-flex justify-content-between align-items-center mb-4">
             <div>
-              <h4>Welcome, {user?.name || "Manager"}!</h4>
-              <p>Manager Dashboard</p>
-            </div>
-            <div className="d-flex gap-2">
+              <h4 className="fw-bold mb-1">Welcome, {user?.name || "Manager"}!</h4>
+              <p className="text-muted mb-0">Overview of your team's status and activities.</p>
             </div>
           </div>
 
-          <div className="row g-3 mb-4">
+          {/* 4 Summary Cards */}
+          <div className="row g-4 mb-4">
             {[
               { label: "Team Members", value: teamMembers.length, icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
-              { label: "Pending Approvals", value: pendingCount, icon: "bi-hourglass-split", color: "#f59e0b", bg: "#fffbeb" },
+              { label: "Pending Leaves", value: pendingLeaves.length, icon: "bi-calendar-event", color: "#f59e0b", bg: "#fffbeb" },
+              { label: "Pending Expenses", value: pendingExpenses.length, icon: "bi-wallet2", color: "#8b5cf6", bg: "#f5f3ff" },
+              { label: "Total Approvals", value: pendingCount, icon: "bi-inbox", color: "#10b981", bg: "#ecfdf5" },
             ].map((s) => (
               <div key={s.label} className="col-xl-3 col-md-6">
-                <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: s.bg }}>
-                  <div className="stat-icon" style={{ background: s.color, width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
-                    <i className={`bi ${s.icon}`} />
-                  </div>
-                  <div>
-                    <div className="stat-label">{s.label}</div>
-                    <div className="stat-value" style={{ color: s.color, fontSize: "1.5rem" }}>{s.value}</div>
+                <div className="card border-0 shadow-sm rounded-4 h-100 p-4 transition-hover" style={{ background: s.bg }}>
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ background: s.color, width: "48px", height: "48px", color: "white", fontSize: "1.2rem", boxShadow: `0 4px 12px ${s.color}40` }}>
+                      <i className={`bi ${s.icon}`} />
+                    </div>
+                    <div>
+                      <div className="text-muted small fw-semibold text-uppercase tracking-wider">{s.label}</div>
+                      <div className="fw-bold mt-1" style={{ color: s.color, fontSize: "1.75rem", lineHeight: "1" }}>{s.value}</div>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
+          {/* Widgets Grid */}
           <div className="row g-4">
+            {/* Left Column Widgets */}
             <div className="col-lg-7">
-              <div className="card-dashboard p-4">
-                <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
-                  <i className="bi bi-hourglass-split me-2" style={{ color: "var(--warning)" }} />
-                  Pending Approvals
-                  {pendingCount > 0 && (
-                    <span className="ms-2 badge-status badge-pending" style={{ fontSize: "0.7rem" }}>{pendingCount} pending</span>
-                  )}
-                </h5>
-                <div className="table-responsive">
-                  <table className="table-custom table">
-                    <thead>
-                      <tr>
-                        <th>Employee</th>
-                        <th>Type</th>
-                        <th>Details</th>
-                        <th>Reason</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th className="text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mergedPending.length === 0 ? (
-                        <tr>
-                          <td colSpan="7" className="text-center py-4" style={{ color: "var(--gray-400)" }}>
-                            <i className="bi bi-check2-all" style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }} />
-                            No pending approvals
-                          </td>
-                        </tr>
-                      ) : (
-                        mergedPending.map((item) => (
-                          <tr key={`${item.kind}-${item.id}`}>
-                            <td className="fw-semibold">{item.employeeName}</td>
-                            <td>
-                              {item.kind === 'leave' ? (
-                                <span className="badge-status" style={{ background: "#dbeafe", color: "#1e40af" }}>
-                                  <i className="bi bi-calendar-check me-1" />{item.typeDetail}
-                                </span>
-                              ) : (
-                                <span className="badge-status" style={{ background: "#fef3c7", color: "#92400e" }}>
-                                  <i className="bi bi-wallet2 me-1" />{item.typeDetail}
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ fontSize: "0.85rem" }}>{item.detail}</td>
-                            <td style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.reason}>
-                              {item.reason || '—'}
-                            </td>
-                            <td style={{ fontSize: "0.8rem" }}>{item.appliedOn || '—'}</td>
-                            <td><span className={statusBadge(item.status)}>{item.status}</span></td>
-                            <td>
-                              <div className="action-btns justify-content-center">
-                                <button
-                                  className="btn-custom-success d-flex align-items-center gap-1"
-                                  style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }}
-                                  onClick={() => handleApprove(item)}
-                                >
-                                  <i className="bi bi-check-lg" /> Approve
-                                </button>
-                                <button
-                                  className="btn-custom-danger d-flex align-items-center gap-1"
-                                  style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }}
-                                  onClick={() => handleReject(item)}
-                                >
-                                  <i className="bi bi-x-lg" /> Reject
-                                </button>
+              {/* Recent Activities Widget */}
+              <div className="card border-0 shadow-sm rounded-4 h-100">
+                <div className="card-header bg-white border-0 pt-4 pb-0 px-4">
+                  <h5 className="fw-bold mb-0 text-dark">
+                    <i className="bi bi-clock-history text-secondary me-2" /> Recent Activities
+                  </h5>
+                </div>
+                <div className="card-body p-4">
+                  {recentActivities.length === 0 ? (
+                    <div className="text-center py-5 text-muted">
+                      <i className="bi bi-activity fs-1 text-secondary mb-2 d-block" />
+                      No recent activities recorded.
+                    </div>
+                  ) : (
+                    <div className="position-relative ms-3 mt-2">
+                      <div className="position-absolute h-100 border-start" style={{ left: "11px", borderColor: "var(--gray-200)", top: "10px", zIndex: 0 }}></div>
+                      <div className="d-flex flex-column gap-4 position-relative" style={{ zIndex: 1 }}>
+                        {recentActivities.map((activity) => (
+                          <div key={activity.id} className="d-flex gap-3">
+                            <div className="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm" style={{ width: "24px", height: "24px", color: activity.color, border: `2px solid ${activity.color}` }}>
+                              <i className={`bi ${activity.icon}`} style={{ fontSize: "0.7rem" }} />
+                            </div>
+                            <div>
+                              <div className="fw-semibold text-dark" style={{ fontSize: "0.95rem" }}>
+                                {activity.employeeName} <span className="text-muted fw-normal">{activity.action}</span>
                               </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                              <div className="text-muted small mt-1">
+                                {timeAgo(activity.date)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="col-lg-5">
-              <div className="card-dashboard p-4">
-                <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
-                  <i className="bi bi-people me-2" style={{ color: "var(--primary)" }} />
-                  Team Members
-                </h5>
-                <div className="table-responsive">
-                  <table className="table-custom table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Role</th>
-                        <th>Department</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {teamMembers.length === 0 ? (
-                        <tr>
-                          <td colSpan="3" className="text-center py-4" style={{ color: "var(--gray-400)" }}>
-                            <i className="bi bi-people" style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }} />
-                            No team members found
-                          </td>
-                        </tr>
-                      ) : (
-                        teamMembers.map((m) => (
-                          <tr key={m.id}>
-                            <td className="fw-semibold">{m.name}</td>
-                            <td style={{ fontSize: "0.85rem" }}>{m.designation || m.role}</td>
-                            <td style={{ fontSize: "0.85rem" }}>{m.department}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+            {/* Right Column Widgets */}
+            <div className="col-lg-5 d-flex flex-column gap-4">
+              {/* Request Summary Widget */}
+              <div className="card border-0 shadow-sm rounded-4">
+                <div className="card-header bg-white border-0 pt-4 pb-0 px-4">
+                  <h6 className="fw-bold mb-0 text-dark text-uppercase tracking-wider">
+                    <i className="bi bi-pie-chart text-primary me-2" /> Request Summary
+                  </h6>
                 </div>
-                <div className="mt-3 d-flex gap-2">
-                  <button className="btn-custom-primary d-flex align-items-center gap-1" onClick={() => navigate("/employees")}>
-                    <i className="bi bi-person-plus" /> Manage Team
-                  </button>
+                <div className="card-body p-4">
+                  <div className="d-flex flex-column gap-3">
+                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: "var(--gray-50)" }}>
+                      <div className="d-flex align-items-center gap-2">
+                        <div className="rounded-circle bg-warning opacity-75" style={{ width: "8px", height: "8px" }}></div>
+                        <span className="text-dark fw-medium small">Pending Leaves</span>
+                      </div>
+                      <span className="fw-bold text-dark">{pendingLeaves.length}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: "var(--gray-50)" }}>
+                      <div className="d-flex align-items-center gap-2">
+                        <div className="rounded-circle bg-purple opacity-75" style={{ width: "8px", height: "8px", backgroundColor: "#8b5cf6" }}></div>
+                        <span className="text-dark fw-medium small">Pending Expenses</span>
+                      </div>
+                      <span className="fw-bold text-dark">{pendingExpenses.length}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3 bg-light border">
+                      <span className="text-muted fw-medium small">Total Resolved (All Time)</span>
+                      <span className="fw-bold text-success">{allLeaves.length + allExpenses.length - pendingCount}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="card-dashboard p-4 mt-4">
-                <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
-                  <i className="bi bi-graph-up me-2" style={{ color: "var(--success)" }} />
-                  Request Summary
-                </h5>
-                <div className="d-flex flex-column gap-3">
-                  <div className="d-flex justify-content-between align-items-center p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>Pending Approvals</span>
-                    <span className="fw-bold" style={{ color: "var(--warning)", fontSize: "1.1rem" }}>{pendingCount}</span>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>Team Members</span>
-                    <span className="fw-bold" style={{ color: "var(--success)", fontSize: "1.1rem" }}>{teamMembers.length}</span>
+              {/* Team Status Widget */}
+              <div className="card border-0 shadow-sm rounded-4 flex-grow-1">
+                <div className="card-header bg-white border-0 pt-4 pb-0 px-4">
+                  <h6 className="fw-bold mb-0 text-dark text-uppercase tracking-wider">
+                    <i className="bi bi-person-lines-fill text-success me-2" /> Today's Attendance
+                  </h6>
+                </div>
+                <div className="card-body p-4 mt-1">
+                  <div className="d-flex flex-column gap-3">
+                    
+                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: "var(--gray-50)" }}>
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: "36px", height: "36px", color: "var(--success)" }}>
+                          <i className="bi bi-person-check-fill" />
+                        </div>
+                        <span className="text-dark fw-medium">Present Today</span>
+                      </div>
+                      <span className="fw-bold fs-5 text-success">{presentToday}</span>
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: "var(--gray-50)" }}>
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="rounded-circle bg-info bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: "36px", height: "36px", color: "#0dcaf0" }}>
+                          <i className="bi bi-house-door-fill" />
+                        </div>
+                        <span className="text-dark fw-medium">Work From Home</span>
+                      </div>
+                      <span className="fw-bold fs-5 text-info">{wfhToday}</span>
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: "var(--gray-50)" }}>
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: "36px", height: "36px", color: "#f59e0b" }}>
+                          <i className="bi bi-airplane-fill" />
+                        </div>
+                        <span className="text-dark fw-medium">On Leave</span>
+                      </div>
+                      <span className="fw-bold fs-5 text-danger">{onLeaveToday}</span>
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: "var(--gray-50)" }}>
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: "36px", height: "36px", color: "var(--danger)" }}>
+                          <i className="bi bi-x-circle-fill" />
+                        </div>
+                        <span className="text-dark fw-medium">Absent</span>
+                      </div>
+                      <span className="fw-bold fs-5 text-danger">{absentToday}</span>
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: "var(--gray-50)" }}>
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style={{ width: "36px", height: "36px", color: "var(--primary)" }}>
+                          <i className="bi bi-bar-chart-fill" />
+                        </div>
+                        <span className="text-dark fw-medium">Attendance Rate (%)</span>
+                      </div>
+                      <span className="fw-bold fs-5 text-primary">{attendancePercentage}%</span>
+                    </div>
+
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         </div>

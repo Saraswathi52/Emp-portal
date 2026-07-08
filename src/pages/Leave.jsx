@@ -68,7 +68,7 @@ function LeaveCalendar({ leaves, holidays, selectedDate, onSelectDate }) {
         {DAYS.map(d => <div key={d} className="calendar-day-header">{d}</div>)}
         {cells}
       </div>
-      <div className="calendar-legend d-flex flex-wrap gap-3 mt-2 pt-2 justify-content-center" style={{ borderTop: "1px solid var(--gray-100)" }}>
+      <div className="calendar-legend d-flex flex-wrap gap-3 mt-1 pt-1 justify-content-center" style={{ borderTop: "1px solid var(--gray-100)" }}>
         <span><span className="legend-dot" style={{ background: "#dbeafe" }} /> Leave</span>
         <span><span className="legend-dot" style={{ background: "#fef3c7" }} /> WFH</span>
         <span><span className="legend-dot" style={{ background: "#f3e8ff" }} /> Holiday</span>
@@ -602,7 +602,7 @@ function Leave() {
           )}
 
           <div className="row g-4">
-            <div className="col-12">
+            <div className="col-xl-9 col-lg-8">
               <div className="card-dashboard p-4">
                 <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                   <h5 className="fw-bold mb-0" style={{ color: "var(--gray-800)", fontSize: "0.95rem" }}>
@@ -631,9 +631,9 @@ function Leave() {
                         <th>Type</th>
                         <th style={{ minWidth: "120px" }}>From Date</th>
                         <th style={{ minWidth: "120px" }}>To Date</th>
-                        <th style={{ width: "25%", minWidth: "150px" }}>Reason</th>
+                        <th style={{ minWidth: "150px" }}>Reason</th>
                         <th>Status</th>
-                        {isManagerOrAdmin && <th className="text-center" style={{ minWidth: "100px" }}>Actions</th>}
+                        {isManagerOrAdmin && <th style={{ width: "1%", whiteSpace: "nowrap" }}>Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -668,13 +668,33 @@ function Leave() {
                                 ? `Half Day - ${leave.reason}` 
                                 : leave.reason}
                             </td>
-                            <td><span className={statusBadge(leave.status)}>{leave.status}</span></td>
+                            <td>
+                              <span 
+                                className={statusBadge(leave.status)}
+                                style={{ cursor: "pointer", transition: "all 0.2s" }}
+                                onDoubleClick={() => setViewLeave(leave)}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                title="Double-click to view details"
+                              >
+                                {leave.status}
+                              </span>
+                            </td>
                             {isManagerOrAdmin && (
                               <td>
-                                <div className="action-btns justify-content-center flex-nowrap gap-2">
-                                  <button className="btn-custom-outline d-flex align-items-center gap-1 text-nowrap" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => setViewLeave(leave)}>
-                                    <i className="bi bi-eye" /> View Details
-                                  </button>
+                                <div className="action-btns d-flex flex-nowrap gap-2">
+                                  {leave.status === "Pending" ? (
+                                    <>
+                                      <button className="btn-custom-success d-flex align-items-center justify-content-center shadow-sm rounded" style={{ width: "32px", height: "32px", padding: 0 }} onClick={(e) => { e.stopPropagation(); handleApprove(leave.leaveId); }} title="Approve">
+                                        <i className="bi bi-check-lg" style={{ fontSize: "1.1rem" }} />
+                                      </button>
+                                      <button className="btn-custom-danger d-flex align-items-center justify-content-center shadow-sm rounded" style={{ width: "32px", height: "32px", padding: 0 }} onClick={(e) => { e.stopPropagation(); handleReject(leave.leaveId); }} title="Reject">
+                                        <i className="bi bi-x-lg" style={{ fontSize: "1.1rem" }} />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span className="text-muted" style={{ fontSize: "0.85rem" }}>—</span>
+                                  )}
                                 </div>
                               </td>
                             )}
@@ -710,8 +730,8 @@ function Leave() {
               </div>
             </div>
 
-            <div className="col-12 mt-2">
-              <div className="card-dashboard p-4">
+            <div className="col-xl-3 col-lg-4">
+              <div className="card-dashboard p-3 sticky-top" style={{ top: '80px', zIndex: 1 }}>
                 <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)", fontSize: "0.95rem" }}>
                   <i className="bi bi-calendar3 me-2" style={{ color: "var(--primary)" }} />
                   Leave Calendar
@@ -785,16 +805,6 @@ function Leave() {
             </div>
 
             <div className="mt-4 d-flex justify-content-end gap-2">
-              {viewLeave.status === "Pending" && isManagerOrAdmin && (
-                <>
-                  <button className="btn btn-sm btn-custom-success d-flex align-items-center gap-1" onClick={() => { handleApprove(viewLeave.leaveId); setViewLeave(null); }}>
-                    <i className="bi bi-check-lg" /> Approve
-                  </button>
-                  <button className="btn btn-sm btn-custom-danger d-flex align-items-center gap-1" onClick={() => { handleReject(viewLeave.leaveId); setViewLeave(null); }}>
-                    <i className="bi bi-x-lg" /> Reject
-                  </button>
-                </>
-              )}
               <button className="btn btn-sm btn-custom-outline" onClick={() => setViewLeave(null)}>Close</button>
             </div>
           </div>

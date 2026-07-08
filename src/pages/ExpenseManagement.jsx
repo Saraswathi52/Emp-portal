@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployee, getExpenses, getAllExpenses, addExpense, updateExpenseStatus, deleteExpense, getNextExpenseId } from "../services/dataService";
+import { getCurrentUser, getExpenses, getAllExpenses, addExpense, updateExpenseStatus, deleteExpense, getNextExpenseId } from "../services/dataService";
 
 function ExpenseManagement() {
   const user = getCurrentUser();
@@ -12,6 +12,7 @@ function ExpenseManagement() {
   const empId = user?.employeeId || 'EMP001';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [viewItem, setViewItem] = useState(null);
 
   const myExpenses = getExpenses(empId);
   const allExpenses = getAllExpenses();
@@ -33,7 +34,8 @@ function ExpenseManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState(null);
-  const perPage = 5;
+  const [refreshKey, setRefreshKey] = useState(0);
+  const perPage = 7;
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -101,21 +103,21 @@ function ExpenseManagement() {
     setShowForm(false);
     setCurrentPage(1);
     showToast('Expense submitted successfully!');
+    setRefreshKey(k => k + 1);
   };
 
   const handleApprove = (id) => {
     updateExpenseStatus(id, 'Approved');
     showToast('Expense approved');
+    setViewItem(null);
+    setRefreshKey(k => k + 1);
   };
 
   const handleReject = (id) => {
     updateExpenseStatus(id, 'Rejected');
     showToast('Expense rejected', 'warning');
-  };
-
-  const handleDelete = (id) => {
-    deleteExpense(id);
-    showToast('Expense deleted', 'warning');
+    setViewItem(null);
+    setRefreshKey(k => k + 1);
   };
 
   const expenseTypes = [...new Set(allExpenses.map(e => e.expenseType))];
@@ -134,13 +136,21 @@ function ExpenseManagement() {
   const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
 
   const totalAmount = displayExpenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  
   const statusBadge = (status) => {
     const map = { Pending: "badge-pending", Approved: "badge-approved", Rejected: "badge-rejected" };
     return `badge-status ${map[status] || "badge-pending"}`;
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '—';
+    const d = new Date(dateString);
+    if (isNaN(d)) return dateString;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   return (
-    <div className="dashboard-wrapper">
+    <div className="dashboard-wrapper" key={refreshKey}>
       {toast && (
         <div className="toast-message">
           <div className={`alert alert-${toast.type === "warning" ? "warning" : "success"} d-flex align-items-center gap-2 shadow-sm`} style={{ borderRadius: "10px", border: "none", padding: "0.75rem 1.25rem" }}>
@@ -149,24 +159,131 @@ function ExpenseManagement() {
           </div>
         </div>
       )}
+
+      {/* View Details Modal */}
+      {viewItem && (
+        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content border-0 shadow-lg" style={{ borderRadius: "var(--radius-lg)" }}>
+              <div className="modal-header border-bottom-0 pb-0">
+                <h5 className="modal-title fw-bold">
+                  Expense Details <span className="text-muted fs-6 ms-2">({viewItem.id})</span>
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setViewItem(null)}></button>
+              </div>
+              <div className="modal-body pt-3 pb-4">
+                <div className="d-flex align-items-center gap-3 mb-4 p-3 rounded-4" style={{ background: "var(--gray-50)" }}>
+                  <div className="avatar-circle" style={{ background: "var(--primary-100)", color: "var(--primary-700)", width: "56px", height: "56px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", fontWeight: "bold" }}>
+                    {(viewItem.employeeName || viewItem.employeeId)?.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="fw-bold fs-5 text-dark">{viewItem.employeeName || viewItem.employeeId}</div>
+                    <div className="text-muted small">Employee</div>
+                  </div>
+                  <div className="ms-auto text-end">
+                    <div className="mb-1"><span className={statusBadge(viewItem.status)}>{viewItem.status}</span></div>
+                    <div className="text-muted small">Submitted on {formatDate(viewItem.submittedOn)}</div>
+                  </div>
+                </div>
+
+                <div className="row g-4 mb-4">
+                  <div className="col-sm-6 col-md-3">
+                    <div className="text-muted small mb-1 text-uppercase tracking-wider">Amount</div>
+                    <div className="fw-bold fs-4" style={{ color: "var(--gray-800)" }}>
+                      ₹{parseFloat(viewItem.amount).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="col-sm-6 col-md-3">
+                    <div className="text-muted small mb-1 text-uppercase tracking-wider">Category</div>
+                    <div className="fw-semibold">
+                      <span className="badge-status badge-uploaded px-2 py-1">{viewItem.expenseType}</span>
+                    </div>
+                  </div>
+                  <div className="col-sm-6 col-md-3">
+                    <div className="text-muted small mb-1 text-uppercase tracking-wider">Date incurred</div>
+                    <div className="fw-semibold text-dark">{formatDate(viewItem.date)}</div>
+                  </div>
+                  <div className="col-sm-6 col-md-3">
+                    <div className="text-muted small mb-1 text-uppercase tracking-wider">Payment Method</div>
+                    <div className="fw-semibold text-dark">
+                      <i className="bi bi-credit-card me-2 text-muted" />{viewItem.paymentMode}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="row g-4">
+                  <div className="col-md-7">
+                    <div className="text-muted small mb-2 text-uppercase tracking-wider">Full Description</div>
+                    <div className="p-3 bg-light rounded-3 border" style={{ fontSize: "0.95rem", color: "var(--gray-700)", minHeight: "80px" }}>
+                      {viewItem.description || "No description provided."}
+                    </div>
+
+                    <div className="row g-3 mt-2">
+                      <div className="col-6">
+                        <div className="text-muted small mb-1 text-uppercase tracking-wider">Project</div>
+                        <div className="fw-semibold text-dark">{viewItem.project || "—"}</div>
+                      </div>
+                      <div className="col-6">
+                        <div className="text-muted small mb-1 text-uppercase tracking-wider">Meeting</div>
+                        <div className="fw-semibold text-dark">{viewItem.meeting || "—"}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-5">
+                    <div className="text-muted small mb-2 text-uppercase tracking-wider">Receipt / Invoice</div>
+                    {viewItem.receipt ? (
+                      <div className="border rounded-3 p-3 text-center bg-light">
+                        <i className="bi bi-file-earmark-check text-success" style={{ fontSize: "2rem" }} />
+                        <div className="mt-2 fw-semibold text-truncate px-2" title={viewItem.receiptName}>
+                          {viewItem.receiptName || "Receipt attached"}
+                        </div>
+                        <a href={viewItem.receipt} download={viewItem.receiptName || "receipt"} className="btn btn-sm btn-outline-primary mt-3 px-4 rounded-pill">
+                          <i className="bi bi-download me-1" /> Download
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="border rounded-3 p-4 text-center bg-light dashed-border">
+                        <i className="bi bi-file-earmark-x text-muted" style={{ fontSize: "2rem" }} />
+                        <div className="mt-2 text-muted small">No receipt provided</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {isManagerOrAdmin && viewItem.status === 'Pending' && (
+                <div className="modal-footer border-top-0 pt-0 pb-4 justify-content-center gap-3">
+                  <button className="btn btn-outline-danger px-4 rounded-pill" onClick={() => handleReject(viewItem.id)}>
+                    <i className="bi bi-x-lg me-2" /> Reject
+                  </button>
+                  <button className="btn btn-success px-4 rounded-pill" style={{ background: "#10b981", border: "none" }} onClick={() => handleApprove(viewItem.id)}>
+                    <i className="bi bi-check-lg me-2" /> Approve
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <Sidebar role={role} onClose={() => setSidebarOpen(false)} isOpen={sidebarOpen} />
       <div className="main-content">
         <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        <div className="page-content">
+        <div className="page-content bg-light" style={{ minHeight: "calc(100vh - 70px)" }}>
           <div className="section-header">
             <div>
-              <h4>Expense Management</h4>
-              <p>{isManagerOrAdmin ? 'Manage all expense claims' : 'Track and manage your expenses'}</p>
+              <h4 className="fw-bold mb-1">Expense Management</h4>
+              <p className="text-muted mb-0">{isManagerOrAdmin ? 'Review and manage team expense claims.' : 'Track and manage your expenses.'}</p>
             </div>
             {!isManagerOrAdmin && (
-              <button className={`btn-custom-${showForm ? "danger" : "primary"} d-flex align-items-center gap-2`} onClick={() => { setShowForm(!showForm); if (showForm) resetForm(); }}>
+              <button className={`btn-custom-${showForm ? "danger" : "primary"} d-flex align-items-center gap-2 rounded-pill px-4 shadow-sm`} onClick={() => { setShowForm(!showForm); if (showForm) resetForm(); }}>
                 <i className={`bi ${showForm ? "bi-x-lg" : "bi-plus-lg"}`} />
                 {showForm ? "Cancel" : "Submit Expense"}
               </button>
             )}
           </div>
 
-          <div className="row g-3 mb-4">
+          <div className="row g-4 mb-4">
             {[
               { label: "Total Expenses", value: displayExpenses.length, icon: "bi-receipt", color: "#3b82f6", bg: "#eff6ff" },
               { label: "Pending Claims", value: displayExpenses.filter(e => e.status === 'Pending').length, icon: "bi-clock", color: "#f59e0b", bg: "#fffbeb" },
@@ -174,13 +291,15 @@ function ExpenseManagement() {
               { label: "Total Amount", value: `₹${totalAmount.toLocaleString()}`, icon: "bi-currency-rupee", color: "#8b5cf6", bg: "#f5f3ff" },
             ].map((s) => (
               <div key={s.label} className="col-6 col-xl-3">
-                <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: s.bg }}>
-                  <div className="stat-icon" style={{ background: s.color, width: 40, height: 40, fontSize: "1.1rem", margin: 0 }}>
-                    <i className={`bi ${s.icon}`} />
-                  </div>
-                  <div>
-                    <div className="stat-label" style={{ fontSize: "0.7rem" }}>{s.label}</div>
-                    <div className="stat-value" style={{ color: s.color, fontSize: "1.3rem" }}>{s.value}</div>
+                <div className="card border-0 shadow-sm rounded-4 h-100 p-4 transition-hover" style={{ background: s.bg }}>
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ background: s.color, width: "48px", height: "48px", color: "white", fontSize: "1.2rem", boxShadow: `0 4px 12px ${s.color}40` }}>
+                      <i className={`bi ${s.icon}`} />
+                    </div>
+                    <div>
+                      <div className="text-muted small fw-semibold text-uppercase tracking-wider">{s.label}</div>
+                      <div className="fw-bold mt-1" style={{ color: s.color, fontSize: "1.5rem", lineHeight: "1" }}>{s.value}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -188,14 +307,14 @@ function ExpenseManagement() {
           </div>
 
           {showForm && !isManagerOrAdmin && (
-            <div className="card-dashboard p-4 mb-4">
-              <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
-                <i className="bi bi-receipt me-2" style={{ color: "var(--primary)" }} />
+            <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
+              <h5 className="fw-bold mb-4 text-dark border-bottom pb-3">
+                <i className="bi bi-receipt me-2 text-primary" />
                 New Expense Claim
               </h5>
-              <div className="row g-3 form-custom">
+              <div className="row g-4 form-custom">
                 <div className="col-md-4">
-                  <label className="form-label">Expense Type</label>
+                  <label className="form-label text-muted small fw-semibold">Expense Type *</label>
                   <select className={`form-select ${errors.expenseType ? "is-invalid" : ""}`} value={expenseType} onChange={(e) => { setExpenseType(e.target.value); setErrors({ ...errors, expenseType: false }); }}>
                     <option value="">Select Type</option>
                     <option value="Travel">Travel</option>
@@ -210,33 +329,33 @@ function ExpenseManagement() {
                   </select>
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Amount (₹)</label>
+                  <label className="form-label text-muted small fw-semibold">Amount (₹) *</label>
                   <input type="number" className={`form-control ${errors.amount ? "is-invalid" : ""}`} placeholder="2500" value={amount}
                     onChange={(e) => { setAmount(e.target.value); setErrors({ ...errors, amount: false }); }} min="0" step="1" />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Date</label>
+                  <label className="form-label text-muted small fw-semibold">Date *</label>
                   <input type="date" className={`form-control ${errors.date ? "is-invalid" : ""}`} value={date}
                     onChange={(e) => { setDate(e.target.value); setErrors({ ...errors, date: false }); }}
                     onFocus={(e) => e.currentTarget.showPicker?.()} />
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Description</label>
-                  <textarea className={`form-control ${errors.description ? "is-invalid" : ""}`} rows="2" placeholder="Describe the expense" value={description}
+                <div className="col-md-12">
+                  <label className="form-label text-muted small fw-semibold">Description *</label>
+                  <textarea className={`form-control ${errors.description ? "is-invalid" : ""}`} rows="2" placeholder="Briefly describe the business purpose of this expense" value={description}
                     onChange={(e) => { setDescription(e.target.value); setErrors({ ...errors, description: false }); }} />
                 </div>
-                <div className="col-md-3">
-                  <label className="form-label">Project</label>
-                  <input type="text" className="form-control" placeholder="Project name" value={project}
+                <div className="col-md-4">
+                  <label className="form-label text-muted small fw-semibold">Project (Optional)</label>
+                  <input type="text" className="form-control" placeholder="e.g. Q3 Marketing Campaign" value={project}
                     onChange={(e) => setProject(e.target.value)} />
                 </div>
-                <div className="col-md-3">
-                  <label className="form-label">Meeting (optional)</label>
-                  <input type="text" className="form-control" placeholder="Meeting name" value={meeting}
+                <div className="col-md-4">
+                  <label className="form-label text-muted small fw-semibold">Meeting (Optional)</label>
+                  <input type="text" className="form-control" placeholder="e.g. Client Lunch with ABC Corp" value={meeting}
                     onChange={(e) => setMeeting(e.target.value)} />
                 </div>
                 <div className="col-md-4">
-                  <label className="form-label">Payment Mode</label>
+                  <label className="form-label text-muted small fw-semibold">Payment Mode *</label>
                   <select className={`form-select ${errors.paymentMode ? "is-invalid" : ""}`} value={paymentMode} onChange={(e) => { setPaymentMode(e.target.value); setErrors({ ...errors, paymentMode: false }); }}>
                     <option value="">Select Payment Mode</option>
                     <option value="Cash">Cash</option>
@@ -246,142 +365,171 @@ function ExpenseManagement() {
                     <option value="Bank Transfer">Bank Transfer</option>
                   </select>
                 </div>
-                <div className="col-md-4">
-                  <label className="form-label">Receipt/Invoice</label>
-                  <label className="d-flex align-items-center gap-2 p-2" style={{ border: "1.5px dashed var(--gray-300)", borderRadius: "var(--radius-sm)", cursor: "pointer", background: "var(--gray-50)" }}>
-                    <i className="bi bi-cloud-upload" style={{ color: "var(--primary)", fontSize: "1.2rem" }} />
+                <div className="col-md-8">
+                  <label className="form-label text-muted small fw-semibold">Receipt/Invoice</label>
+                  <label className="d-flex align-items-center gap-3 p-3 rounded-3" style={{ border: "2px dashed var(--gray-300)", cursor: "pointer", background: "var(--gray-50)", transition: "all 0.2s" }}>
+                    <div className="rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center" style={{ width: "40px", height: "40px" }}>
+                      <i className="bi bi-cloud-arrow-up text-primary fs-5" />
+                    </div>
                     <div>
-                      <div style={{ fontSize: "0.82rem", color: "var(--gray-600)" }}>{receiptName || 'Upload receipt (PDF/Image)'}</div>
-                      <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>Max 5MB</small>
+                      <div className="fw-semibold text-dark" style={{ fontSize: "0.9rem" }}>{receiptName || 'Click to upload receipt (PDF/Image)'}</div>
+                      <div className="text-muted mt-1" style={{ fontSize: "0.75rem" }}>Max file size: 5MB</div>
                     </div>
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx" onChange={handleReceiptUpload} style={{ display: 'none' }} />
                   </label>
                 </div>
-                <div className="col-md-4 d-flex align-items-end justify-content-end">
-                  <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={handleSave}>
-                    <i className="bi bi-send" /> Submit Expense
+                <div className="col-md-4 d-flex align-items-end justify-content-end pb-1">
+                  <button className="btn btn-primary w-100 rounded-pill py-2 fw-semibold shadow-sm" style={{ background: "var(--primary)" }} onClick={handleSave}>
+                    <i className="bi bi-send me-2" /> Submit Expense
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="card-dashboard p-4">
-            <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-              <h5 className="fw-bold mb-0" style={{ color: "var(--gray-800)", fontSize: "0.95rem" }}>
-                <i className="bi bi-list-check me-2" style={{ color: "var(--primary)" }} />
-                {isManagerOrAdmin ? 'All Expense Claims' : 'Expense History'}
-              </h5>
-              <div className="d-flex gap-2 align-items-center flex-wrap">
-                <div className="search-box" style={{ maxWidth: 200 }}>
-                  <i className="bi bi-search" />
-                  <input type="text" className="form-control" placeholder="Search..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
+          <div className="card border-0 shadow-sm rounded-4 mb-4">
+            <div className="card-header bg-white border-0 pt-4 pb-0 px-4">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+                <h5 className="fw-bold mb-0 text-dark">
+                  <i className="bi bi-list-check me-2 text-primary" />
+                  {isManagerOrAdmin ? 'All Expense Claims' : 'Expense History'}
+                </h5>
+                <div className="d-flex gap-2 align-items-center flex-wrap">
+                  <div className="search-box position-relative" style={{ maxWidth: 220 }}>
+                    <i className="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style={{ fontSize: "0.85rem" }} />
+                    <input type="text" className="form-control rounded-pill ps-5 bg-light border-0" style={{ fontSize: "0.85rem", padding: "0.4rem 1rem" }} placeholder="Search expenses..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
+                  </div>
+                  <select className="form-select rounded-pill bg-light border-0" style={{ width: "auto", fontSize: "0.85rem", padding: "0.4rem 2rem 0.4rem 1rem" }} value={filterType} onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}>
+                    <option value="All">All Categories</option>
+                    {expenseTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <select className="form-select rounded-pill bg-light border-0" style={{ width: "auto", fontSize: "0.85rem", padding: "0.4rem 2rem 0.4rem 1rem" }} value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}>
+                    <option value="All">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
                 </div>
-                <select className="form-select" style={{ width: "auto", borderRadius: "50px", fontSize: "0.85rem", padding: "0.35rem 2rem 0.35rem 0.75rem" }} value={filterType} onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}>
-                  <option value="All">All Types</option>
-                  {expenseTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <select className="form-select" style={{ width: "auto", borderRadius: "50px", fontSize: "0.85rem", padding: "0.35rem 2rem 0.35rem 0.75rem" }} value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}>
-                  <option value="All">All Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Approved">Approved</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
               </div>
             </div>
 
-            <div className="table-responsive">
-              <table className="table-custom table">
-                <thead>
-                  <tr>
-                    {isManagerOrAdmin && <th>Employee</th>}
-                    <th>Expense ID</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Project</th>
-                    <th>Meeting</th>
-                    <th>Payment</th>
-                    <th>Receipt</th>
-                    <th>Status</th>
-                    {isManagerOrAdmin && <th className="text-center">Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.length === 0 ? (
+            <div className="card-body p-0 mt-3">
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light text-muted small text-uppercase tracking-wider">
                     <tr>
-                      <td colSpan={isManagerOrAdmin ? 12 : 10} className="text-center py-4" style={{ color: "var(--gray-400)" }}>
-                        <i className="bi bi-wallet2" style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }} />
-                        No expenses found
-                      </td>
+                      {isManagerOrAdmin && <th className="ps-4">Employee</th>}
+                      <th className={!isManagerOrAdmin ? "ps-4" : ""}>ID</th>
+                      <th>Category</th>
+                      <th style={{ minWidth: "150px" }}>Description</th>
+                      <th>Amount</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th className="text-end pe-4">Actions</th>
                     </tr>
-                  ) : (
-                    paginated.map((exp) => (
-                      <tr key={exp.id}>
-                        {isManagerOrAdmin && <td className="fw-semibold">{exp.employeeName || exp.employeeId}</td>}
-                        <td className="fw-semibold">{exp.id}</td>
-                        <td><span className="badge-status badge-uploaded">{exp.expenseType}</span></td>
-                        <td className="fw-bold" style={{ color: "var(--gray-700)" }}>₹{parseFloat(exp.amount).toLocaleString()}</td>
-                        <td style={{ fontSize: "0.82rem" }}>{exp.date}</td>
-                        <td style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={exp.description}>{exp.description}</td>
-                        <td><span className="badge-status" style={{ background: "#e0f2fe", color: "#075985", fontSize: "0.7rem" }}>{exp.project}</span></td>
-                        <td>{exp.meeting || <span style={{ color: "var(--gray-400)" }}>—</span>}</td>
-                        <td style={{ fontSize: "0.8rem" }}>{exp.paymentMode}</td>
-                        <td>
-                          {exp.receipt ? (
-                            <a href={exp.receipt} download={exp.receiptName} className="btn btn-sm btn-custom-outline" style={{ padding: "0.2rem 0.5rem", fontSize: "0.72rem" }}>
-                              <i className="bi bi-paperclip" /> View
-                            </a>
-                          ) : (
-                            <span style={{ color: "var(--gray-400)", fontSize: "0.75rem" }}>—</span>
-                          )}
+                  </thead>
+                  <tbody className="border-top-0">
+                    {paginated.length === 0 ? (
+                      <tr>
+                        <td colSpan={isManagerOrAdmin ? 7 : 6} className="text-center py-5 text-muted">
+                          <i className="bi bi-wallet2 fs-1 text-secondary mb-3 d-block opacity-50" />
+                          No expenses match your filters.
                         </td>
-                        <td><span className={statusBadge(exp.status)}>{exp.status}</span></td>
-                        {isManagerOrAdmin && (
+                      </tr>
+                    ) : (
+                      paginated.map((exp) => (
+                        <tr key={exp.id} className="transition-hover" style={{ cursor: "pointer" }} onClick={() => setViewItem(exp)}>
+                          {isManagerOrAdmin && (
+                            <td className="ps-4 fw-semibold text-dark">
+                              <div className="d-flex align-items-center gap-2">
+                                <div className="rounded-circle bg-light d-flex align-items-center justify-content-center text-primary fw-bold" style={{ width: "32px", height: "32px", fontSize: "0.8rem" }}>
+                                  {(exp.employeeName || exp.employeeId)?.charAt(0)}
+                                </div>
+                                {exp.employeeName || exp.employeeId}
+                              </div>
+                            </td>
+                          )}
+                          <td className={!isManagerOrAdmin ? "ps-4 text-muted small" : "text-muted small"}>{exp.id}</td>
                           <td>
-                            <div className="action-btns justify-content-center">
-                              {exp.status === "Pending" ? (
+                            <span className="badge bg-light text-secondary border px-2 py-1">
+                              {exp.expenseType}
+                            </span>
+                          </td>
+                          <td className="text-truncate" style={{ maxWidth: "200px" }} title={exp.description}>
+                            {exp.description}
+                          </td>
+                          <td className="fw-bold text-dark">
+                            ₹{parseFloat(exp.amount).toLocaleString()}
+                          </td>
+                          <td className="text-muted small">
+                            {formatDate(exp.date)}
+                          </td>
+                          <td>
+                            <span className={statusBadge(exp.status)}>{exp.status}</span>
+                          </td>
+                          <td className="text-end pe-4">
+                            <div className="d-flex gap-2 justify-content-end">
+                              {isManagerOrAdmin && exp.status === "Pending" && (
                                 <>
-                                  <button className="btn-custom-success d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleApprove(exp.id)}>
+                                  <button 
+                                    className="btn btn-sm btn-light text-success border-0 rounded-circle shadow-sm" 
+                                    style={{ width: "32px", height: "32px" }} 
+                                    onClick={(e) => { e.stopPropagation(); handleApprove(exp.id); }}
+                                    title="Approve"
+                                  >
                                     <i className="bi bi-check-lg" />
                                   </button>
-                                  <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleReject(exp.id)}>
+                                  <button 
+                                    className="btn btn-sm btn-light text-danger border-0 rounded-circle shadow-sm" 
+                                    style={{ width: "32px", height: "32px" }} 
+                                    onClick={(e) => { e.stopPropagation(); handleReject(exp.id); }}
+                                    title="Reject"
+                                  >
                                     <i className="bi bi-x-lg" />
                                   </button>
                                 </>
-                              ) : (
-                                <span style={{ color: "var(--gray-400)", fontSize: "0.8rem" }}>
-                                  <i className={`bi ${exp.status === "Approved" ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger"} me-1`} />
-                                </span>
                               )}
+                              <button 
+                                className="btn btn-sm btn-light text-primary border-0 rounded-circle shadow-sm ms-2" 
+                                style={{ width: "32px", height: "32px" }} 
+                                onClick={(e) => { e.stopPropagation(); setViewItem(exp); }}
+                                title="View Details"
+                              >
+                                <i className="bi bi-eye" />
+                              </button>
                             </div>
                           </td>
-                        )}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {totalPages > 1 && (
-              <div className="d-flex justify-content-between align-items-center mt-3 pt-3" style={{ borderTop: "1px solid var(--gray-100)" }}>
-                <small style={{ color: "var(--gray-500)" }}>
+              <div className="card-footer bg-white border-0 pt-3 pb-4 px-4 d-flex justify-content-between align-items-center border-top">
+                <small className="text-muted fw-semibold">
                   Showing {(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, filtered.length)} of {filtered.length}
                 </small>
                 <nav>
-                  <ul className="pagination pagination-sm mb-0">
+                  <ul className="pagination pagination-sm mb-0 gap-1">
                     <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                      <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)}><i className="bi bi-chevron-left" /></button>
+                      <button className="page-link rounded-circle border-0 text-dark bg-light shadow-sm" style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setCurrentPage(currentPage - 1)}>
+                        <i className="bi bi-chevron-left" />
+                      </button>
                     </li>
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                       <li key={p} className={`page-item ${p === currentPage ? "active" : ""}`}>
-                        <button className="page-link" onClick={() => setCurrentPage(p)}>{p}</button>
+                        <button className={`page-link rounded-circle border-0 shadow-sm ${p === currentPage ? 'bg-primary text-white' : 'bg-light text-dark'}`} style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: p === currentPage ? "bold" : "normal" }} onClick={() => setCurrentPage(p)}>
+                          {p}
+                        </button>
                       </li>
                     ))}
                     <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                      <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)}><i className="bi bi-chevron-right" /></button>
+                      <button className="page-link rounded-circle border-0 text-dark bg-light shadow-sm" style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setCurrentPage(currentPage + 1)}>
+                        <i className="bi bi-chevron-right" />
+                      </button>
                     </li>
                   </ul>
                 </nav>
