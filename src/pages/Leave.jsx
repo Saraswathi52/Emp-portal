@@ -112,6 +112,7 @@ function Leave() {
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [viewLeave, setViewLeave] = useState(null);
   const perPage = 5;
 
   const showToast = (message, type = "success") => {
@@ -601,7 +602,7 @@ function Leave() {
           )}
 
           <div className="row g-4">
-            <div className="col-lg-8">
+            <div className="col-12">
               <div className="card-dashboard p-4">
                 <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                   <h5 className="fw-bold mb-0" style={{ color: "var(--gray-800)", fontSize: "0.95rem" }}>
@@ -628,11 +629,11 @@ function Leave() {
                       <tr>
                         {isManagerOrAdmin && <th>Employee</th>}
                         <th>Type</th>
-                        <th>From</th>
-                        <th>To</th>
-                        <th>Reason</th>
+                        <th style={{ minWidth: "120px" }}>From Date</th>
+                        <th style={{ minWidth: "120px" }}>To Date</th>
+                        <th style={{ width: "25%", minWidth: "150px" }}>Reason</th>
                         <th>Status</th>
-                        {isManagerOrAdmin && <th className="text-center">Actions</th>}
+                        {isManagerOrAdmin && <th className="text-center" style={{ minWidth: "100px" }}>Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -649,34 +650,31 @@ function Leave() {
                             {isManagerOrAdmin && <td className="fw-semibold">{leave.employeeName || leave.employeeId}</td>}
                             <td>
                               {leave.wfh ? (
-                                <span className="badge-status" style={{ background: "#fef3c7", color: "#92400e" }}><i className="bi bi-house-door me-1" />WFH</span>
+                                <span className="badge-status" style={{ background: "#fef3c7", color: "#92400e" }}>
+                                  <i className="bi bi-house-door me-1" /> WFH
+                                </span>
                               ) : (
-                                <span className="badge-status badge-uploaded">{leave.leaveType}</span>
+                                <span className="badge-status" style={{ background: "#dbeafe", color: "#1e40af" }}>{leave.leaveType}</span>
                               )}
-                              {leave.halfDay && <span className="badge-status ms-1" style={{ background: "#e0f2fe", color: "#075985" }}>Half</span>}
                             </td>
-                            <td>{leave.startDate}</td>
-                            <td>{leave.endDate}</td>
-                            <td>{leave.reason}</td>
+                            <td style={{ whiteSpace: "nowrap" }}>
+                              {new Date(leave.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </td>
+                            <td style={{ whiteSpace: "nowrap" }}>
+                              {new Date(leave.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </td>
+                            <td>
+                              {leave.halfDay && !leave.reason?.toLowerCase().startsWith('half day') 
+                                ? `Half Day - ${leave.reason}` 
+                                : leave.reason}
+                            </td>
                             <td><span className={statusBadge(leave.status)}>{leave.status}</span></td>
                             {isManagerOrAdmin && (
                               <td>
-                                <div className="action-btns justify-content-center">
-                                  {leave.status === "Pending" ? (
-                                    <>
-                                      <button className="btn-custom-success d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleApprove(leave.leaveId)}>
-                                        <i className="bi bi-check-lg" /> Approve
-                                      </button>
-                                      <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleReject(leave.leaveId)}>
-                                        <i className="bi bi-x-lg" /> Reject
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <span style={{ color: "var(--gray-400)", fontSize: "0.85rem" }}>
-                                      <i className={`bi ${leave.status === "Approved" ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger"} me-1`} />
-                                      {leave.status}
-                                    </span>
-                                  )}
+                                <div className="action-btns justify-content-center flex-nowrap gap-2">
+                                  <button className="btn-custom-outline d-flex align-items-center gap-1 text-nowrap" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => setViewLeave(leave)}>
+                                    <i className="bi bi-eye" /> View Details
+                                  </button>
                                 </div>
                               </td>
                             )}
@@ -712,7 +710,7 @@ function Leave() {
               </div>
             </div>
 
-            <div className="col-lg-4">
+            <div className="col-12 mt-2">
               <div className="card-dashboard p-4">
                 <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)", fontSize: "0.95rem" }}>
                   <i className="bi bi-calendar3 me-2" style={{ color: "var(--primary)" }} />
@@ -745,6 +743,63 @@ function Leave() {
           </div>
         </div>
       </div>
+
+      {viewLeave && (
+        <div className="modal-backdrop" style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)", zIndex: 1050, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setViewLeave(null)}>
+          <div className="card-dashboard p-4" style={{ width: "90%", maxWidth: "500px", zIndex: 1060 }} onClick={e => e.stopPropagation()}>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5 className="fw-bold mb-0">
+                <i className="bi bi-info-circle me-2" style={{ color: "var(--primary)" }}></i>
+                Leave Details
+              </h5>
+              <button className="btn btn-sm btn-light" onClick={() => setViewLeave(null)}><i className="bi bi-x-lg"></i></button>
+            </div>
+            
+            <div className="d-flex flex-column gap-2">
+              <div className="d-flex justify-content-between border-bottom pb-2">
+                <span className="text-muted small">Employee:</span>
+                <span className="fw-semibold">{viewLeave.employeeName || viewLeave.employeeId} ({viewLeave.employeeId})</span>
+              </div>
+              <div className="d-flex justify-content-between border-bottom pb-2">
+                <span className="text-muted small">Leave Type:</span>
+                <span className="fw-semibold">{viewLeave.wfh ? "WFH" : viewLeave.leaveType} {viewLeave.halfDay ? "(Half Day)" : ""}</span>
+              </div>
+              <div className="d-flex justify-content-between border-bottom pb-2">
+                <span className="text-muted small">Duration:</span>
+                <span className="fw-semibold">{viewLeave.startDate} to {viewLeave.endDate}</span>
+              </div>
+              <div className="d-flex justify-content-between border-bottom pb-2">
+                <span className="text-muted small">Status:</span>
+                <span className={statusBadge(viewLeave.status)}>{viewLeave.status}</span>
+              </div>
+              <div className="d-flex justify-content-between border-bottom pb-2">
+                <span className="text-muted small">Applied On:</span>
+                <span className="fw-semibold">{viewLeave.appliedOn || '—'}</span>
+              </div>
+              <div className="pt-2">
+                <span className="text-muted small d-block mb-1">Reason:</span>
+                <div className="p-2" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)", fontSize: "0.9rem" }}>
+                  {viewLeave.reason || 'No reason provided'}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 d-flex justify-content-end gap-2">
+              {viewLeave.status === "Pending" && isManagerOrAdmin && (
+                <>
+                  <button className="btn btn-sm btn-custom-success d-flex align-items-center gap-1" onClick={() => { handleApprove(viewLeave.leaveId); setViewLeave(null); }}>
+                    <i className="bi bi-check-lg" /> Approve
+                  </button>
+                  <button className="btn btn-sm btn-custom-danger d-flex align-items-center gap-1" onClick={() => { handleReject(viewLeave.leaveId); setViewLeave(null); }}>
+                    <i className="bi bi-x-lg" /> Reject
+                  </button>
+                </>
+              )}
+              <button className="btn btn-sm btn-custom-outline" onClick={() => setViewLeave(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

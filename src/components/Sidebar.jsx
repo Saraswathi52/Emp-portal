@@ -14,7 +14,6 @@ const menuConfig = {
     { label: "Employees", path: "/employees", icon: "bi-people" },
     { label: "Leave Management", path: "/leave", icon: "bi-calendar-check" },
     { label: "Expense Management", path: "/expenses", icon: "bi-wallet2" },
-    { label: "Documents", path: "/documents", icon: "bi-folder2-open" },
   ],
   admin: [
     { label: "Dashboard", path: "/admin-dashboard", icon: "bi-speedometer2" },

@@ -1,22 +1,19 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+import { getCurrentUser, getEmployees } from "../services/dataService";
 
 function EmployeeManagement() {
   const [userRole] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored).role.toLowerCase() : "employee";
   });
+  const [currentUser] = useState(() => getCurrentUser());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [viewEmployee, setViewEmployee] = useState(null);
 
-  const [employees, setEmployees] = useState([
-    { id: "EMP1001", name: "John Doe", department: "IT", role: "Employee" },
-    { id: "EMP1002", name: "Alice Smith", department: "HR", role: "Manager" },
-    { id: "EMP1003", name: "David Lee", department: "Finance", role: "Employee" },
-    { id: "EMP1004", name: "Sarah Wilson", department: "Marketing", role: "Employee" },
-    { id: "EMP1005", name: "Mike Johnson", department: "IT", role: "Employee" },
-  ]);
+  const [employees, setEmployees] = useState(() => getEmployees());
 
   const [employeeId, setEmployeeId] = useState("");
   const [employeeName, setEmployeeName] = useState("");
@@ -91,10 +88,16 @@ function EmployeeManagement() {
   };
 
   const departments = [...new Set(employees.map(e => e.department))];
-  const filtered = employees.filter(e => {
+  
+  let visibleEmployees = employees;
+  if (userRole === "manager") {
+    visibleEmployees = employees.filter(e => e.role && e.role.toLowerCase() === "employee");
+  }
+
+  const filtered = visibleEmployees.filter(e => {
     const ms = e.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.department.toLowerCase().includes(searchTerm.toLowerCase());
+      (e.department && e.department.toLowerCase().includes(searchTerm.toLowerCase()));
     const md = filterDept === "All" || e.department === filterDept;
     return ms && md;
   });
@@ -119,15 +122,17 @@ function EmployeeManagement() {
           <div className="section-header">
             <div>
               <h4>Employee Management</h4>
-              <p>{employees.length} employees in the system</p>
+              <p>{visibleEmployees.length} employees in the system</p>
             </div>
-            <button
-              className={`btn-custom-${showForm ? "danger" : "primary"} d-flex align-items-center gap-2`}
-              onClick={() => { setShowForm(!showForm); if (!showForm) resetForm(); }}
-            >
-              <i className={`bi ${showForm ? "bi-x-lg" : "bi-person-plus"}`} />
-              {showForm ? "Cancel" : "Add Employee"}
-            </button>
+            {userRole !== "manager" && (
+              <button
+                className={`btn-custom-${showForm ? "danger" : "primary"} d-flex align-items-center gap-2`}
+                onClick={() => { setShowForm(!showForm); if (!showForm) resetForm(); }}
+              >
+                <i className={`bi ${showForm ? "bi-x-lg" : "bi-person-plus"}`} />
+                {showForm ? "Cancel" : "Add Employee"}
+              </button>
+            )}
           </div>
 
           {showForm && (
@@ -211,12 +216,20 @@ function EmployeeManagement() {
                         <td>{emp.role}</td>
                         <td>
                           <div className="action-btns justify-content-center">
-                            <button className="btn-custom-outline d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleEdit(emp)}>
-                              <i className="bi bi-pencil" /> Edit
-                            </button>
-                            <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(emp.id)}>
-                              <i className="bi bi-trash" /> Delete
-                            </button>
+                            {userRole === "manager" ? (
+                              <button className="btn-custom-primary d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => setViewEmployee(emp)}>
+                                <i className="bi bi-eye" /> View
+                              </button>
+                            ) : (
+                              <>
+                                <button className="btn-custom-outline d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleEdit(emp)}>
+                                  <i className="bi bi-pencil" /> Edit
+                                </button>
+                                <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(emp.id)}>
+                                  <i className="bi bi-trash" /> Delete
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -249,6 +262,28 @@ function EmployeeManagement() {
               </div>
             )}
           </div>
+
+          {viewEmployee && (
+            <div className="modal-backdrop" style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)", zIndex: 1050, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setViewEmployee(null)}>
+              <div className="card-dashboard p-4" style={{ width: "90%", maxWidth: "500px", zIndex: 1060 }} onClick={e => e.stopPropagation()}>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="fw-bold mb-0">Employee Details</h5>
+                  <button className="btn btn-sm btn-light" onClick={() => setViewEmployee(null)}><i className="bi bi-x-lg"></i></button>
+                </div>
+                <div className="mb-2"><strong>ID:</strong> {viewEmployee.id}</div>
+                <div className="mb-2"><strong>Name:</strong> {viewEmployee.name}</div>
+                <div className="mb-2"><strong>Department:</strong> {viewEmployee.department}</div>
+                <div className="mb-2"><strong>Role:</strong> {viewEmployee.role || viewEmployee.designation || 'Employee'}</div>
+                <div className="mb-2"><strong>Email:</strong> {viewEmployee.email || '—'}</div>
+                <div className="mb-2"><strong>Phone:</strong> {viewEmployee.phone || '—'}</div>
+                <div className="mb-2"><strong>Location:</strong> {viewEmployee.location || '—'}</div>
+                <div className="mb-2"><strong>Status:</strong> {viewEmployee.status || '—'}</div>
+                <div className="mt-3 text-end">
+                  <button className="btn btn-sm btn-custom-outline" onClick={() => setViewEmployee(null)}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

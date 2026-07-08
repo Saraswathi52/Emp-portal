@@ -104,12 +104,6 @@ function ManagerDashboard() {
               <p>Manager Dashboard</p>
             </div>
             <div className="d-flex gap-2">
-              <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={() => navigate("/leave")}>
-                <i className="bi bi-calendar-check" /> Leave Requests
-              </button>
-              <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={() => navigate("/expenses")}>
-                <i className="bi bi-wallet2" /> Expenses
-              </button>
             </div>
           </div>
 
@@ -117,8 +111,6 @@ function ManagerDashboard() {
             {[
               { label: "Team Members", value: teamMembers.length, icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
               { label: "Pending Approvals", value: pendingCount, icon: "bi-hourglass-split", color: "#f59e0b", bg: "#fffbeb" },
-              { label: "Leave Requests", value: allLeaves.length, icon: "bi-calendar-check", color: "#10b981", bg: "#ecfdf5" },
-              { label: "Expense Claims", value: allExpenses.length, icon: "bi-wallet2", color: "#8b5cf6", bg: "#f5f3ff" },
             ].map((s) => (
               <div key={s.label} className="col-xl-3 col-md-6">
                 <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: s.bg }}>
@@ -262,16 +254,8 @@ function ManagerDashboard() {
                 </h5>
                 <div className="d-flex flex-column gap-3">
                   <div className="d-flex justify-content-between align-items-center p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>Total Leave Requests</span>
-                    <span className="fw-bold" style={{ color: "var(--primary)", fontSize: "1.1rem" }}>{allLeaves.length}</span>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>Pending Leaves</span>
-                    <span className="fw-bold" style={{ color: "var(--warning)", fontSize: "1.1rem" }}>{pendingLeaves.length}</span>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>Pending Expenses</span>
-                    <span className="fw-bold" style={{ color: "var(--warning)", fontSize: "1.1rem" }}>{pendingExpenses.length}</span>
+                    <span style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>Pending Approvals</span>
+                    <span className="fw-bold" style={{ color: "var(--warning)", fontSize: "1.1rem" }}>{pendingCount}</span>
                   </div>
                   <div className="d-flex justify-content-between align-items-center p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)" }}>
                     <span style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>Team Members</span>
