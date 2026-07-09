@@ -204,35 +204,22 @@ function Reports() {
                 <option value="Finance">Finance</option>
               </select>
             </div>
+
+            <div className="d-flex align-items-center gap-2 flex-grow-1" style={{ minWidth: "200px" }}>
+              <i className="bi bi-file-earmark-text" style={{ color: "var(--gray-500)" }}></i>
+              <select className="form-select form-select-sm" value={activeTab} onChange={e => setActiveTab(e.target.value)}>
+                {reportTypes.map((type) => (
+                  <option key={type} value={type}>{type} Report</option>
+                ))}
+              </select>
+            </div>
             
             <button className="btn-custom-primary btn-sm px-4">
               Apply Filters
             </button>
           </div>
 
-          <div className="nav-tabs-scrollable mb-4" style={{ overflowX: "auto", whiteSpace: "nowrap", paddingBottom: "5px" }}>
-            <ul className="nav nav-pills gap-2 flex-nowrap">
-              {reportTypes.map((type) => (
-                <li className="nav-item" key={type}>
-                  <button 
-                    className={`nav-link px-4 py-2 ${activeTab === type ? 'active' : ''}`}
-                    style={{ 
-                      borderRadius: "50px", 
-                      fontSize: "0.9rem",
-                      fontWeight: 500,
-                      backgroundColor: activeTab === type ? 'var(--primary)' : 'var(--white)',
-                      color: activeTab === type ? '#fff' : 'var(--gray-600)',
-                      border: activeTab === type ? '1px solid var(--primary)' : '1px solid var(--gray-200)',
-                      transition: "all 0.2s ease"
-                    }}
-                    onClick={() => setActiveTab(type)}
-                  >
-                    {type} Report
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+
 
           <div className="row g-3 mb-4">
             {currentReport.stats.map((s) => (

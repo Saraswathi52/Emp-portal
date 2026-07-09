@@ -356,7 +356,7 @@ function Leave() {
                 </div>
               </div>
               <div className="col-lg-6 d-flex">
-                  <div
+                <div
                   className="card-dashboard p-4 flex-fill d-flex flex-column"
                   onClick={() => setShowAllHolidays(true)}
                   style={{
@@ -472,7 +472,7 @@ function Leave() {
                 </div>
                 <div style={{ maxHeight: "420px", overflowY: "auto", paddingRight: "4px" }}>
                   {(() => {
-                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                     const sorted = [...upcomingHolidays];
                     const today = new Date(); today.setHours(0, 0, 0, 0);
                     const nextIdx = sorted.findIndex(h => new Date(h.date) >= today);
@@ -664,12 +664,12 @@ function Leave() {
                               {new Date(leave.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </td>
                             <td>
-                              {leave.halfDay && !leave.reason?.toLowerCase().startsWith('half day') 
-                                ? `Half Day - ${leave.reason}` 
+                              {leave.halfDay && !leave.reason?.toLowerCase().startsWith('half day')
+                                ? `Half Day - ${leave.reason}`
                                 : leave.reason}
                             </td>
                             <td>
-                              <span 
+                              <span
                                 className={statusBadge(leave.status)}
                                 style={{ cursor: "pointer", transition: "all 0.2s" }}
                                 onDoubleClick={() => setViewLeave(leave)}
@@ -774,7 +774,7 @@ function Leave() {
               </h5>
               <button className="btn btn-sm btn-light" onClick={() => setViewLeave(null)}><i className="bi bi-x-lg"></i></button>
             </div>
-            
+
             <div className="d-flex flex-column gap-2">
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted small">Employee:</span>

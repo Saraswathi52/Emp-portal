@@ -101,26 +101,7 @@ function Home() {
           from one centralized platform. Empowering your workforce with efficiency.
         </p>
 
-        <div className="hero-actions">
-          <button
-            className="btn btn-primary btn-lg px-5 py-3"
-            onClick={() => setShowPopup(true)}
-          >
-            <i className="bi bi-box-arrow-in-right me-2"></i>
-            Get Started
-          </button>
-          <button
-            className="btn btn-outline-secondary btn-lg px-5 py-3"
-            onClick={() => {
-              document
-                .getElementById("about")
-                ?.scrollIntoView({ behavior: "smooth" });
-            }}
-          >
-            <i className="bi bi-info-circle me-2"></i>
-            Learn More
-          </button>
-        </div>
+
       </div>
 
 {showWelcome && (
@@ -216,22 +197,22 @@ function Home() {
   </div>
 )}
 <div
-  className="container py-5" style={{ scrollMarginTop: "100px", paddingTop: "5rem" }}
+  className="container py-5"
   id="about"
-  style={{ scrollMarginTop: "100px" }}
+  style={{ scrollMarginTop: "100px", marginTop: "200px" }}
 >
 
   <div className="text-center mb-5">
 
     <h2 className="fw-bold">
-      About PeopleCore
+      About PeopleHub
     </h2>
     <div style={{
       width: "60px", height: "4px", background: "var(--primary)",
       borderRadius: "2px", margin: "0 auto 1.5rem"
     }} />
     <p style={{ color: "var(--gray-600)", fontSize: "1.1rem", maxWidth: "700px", margin: "0 auto", lineHeight: "1.7" }}>
-    PeopleCore centralizes leave, expenses, records, and documents into a single professional platform — empowering employees, managers, and admins to work faster and smarter.
+    PeopleHub centralizes leave, expenses, records, and documents into a single professional platform — empowering employees, managers, and admins to work faster and smarter.
     </p>
 
   </div>
