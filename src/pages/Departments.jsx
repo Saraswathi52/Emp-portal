@@ -18,6 +18,25 @@ function Departments() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [departments, setDepartments] = useState(initialDepartments);
+  const [showForm, setShowForm] = useState(false);
+  const [newDept, setNewDept] = useState({ name: "", head: "", location: "", status: "Active" });
+  const [toast, setToast] = useState(null);
+
+  const handleAdd = (e) => {
+    e.preventDefault();
+    const newId = `DEP00${departments.length + 1}`;
+    setDepartments([...departments, { id: newId, ...newDept, employees: 0 }]);
+    setShowForm(false);
+    setNewDept({ name: "", head: "", location: "", status: "Active" });
+    setToast({ message: "Department added successfully!", type: "success" });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleDelete = (id) => {
+    setDepartments(departments.filter(d => d.id !== id));
+    setToast({ message: "Department deleted!", type: "success" });
+    setTimeout(() => setToast(null), 3000);
+  };
   
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLocation, setFilterLocation] = useState("All");
@@ -41,6 +60,14 @@ function Departments() {
 
   return (
     <div className="dashboard-wrapper">
+      {toast && (
+        <div className="toast-message">
+          <div className="alert alert-success d-flex align-items-center gap-2 shadow-sm" style={{ borderRadius: "10px", border: "none", padding: "0.75rem 1.25rem" }}>
+            <i className="bi bi-check-circle" />
+            {toast.message}
+          </div>
+        </div>
+      )}
       <Sidebar role={userRole} onClose={() => setSidebarOpen(false)} isOpen={sidebarOpen} />
       <div className="main-content">
         <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
@@ -50,7 +77,7 @@ function Departments() {
               <h4>Department Management</h4>
               <p>Manage all company departments.</p>
             </div>
-            <button className="btn-custom-primary d-flex align-items-center gap-2">
+            <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={() => setShowForm(true)}>
               <i className="bi bi-plus-lg" /> Add Department
             </button>
           </div>
@@ -130,7 +157,7 @@ function Departments() {
                             <button className="btn-custom-outline d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }}>
                               <i className="bi bi-pencil" /> Edit
                             </button>
-                            <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }}>
+                            <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(dept.id)}>
                               <i className="bi bi-trash" /> Delete
                             </button>
                           </div>
@@ -144,6 +171,41 @@ function Departments() {
           </div>
         </div>
       </div>
+      {showForm && (
+        <div className="popup-overlay" onClick={() => setShowForm(false)}>
+          <div className="popup-box form-custom" onClick={e => e.stopPropagation()} style={{ maxWidth: "500px" }}>
+            <button className="close-btn" onClick={() => setShowForm(false)}>
+              <i className="bi bi-x-lg"></i>
+            </button>
+            <h4 className="fw-bold mb-4">Add New Department</h4>
+            <form onSubmit={handleAdd}>
+              <div className="mb-3">
+                <label className="form-label">Department Name</label>
+                <input type="text" className="form-control" required value={newDept.name} onChange={e => setNewDept({...newDept, name: e.target.value})} />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Department Head</label>
+                <input type="text" className="form-control" required value={newDept.head} onChange={e => setNewDept({...newDept, head: e.target.value})} />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Location</label>
+                <input type="text" className="form-control" required value={newDept.location} onChange={e => setNewDept({...newDept, location: e.target.value})} />
+              </div>
+              <div className="mb-4">
+                <label className="form-label">Status</label>
+                <select className="form-select" value={newDept.status} onChange={e => setNewDept({...newDept, status: e.target.value})}>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+              <div className="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" className="btn btn-light" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn-custom-primary px-4">Save Department</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

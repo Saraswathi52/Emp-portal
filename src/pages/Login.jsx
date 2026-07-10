@@ -55,13 +55,13 @@ function Login() {
 
         <form onSubmit={handleLogin} className="form-custom">
           <div className="mb-3">
-            <label className="form-label">Employee ID</label>
+            <label className="form-label">{roleLabel} ID</label>
             <div className="position-relative">
               <i className="bi bi-person" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--gray-400)", zIndex: 5 }} />
               <input
                 type="text"
                 className={`form-control ps-5 ${errors.employeeId ? "is-invalid" : ""}`}
-                placeholder="Enter your Employee ID"
+                placeholder={`Enter your ${roleLabel} ID`}
                 value={employeeId}
                 onChange={(e) => { setEmployeeId(e.target.value); setErrors({ ...errors, employeeId: "" }); }}
               />

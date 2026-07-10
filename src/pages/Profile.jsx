@@ -101,7 +101,7 @@ function Profile() {
   };
 
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', department: '', designation: '',
+    title: '', name: '', email: '', phone: '', department: '', designation: '',
     manager: '', status: '', location: '', dob: '', bloodGroup: '',
     joiningDate: '', emergencyName: '', emergencyContact: '', relation: '',
     address: '', education: '', skills: '', linkedIn: '', github: '',
@@ -110,6 +110,7 @@ function Profile() {
   useEffect(() => {
     if (emp) {
       setForm({
+        title: emp.title || '',
         name: emp.name || '',
         email: emp.email || '',
         phone: emp.phone || '',
@@ -156,6 +157,7 @@ function Profile() {
   const handleCancel = () => {
     if (emp) {
       setForm({
+        title: emp.title || '',
         name: emp.name || '',
         email: emp.email || '',
         phone: emp.phone || '',
@@ -193,8 +195,8 @@ function Profile() {
     }
   };
 
-  const displayName = emp?.name || user?.name || 'User';
-  const initial = displayName.charAt(0).toUpperCase();
+  const displayName = [emp?.title, emp?.name].filter(Boolean).join(' ') || user?.name || 'User';
+  const initial = (emp?.name || user?.name || 'User').charAt(0).toUpperCase();
 
   const handleProfileImageUpload = (e) => {
     const file = e.target.files[0];
@@ -393,7 +395,8 @@ function Profile() {
                   Personal Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Full Name" value={emp?.name} icon="bi-person" name="name" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Title" value={emp?.title} icon="bi-person-badge" name="title" options={['Mr', 'Ms', 'Mrs']} editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Full Name" value={emp?.name} icon="bi-person" name="name" editing={editing} form={form} onChange={handleChange} />
                   <Field label="Date of Birth" value={emp?.dob} icon="bi-calendar" name="dob" type="date" editing={false} form={form} onChange={handleChange} />
                   <Field label="Blood Group" value={emp?.bloodGroup} icon="bi-droplet" name="bloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} />
                   <Field label="Phone" value={emp?.phone} icon="bi-telephone" name="phone" editing={editing} form={form} onChange={handleChange} />
