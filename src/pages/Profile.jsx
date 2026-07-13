@@ -16,6 +16,7 @@ const Field = ({ label, value, icon, name, type = 'text', options = null, editin
           {editing ? (
             options ? (
               <select name={name} value={val} onChange={onChange} className="form-select form-select-sm" style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }}>
+                <option value="">Select...</option>
                 {options.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             ) : (
@@ -34,7 +35,7 @@ const Field = ({ label, value, icon, name, type = 'text', options = null, editin
 
 function Profile() {
   const user = getCurrentUser();
-  const emp = getEmployee(user?.employeeId);
+  const [emp, setEmp] = useState(null);
   const [role, setRole] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored).role.toLowerCase() : "employee";
@@ -43,6 +44,16 @@ function Profile() {
   const [editing, setEditing] = useState(false);
   const [toast, setToast] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    async function fetchEmp() {
+      if (user?.employeeId) {
+        const data = await getEmployee(user.employeeId);
+        setEmp(data);
+      }
+    }
+    fetchEmp();
+  }, [user?.employeeId]);
 
   const isManager = role === 'manager';
   const allLeaves = isManager ? getAllLeaveRequests() : [];
@@ -143,13 +154,14 @@ function Profile() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const updated = {
       ...emp,
       ...form,
-      skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
+      skills: typeof form.skills === 'string' ? form.skills.split(',').map(s => s.trim()).filter(Boolean) : form.skills,
     };
-    saveEmployee(updated);
+    await saveEmployee(updated);
+    setEmp(updated);
     setEditing(false);
     showToast("Profile updated successfully!");
   };
@@ -188,8 +200,10 @@ function Profile() {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const updated = { ...emp, resume: ev.target.result, resumeName: file.name };
-        saveEmployee(updated);
-        showToast("Resume uploaded successfully!");
+        saveEmployee(updated).then(() => {
+          setEmp(updated);
+          showToast("Resume uploaded successfully!");
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -234,8 +248,9 @@ function Profile() {
             id: emp?.id || user?.employeeId, 
             name: emp?.name || user?.name || user?.employeeId,
             profileImage: compressedDataUrl 
-          });
-          window.location.reload(); 
+          }).then(() => {
+            window.location.reload(); 
+          }); 
         };
         img.src = event.target.result;
       };

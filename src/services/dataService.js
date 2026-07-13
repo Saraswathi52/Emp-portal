@@ -172,20 +172,70 @@ export function getEmployees() {
   return JSON.parse(localStorage.getItem(KEYS.EMPLOYEES) || '[]');
 }
 
-export function getEmployee(id) {
-  return getEmployees().find(e => e.id === id) || null;
+const API_BASE_URL = 'https://zwfgsom5dk.execute-api.ap-south-1.amazonaws.com';
+
+export async function getEmployee(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/employees/${id}`);
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      throw new Error(`Failed to fetch employee: ${response.status}`);
+    }
+    const data = await response.json();
+    
+    // Map AWS response to the existing React model
+    return {
+      id: data.empid || id,
+      empid: data.empid || id,
+      name: data.FullName,
+      phone: data.Phone,
+      department: data.Department,
+      designation: data.Designation,
+      bloodGroup: data.BloodGroup,
+      linkedIn: data.LinkedIn,
+      github: data.GitHub,
+      dob: data.DateOfBirth,
+      emergencyName: data.EmergencyContactName,
+      emergencyContact: data.EmergencyContactPhone,
+      relation: data.EmergencyContactRelation,
+      joiningDate: data.JoiningDate,
+      manager: data.Manager,
+      status: data.Status,
+      address: data.Address,
+      education: data.Education,
+      skills: data.Skills,
+      email: data.Email,
+      role: data.Role,
+      title: data.Title
+    };
+  } catch (error) {
+    console.error('Error fetching employee:', error);
+    return null;
+  }
 }
 
-export function saveEmployee(employee) {
-  const employees = getEmployees();
-  const idx = employees.findIndex(e => e.id === employee.id);
-  if (idx >= 0) {
-    employees[idx] = { ...employees[idx], ...employee };
-  } else {
-    employees.push(employee);
+export async function saveEmployee(employee) {
+  try {
+    // Fallback if the component only provided id
+    const empid = employee.empid || employee.id;
+    const response = await fetch(`${API_BASE_URL}/employees/${empid}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...employee,
+        Title: employee.title
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to save employee: ${response.status}`);
+    }
+    return employee;
+  } catch (error) {
+    console.error('Error saving employee:', error);
+    return employee;
   }
-  localStorage.setItem(KEYS.EMPLOYEES, JSON.stringify(employees));
-  return employee;
 }
 
 export function getAttendance(employeeId) {
