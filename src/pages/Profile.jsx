@@ -112,35 +112,35 @@ function Profile() {
   };
 
   const [form, setForm] = useState({
-    title: '', name: '', email: '', phone: '', department: '', designation: '',
-    manager: '', status: '', location: '', dob: '', bloodGroup: '',
-    joiningDate: '', emergencyName: '', emergencyContact: '', relation: '',
-    address: '', education: '', skills: '', linkedIn: '', github: '',
+    Title: '', FullName: '', Email: '', Phone: '', Department: '', Designation: '',
+    Manager: '', Status: '', location: '', DateOfBirth: '', BloodGroup: '',
+    JoiningDate: '', EmergencyContactName: '', EmergencyContactPhone: '', EmergencyContactRelation: '',
+    Address: '', Education: '', Skills: '', LinkedIn: '', GitHub: '',
   });
 
   useEffect(() => {
     if (emp) {
       setForm({
-        title: emp.title || '',
-        name: emp.name || '',
-        email: emp.email || '',
-        phone: emp.phone || '',
-        department: emp.department || '',
-        designation: emp.designation || '',
-        manager: emp.manager || '',
-        status: emp.status || '',
+        Title: emp.Title || '',
+        FullName: emp.FullName || '',
+        Email: emp.Email || '',
+        Phone: emp.Phone || '',
+        Department: emp.Department || '',
+        Designation: emp.Designation || '',
+        Manager: emp.Manager || '',
+        Status: emp.Status || '',
         location: emp.location || '',
-        dob: emp.dob || '',
-        bloodGroup: emp.bloodGroup || '',
-        joiningDate: emp.joiningDate || '',
-        emergencyName: emp.emergencyName || '',
-        emergencyContact: emp.emergencyContact || '',
-        relation: emp.relation || '',
-        address: emp.address || '',
-        education: emp.education || '',
-        skills: Array.isArray(emp.skills) ? emp.skills.join(', ') : (emp.skills || ''),
-        linkedIn: emp.linkedIn || '',
-        github: emp.github || '',
+        DateOfBirth: emp.DateOfBirth || '',
+        BloodGroup: emp.BloodGroup || '',
+        JoiningDate: emp.JoiningDate || '',
+        EmergencyContactName: emp.EmergencyContactName || '',
+        EmergencyContactPhone: emp.EmergencyContactPhone || '',
+        EmergencyContactRelation: emp.EmergencyContactRelation || '',
+        Address: emp.Address || '',
+        Education: emp.Education || '',
+        Skills: Array.isArray(emp.Skills) ? emp.Skills.join(', ') : (emp.Skills || ''),
+        LinkedIn: emp.LinkedIn || '',
+        GitHub: emp.GitHub || '',
       });
     }
   }, [emp]);
@@ -155,40 +155,45 @@ function Profile() {
   };
 
   const handleSave = async () => {
-    const updated = {
-      ...emp,
-      ...form,
-      skills: typeof form.skills === 'string' ? form.skills.split(',').map(s => s.trim()).filter(Boolean) : form.skills,
-    };
-    await saveEmployee(updated);
-    setEmp(updated);
-    setEditing(false);
-    showToast("Profile updated successfully!");
+    try {
+      const updated = {
+        ...emp,
+        ...form,
+        Skills: typeof form.Skills === 'string' ? form.Skills.split(',').map(s => s.trim()).filter(Boolean) : form.Skills,
+      };
+      await saveEmployee(updated);
+      const refreshed = await getEmployee(updated.empid || user?.employeeId);
+      setEmp(refreshed || updated);
+      setEditing(false);
+      showToast("Profile updated successfully!");
+    } catch (error) {
+      showToast("Failed to update profile", "warning");
+    }
   };
 
   const handleCancel = () => {
     if (emp) {
       setForm({
-        title: emp.title || '',
-        name: emp.name || '',
-        email: emp.email || '',
-        phone: emp.phone || '',
-        department: emp.department || '',
-        designation: emp.designation || '',
-        manager: emp.manager || '',
-        status: emp.status || '',
+        Title: emp.Title || '',
+        FullName: emp.FullName || '',
+        Email: emp.Email || '',
+        Phone: emp.Phone || '',
+        Department: emp.Department || '',
+        Designation: emp.Designation || '',
+        Manager: emp.Manager || '',
+        Status: emp.Status || '',
         location: emp.location || '',
-        dob: emp.dob || '',
-        bloodGroup: emp.bloodGroup || '',
-        joiningDate: emp.joiningDate || '',
-        emergencyName: emp.emergencyName || '',
-        emergencyContact: emp.emergencyContact || '',
-        relation: emp.relation || '',
-        address: emp.address || '',
-        education: emp.education || '',
-        skills: Array.isArray(emp.skills) ? emp.skills.join(', ') : (emp.skills || ''),
-        linkedIn: emp.linkedIn || '',
-        github: emp.github || '',
+        DateOfBirth: emp.DateOfBirth || '',
+        BloodGroup: emp.BloodGroup || '',
+        JoiningDate: emp.JoiningDate || '',
+        EmergencyContactName: emp.EmergencyContactName || '',
+        EmergencyContactPhone: emp.EmergencyContactPhone || '',
+        EmergencyContactRelation: emp.EmergencyContactRelation || '',
+        Address: emp.Address || '',
+        Education: emp.Education || '',
+        Skills: Array.isArray(emp.Skills) ? emp.Skills.join(', ') : (emp.Skills || ''),
+        LinkedIn: emp.LinkedIn || '',
+        GitHub: emp.GitHub || '',
       });
     }
     setEditing(false);
@@ -200,17 +205,20 @@ function Profile() {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const updated = { ...emp, resume: ev.target.result, resumeName: file.name };
-        saveEmployee(updated).then(() => {
-          setEmp(updated);
+        saveEmployee(updated).then(async () => {
+          const refreshed = await getEmployee(updated.empid || user?.employeeId);
+          setEmp(refreshed || updated);
           showToast("Resume uploaded successfully!");
+        }).catch(() => {
+          showToast("Failed to upload resume", "warning");
         });
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const displayName = [emp?.title, emp?.name].filter(Boolean).join(' ') || user?.name || 'User';
-  const initial = (emp?.name || user?.name || 'User').charAt(0).toUpperCase();
+  const displayName = [emp?.Title, emp?.FullName].filter(Boolean).join(' ') || user?.name || 'User';
+  const initial = (emp?.FullName || user?.name || 'User').charAt(0).toUpperCase();
 
   const handleProfileImageUpload = (e) => {
     const file = e.target.files[0];
@@ -245,11 +253,13 @@ function Profile() {
           
           saveEmployee({ 
             ...(emp || {}), 
-            id: emp?.id || user?.employeeId, 
-            name: emp?.name || user?.name || user?.employeeId,
+            empid: emp?.empid || user?.employeeId, 
+            FullName: emp?.FullName || user?.name || user?.employeeId,
             profileImage: compressedDataUrl 
           }).then(() => {
             window.location.reload(); 
+          }).catch(() => {
+            showToast("Failed to upload profile image", "warning");
           }); 
         };
         img.src = event.target.result;
@@ -336,8 +346,8 @@ function Profile() {
                   </label>
                 </div>
                 <h5 className="fw-bold mb-1" style={{ color: "var(--gray-800)" }}>{displayName}</h5>
-                <p className="mb-2" style={{ color: "var(--primary)", fontSize: "0.9rem", fontWeight: 500 }}>{emp?.designation || emp?.role || ''}</p>
-                <span className="badge-status badge-approved d-inline-block mb-2">{emp?.id || ''}</span>
+                <p className="mb-2" style={{ color: "var(--primary)", fontSize: "0.9rem", fontWeight: 500 }}>{emp?.Designation || emp?.Role || ''}</p>
+                <span className="badge-status badge-approved d-inline-block mb-2">{emp?.empid || ''}</span>
                 <div style={{ color: "var(--gray-500)", fontSize: "0.85rem" }}>
                   <i className="bi bi-geo-alt me-1" /> {emp?.location || ''}
                 </div>
@@ -374,24 +384,24 @@ function Profile() {
                     <div className="d-flex flex-column gap-2">
                       <div className="input-group input-group-sm">
                         <span className="input-group-text" style={{ fontSize: "0.75rem", background: "var(--gray-50)" }}><i className="bi bi-linkedin" /></span>
-                        <input type="url" name="linkedIn" value={form.linkedIn} onChange={handleChange} className="form-control form-control-sm" placeholder="LinkedIn URL" style={{ fontSize: "0.8rem" }} />
+                        <input type="url" name="LinkedIn" value={form.LinkedIn} onChange={handleChange} className="form-control form-control-sm" placeholder="LinkedIn URL" style={{ fontSize: "0.8rem" }} />
                       </div>
                       <div className="input-group input-group-sm">
                         <span className="input-group-text" style={{ fontSize: "0.75rem", background: "var(--gray-50)" }}><i className="bi bi-github" /></span>
-                        <input type="url" name="github" value={form.github} onChange={handleChange} className="form-control form-control-sm" placeholder="GitHub URL" style={{ fontSize: "0.8rem" }} />
+                        <input type="url" name="GitHub" value={form.GitHub} onChange={handleChange} className="form-control form-control-sm" placeholder="GitHub URL" style={{ fontSize: "0.8rem" }} />
                       </div>
                     </div>
                   ) : (
                     <div className="d-flex justify-content-center gap-3">
-                      {emp?.linkedIn ? (
-                        <a href={emp.linkedIn} target="_blank" rel="noopener noreferrer" className="btn btn-sm" style={{ color: "#0a66c2", background: "#f0f4ff", borderRadius: "50px", padding: "0.3rem 0.8rem", fontSize: "0.8rem" }}>
+                      {emp?.LinkedIn ? (
+                        <a href={emp.LinkedIn} target="_blank" rel="noopener noreferrer" className="btn btn-sm" style={{ color: "#0a66c2", background: "#f0f4ff", borderRadius: "50px", padding: "0.3rem 0.8rem", fontSize: "0.8rem" }}>
                           <i className="bi bi-linkedin me-1" /> LinkedIn
                         </a>
                       ) : (
                         <span style={{ color: "var(--gray-400)", fontSize: "0.8rem" }}><i className="bi bi-linkedin me-1" /> Not set</span>
                       )}
-                      {emp?.github ? (
-                        <a href={emp.github} target="_blank" rel="noopener noreferrer" className="btn btn-sm" style={{ color: "#333", background: "#f0f0f0", borderRadius: "50px", padding: "0.3rem 0.8rem", fontSize: "0.8rem" }}>
+                      {emp?.GitHub ? (
+                        <a href={emp.GitHub} target="_blank" rel="noopener noreferrer" className="btn btn-sm" style={{ color: "#333", background: "#f0f0f0", borderRadius: "50px", padding: "0.3rem 0.8rem", fontSize: "0.8rem" }}>
                           <i className="bi bi-github me-1" /> GitHub
                         </a>
                       ) : (
@@ -410,13 +420,13 @@ function Profile() {
                   Personal Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Title" value={emp?.title} icon="bi-person-badge" name="title" options={['Mr', 'Ms', 'Mrs']} editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Full Name" value={emp?.name} icon="bi-person" name="name" editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Date of Birth" value={emp?.dob} icon="bi-calendar" name="dob" type="date" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Blood Group" value={emp?.bloodGroup} icon="bi-droplet" name="bloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Phone" value={emp?.phone} icon="bi-telephone" name="phone" editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Email" value={emp?.email} icon="bi-envelope" name="email" type="email" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Address" value={emp?.address} icon="bi-geo-alt" name="address" editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Title" value={emp?.Title} icon="bi-person-badge" name="Title" options={['Mr', 'Ms', 'Mrs']} editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Full Name" value={emp?.FullName} icon="bi-person" name="FullName" editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Date of Birth" value={emp?.DateOfBirth} icon="bi-calendar" name="DateOfBirth" type="date" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Blood Group" value={emp?.BloodGroup} icon="bi-droplet" name="BloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Phone" value={emp?.Phone} icon="bi-telephone" name="Phone" editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Email" value={emp?.Email} icon="bi-envelope" name="Email" type="email" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Address" value={emp?.Address} icon="bi-geo-alt" name="Address" editing={editing} form={form} onChange={handleChange} />
                 </div>
               </div>
 
@@ -426,12 +436,12 @@ function Profile() {
                   Official Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Employee ID" value={emp?.id} icon="bi-person-badge" name="employeeId" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Department" value={emp?.department} icon="bi-building" name="department" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Designation" value={emp?.designation} icon="bi-briefcase" name="designation" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Joining Date" value={emp?.joiningDate} icon="bi-calendar-check" name="joiningDate" type="date" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Manager" value={emp?.manager} icon="bi-person-up" name="manager" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Status" value={emp?.status} icon="bi-check-circle" name="status" options={['Active', 'Inactive', 'On Leave']} editing={false} form={form} onChange={handleChange} />
+                  <Field label="Employee ID" value={emp?.empid} icon="bi-person-badge" name="empid" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Department" value={emp?.Department} icon="bi-building" name="Department" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Designation" value={emp?.Designation} icon="bi-briefcase" name="Designation" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Joining Date" value={emp?.JoiningDate} icon="bi-calendar-check" name="JoiningDate" type="date" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Manager" value={emp?.Manager} icon="bi-person-up" name="Manager" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Status" value={emp?.Status} icon="bi-check-circle" name="Status" options={['Active', 'Inactive', 'On Leave']} editing={false} form={form} onChange={handleChange} />
                 </div>
               </div>
 
@@ -446,25 +456,25 @@ function Profile() {
                       <div>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Name</small>
                         {editing ? (
-                          <input name="emergencyName" value={form.emergencyName} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem" }} />
+                          <input name="EmergencyContactName" value={form.EmergencyContactName} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem" }} />
                         ) : (
-                          <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.emergencyName || '—'}</div>
+                          <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactName || '—'}</div>
                         )}
                       </div>
                       <div>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Phone</small>
                         {editing ? (
-                          <input name="emergencyContact" value={form.emergencyContact} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem" }} />
+                          <input name="EmergencyContactPhone" value={form.EmergencyContactPhone} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem" }} />
                         ) : (
-                          <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.emergencyContact || '—'}</div>
+                          <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactPhone || '—'}</div>
                         )}
                       </div>
                       <div>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Relation</small>
                         {editing ? (
-                          <input name="relation" value={form.relation} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem" }} />
+                          <input name="EmergencyContactRelation" value={form.EmergencyContactRelation} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem" }} />
                         ) : (
-                          <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.relation || '—'}</div>
+                          <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactRelation || '—'}</div>
                         )}
                       </div>
                     </div>
@@ -480,18 +490,18 @@ function Profile() {
                       <div>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Education</small>
                         {editing ? (
-                          <textarea name="education" value={form.education} onChange={handleChange} className="form-control form-control-sm" rows="2" style={{ fontSize: "0.85rem" }} />
+                          <textarea name="Education" value={form.Education} onChange={handleChange} className="form-control form-control-sm" rows="2" style={{ fontSize: "0.85rem" }} />
                         ) : (
-                          <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.education || '—'}</div>
+                          <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.Education || '—'}</div>
                         )}
                       </div>
                       <div>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Skills</small>
                         {editing ? (
-                          <textarea name="skills" value={form.skills} onChange={handleChange} className="form-control form-control-sm" rows="2" placeholder="React, Node.js, Python" style={{ fontSize: "0.85rem" }} />
+                          <textarea name="Skills" value={form.Skills} onChange={handleChange} className="form-control form-control-sm" rows="2" placeholder="React, Node.js, Python" style={{ fontSize: "0.85rem" }} />
                         ) : (
                           <div className="d-flex flex-wrap gap-1 mt-1">
-                            {Array.isArray(emp?.skills) && emp.skills.length > 0 ? emp.skills.map((s, i) => (
+                            {Array.isArray(emp?.Skills) && emp.Skills.length > 0 ? emp.Skills.map((s, i) => (
                               <span key={i} className="badge-status badge-uploaded" style={{ fontSize: "0.72rem" }}>{s}</span>
                             )) : <span style={{ color: "var(--gray-400)", fontSize: "0.85rem" }}>—</span>}
                           </div>

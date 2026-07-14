@@ -181,33 +181,57 @@ export async function getEmployee(id) {
       if (response.status === 404) return null;
       throw new Error(`Failed to fetch employee: ${response.status}`);
     }
-    const data = await response.json();
+    let data = await response.json();
     
-    // Map AWS response to the existing React model
-    return {
-      id: data.empid || id,
+    // Handle potential AWS response wrappers
+    if (data.statusCode && data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    } else if (data.Item) {
+      data = data.Item;
+    } else if (data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    
+    // Check if DynamoDB typed format is returned (e.g., { empid: { S: "123" } })
+    if (data && Object.keys(data).length > 0 && typeof data[Object.keys(data)[0]] === 'object' && ('S' in data[Object.keys(data)[0]] || 'N' in data[Object.keys(data)[0]])) {
+      const unwrapped = {};
+      for (const key in data) {
+        const val = data[key];
+        unwrapped[key] = val.S !== undefined ? val.S : (val.N !== undefined ? Number(val.N) : (val.BOOL !== undefined ? val.BOOL : val));
+      }
+      data = unwrapped;
+    }
+    
+    // Convert response into a single employee object expected by Profile.jsx
+    const emp = {
       empid: data.empid || id,
-      name: data.FullName,
-      phone: data.Phone,
-      department: data.Department,
-      designation: data.Designation,
-      bloodGroup: data.BloodGroup,
-      linkedIn: data.LinkedIn,
-      github: data.GitHub,
-      dob: data.DateOfBirth,
-      emergencyName: data.EmergencyContactName,
-      emergencyContact: data.EmergencyContactPhone,
-      relation: data.EmergencyContactRelation,
-      joiningDate: data.JoiningDate,
-      manager: data.Manager,
-      status: data.Status,
-      address: data.Address,
-      education: data.Education,
-      skills: data.Skills,
-      email: data.Email,
-      role: data.Role,
-      title: data.Title
+      Title: data.Title || '',
+      FullName: data.FullName || '',
+      DateOfBirth: data.DateOfBirth || '',
+      BloodGroup: data.BloodGroup || '',
+      Phone: data.Phone || '',
+      Email: data.Email || '',
+      Address: data.Address || '',
+      Department: data.Department || '',
+      Designation: data.Designation || '',
+      JoiningDate: data.JoiningDate || '',
+      Manager: data.Manager || '',
+      Status: data.Status || '',
+      EmergencyContactName: data.EmergencyContactName || '',
+      EmergencyContactPhone: data.EmergencyContactPhone || '',
+      EmergencyContactRelation: data.EmergencyContactRelation || '',
+      Education: data.Education || '',
+      Skills: data.Skills || '',
+      LinkedIn: data.LinkedIn || '',
+      GitHub: data.GitHub || '',
+      Role: data.Role || '',
+      Password: data.Password || '',
+      profileImage: data.profileImage || null,
+      resume: data.resume || null,
+      resumeName: data.resumeName || null
     };
+    
+    return emp;
   } catch (error) {
     console.error('Error fetching employee:', error);
     return null;
@@ -216,17 +240,44 @@ export async function getEmployee(id) {
 
 export async function saveEmployee(employee) {
   try {
-    // Fallback if the component only provided id
-    const empid = employee.empid || employee.id;
+    const empid = employee.empid;
+    
+    // Create the exact payload expected by the backend
+    const payload = {
+      empid: employee.empid,
+      Title: employee.Title,
+      FullName: employee.FullName,
+      DateOfBirth: employee.DateOfBirth,
+      BloodGroup: employee.BloodGroup,
+      Phone: employee.Phone,
+      Email: employee.Email,
+      Address: employee.Address,
+      Department: employee.Department,
+      Designation: employee.Designation,
+      JoiningDate: employee.JoiningDate,
+      Manager: employee.Manager,
+      Status: employee.Status,
+      EmergencyContactName: employee.EmergencyContactName,
+      EmergencyContactPhone: employee.EmergencyContactPhone,
+      EmergencyContactRelation: employee.EmergencyContactRelation,
+      Education: employee.Education,
+      Skills: employee.Skills,
+      LinkedIn: employee.LinkedIn,
+      GitHub: employee.GitHub,
+      Role: employee.Role,
+      Password: employee.Password
+    };
+
+    if (employee.profileImage !== undefined) payload.profileImage = employee.profileImage;
+    if (employee.resume !== undefined) payload.resume = employee.resume;
+    if (employee.resumeName !== undefined) payload.resumeName = employee.resumeName;
+
     const response = await fetch(`${API_BASE_URL}/employees/${empid}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        ...employee,
-        Title: employee.title
-      })
+      body: JSON.stringify(payload)
     });
     if (!response.ok) {
       throw new Error(`Failed to save employee: ${response.status}`);
@@ -234,7 +285,7 @@ export async function saveEmployee(employee) {
     return employee;
   } catch (error) {
     console.error('Error saving employee:', error);
-    return employee;
+    throw error;
   }
 }
 

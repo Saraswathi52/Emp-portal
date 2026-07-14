@@ -60,7 +60,7 @@ function EmployeeDashboard() {
         <div className="page-content">
           <div className="section-header">
             <div>
-              <h4>Welcome back, {employee?.name || 'Employee'}!</h4>
+              <h4>Welcome back, {employee?.FullName || 'Employee'}!</h4>
               <p>{todayStr}</p>
             </div>
 
@@ -79,7 +79,7 @@ function EmployeeDashboard() {
                       <i className="bi bi-person" style={{ color: "var(--primary)", fontSize: "1.2rem", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.65rem", display: "block", textTransform: "uppercase" }}>Name</small>
-                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.name || '—'}</span>
+                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.FullName || '—'}</span>
                       </div>
                     </div>
                   </div>
@@ -88,7 +88,7 @@ function EmployeeDashboard() {
                       <i className="bi bi-person-vcard" style={{ color: "var(--primary)", fontSize: "1.2rem", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.65rem", display: "block", textTransform: "uppercase" }}>Employee ID</small>
-                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.id || '—'}</span>
+                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.empid || '—'}</span>
                       </div>
                     </div>
                   </div>
@@ -97,7 +97,7 @@ function EmployeeDashboard() {
                       <i className="bi bi-briefcase" style={{ color: "var(--primary)", fontSize: "1.2rem", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.65rem", display: "block", textTransform: "uppercase" }}>Role</small>
-                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.role || employee?.designation || '—'}</span>
+                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.Role || employee?.Designation || '—'}</span>
                       </div>
                     </div>
                   </div>
@@ -106,7 +106,7 @@ function EmployeeDashboard() {
                       <i className="bi bi-building" style={{ color: "var(--primary)", fontSize: "1.2rem", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.65rem", display: "block", textTransform: "uppercase" }}>Department</small>
-                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.department || '—'}</span>
+                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.Department || '—'}</span>
                       </div>
                     </div>
                   </div>
@@ -115,7 +115,7 @@ function EmployeeDashboard() {
                       <i className="bi bi-envelope" style={{ color: "var(--primary)", fontSize: "1.2rem", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.65rem", display: "block", textTransform: "uppercase" }}>Email</small>
-                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }} title={employee?.email}>{employee?.email || '—'}</span>
+                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }} title={employee?.Email}>{employee?.Email || '—'}</span>
                       </div>
                     </div>
                   </div>
@@ -124,7 +124,7 @@ function EmployeeDashboard() {
                       <i className="bi bi-telephone" style={{ color: "var(--primary)", fontSize: "1.2rem", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.65rem", display: "block", textTransform: "uppercase" }}>Phone</small>
-                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.phone || '—'}</span>
+                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.Phone || '—'}</span>
                       </div>
                     </div>
                   </div>
@@ -133,16 +133,16 @@ function EmployeeDashboard() {
                       <i className="bi bi-person-up" style={{ color: "var(--primary)", fontSize: "1.2rem", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.65rem", display: "block", textTransform: "uppercase" }}>Manager</small>
-                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.manager || '—'}</span>
+                        <span className="fw-semibold d-block text-truncate" style={{ fontSize: "0.85rem" }}>{employee?.Manager || '—'}</span>
                       </div>
                     </div>
                   </div>
                   <div className="col-md-6 col-lg-4">
                     <div className="d-flex align-items-center gap-3 p-2" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)", minHeight: "56px" }}>
-                      <i className="bi bi-check-circle" style={{ color: employee?.status === 'Active' ? 'var(--success)' : 'var(--gray-400)', fontSize: "1.2rem", flexShrink: 0 }} />
+                      <i className="bi bi-check-circle" style={{ color: employee?.Status === 'Active' ? 'var(--success)' : 'var(--gray-400)', fontSize: "1.2rem", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.65rem", display: "block", textTransform: "uppercase" }}>Status</small>
-                        <span className={`fw-semibold d-block text-truncate ${employee?.status === 'Active' ? 'text-success' : ''}`} style={{ fontSize: "0.85rem" }}>{employee?.status || '—'}</span>
+                        <span className={`fw-semibold d-block text-truncate ${employee?.Status === 'Active' ? 'text-success' : ''}`} style={{ fontSize: "0.85rem" }}>{employee?.Status || '—'}</span>
                       </div>
                     </div>
                   </div>
