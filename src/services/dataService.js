@@ -9,6 +9,57 @@ const KEYS = {
   DOCUMENTS: 'peoplecore_documents',
 };
 
+export const LEAVE_API_URL = 'https://rbbdgd2ai8.execute-api.ap-south-1.amazonaws.com/ed_leavemanagement';
+
+export async function submitLeaveRequestApi(leaveData) {
+  try {
+    const res = await fetch(LEAVE_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(leaveData)
+    });
+    if (!res.ok) throw new Error('Failed to apply leave');
+    return await res.json();
+  } catch (error) {
+    console.error('Error applying leave:', error);
+    throw error;
+  }
+}
+
+export async function deleteLeaveRequestApi(leave_id) {
+  try {
+    // Extract base URL by removing /ed_leavemanagement from LEAVE_API_URL if present,
+    // or just construct directly
+    const baseUrl = LEAVE_API_URL.replace('/ed_leavemanagement', '');
+    const url = `${baseUrl}/leave/${leave_id}`;
+    
+    console.log(`[deleteLeaveRequestApi] DELETE request URL:`, url);
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!res.ok) {
+      console.error(`[deleteLeaveRequestApi] Error Response status:`, res.status);
+      throw new Error(`Failed to delete leave. Status: ${res.status}`);
+    }
+    
+    const text = await res.text();
+    let json = {};
+    if (text) {
+      try { json = JSON.parse(text); } catch (e) { json = { message: text }; }
+    }
+    
+    console.log(`[deleteLeaveRequestApi] API response:`, json);
+    return json;
+  } catch (error) {
+    console.error('[deleteLeaveRequestApi] Error deleting leave:', error);
+    throw error;
+  }
+}
+
 const seedEmployees = [
   {
     id: 'EMP001',
@@ -155,6 +206,15 @@ function init() {
   }
   if (!localStorage.getItem(KEYS.LEAVE_REQUESTS)) {
     localStorage.setItem(KEYS.LEAVE_REQUESTS, JSON.stringify(seedLeaveRequests));
+  } else {
+    // Cleanup stuck local test data for the user
+    try {
+      const leaves = JSON.parse(localStorage.getItem(KEYS.LEAVE_REQUESTS) || '[]');
+      const cleaned = leaves.filter(l => l.reason !== 'rdrh');
+      if (leaves.length !== cleaned.length) {
+        localStorage.setItem(KEYS.LEAVE_REQUESTS, JSON.stringify(cleaned));
+      }
+    } catch(e) {}
   }
   if (!localStorage.getItem(KEYS.EXPENSES)) {
     localStorage.setItem(KEYS.EXPENSES, JSON.stringify(seedExpenses));
@@ -323,6 +383,13 @@ export function addLeaveRequest(leave) {
   all.push(leave);
   localStorage.setItem(KEYS.LEAVE_REQUESTS, JSON.stringify(all));
   return leave;
+}
+
+export function deleteLeaveRequestLocal(leaveId) {
+  const all = getAllLeaveRequests();
+  const filtered = all.filter(l => l.leaveId !== leaveId && l.leave_id !== leaveId);
+  localStorage.setItem(KEYS.LEAVE_REQUESTS, JSON.stringify(filtered));
+  return filtered;
 }
 
 export function updateLeaveStatus(leaveId, status) {

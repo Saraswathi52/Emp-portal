@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployee, getLeaveBalances, getLeaveRequests, getAllLeaveRequests, addLeaveRequest, updateLeaveStatus, getHolidays, getNextLeaveId } from "../services/dataService";
+import { getCurrentUser, getEmployee, getLeaveBalances, getLeaveRequests, getAllLeaveRequests, addLeaveRequest, updateLeaveStatus, getHolidays, getNextLeaveId, submitLeaveRequestApi, deleteLeaveRequestApi, deleteLeaveRequestLocal } from "../services/dataService";
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -80,8 +80,17 @@ function LeaveCalendar({ leaves, holidays, selectedDate, onSelectDate }) {
 
 function Leave() {
   const user = getCurrentUser();
-  const employee = getEmployee(user?.employeeId);
   const empId = user?.employeeId || 'EMP001';
+  const [employee, setEmployee] = useState(null);
+
+  useEffect(() => {
+    async function fetchEmp() {
+      const data = await getEmployee(empId);
+      setEmployee(data);
+    }
+    fetchEmp();
+  }, [empId]);
+
   const [role] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored).role.toLowerCase() : "employee";
@@ -130,7 +139,7 @@ function Leave() {
     setErrors({});
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     const newErrors = {};
     if (!startDate) newErrors.startDate = true;
     if (!endDate) newErrors.endDate = true;
@@ -141,25 +150,67 @@ function Leave() {
       return;
     }
 
+    const now = new Date();
+    const appliedOnStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    const uniqueLeaveId = `LV${now.getTime()}`;
+
     const newLeave = {
-      leaveId: getNextLeaveId(),
-      employeeId: empId,
-      employeeName: employee?.name || empId,
-      leaveType,
-      startDate,
-      endDate,
+      leave_id: uniqueLeaveId,
+      empid: empId,
+      employeeName: employee?.name || employee?.FullName || empId,
+      leaveType: wfh ? 'WFH' : (leaveType.includes('Leave') ? leaveType : `${leaveType} Leave`),
+      fromDate: startDate,
+      toDate: endDate,
       reason: reason.trim(),
+      duration: halfDay ? 'Half Day' : 'Full Day',
       status: 'Pending',
-      halfDay,
-      wfh,
-      appliedOn: new Date().toISOString().split('T')[0],
+      appliedOn: appliedOnStr,
+      
+      // Keep old fields for local UI compatibility until fully refactored, or update UI to use new fields
+      leaveId: uniqueLeaveId,
+      employeeId: empId,
+      startDate: startDate,
+      endDate: endDate,
+      halfDay: halfDay,
+      wfh: wfh
     };
 
+    try {
+      await submitLeaveRequestApi(newLeave);
+    } catch (e) {
+      console.warn("API failed, falling back to local storage", e);
+    }
+    
+    // Always save locally for now so the UI updates if the API isn't fully integrated for GET requests yet
     addLeaveRequest(newLeave);
+
     resetForm();
     setShowForm(false);
     setCurrentPage(1);
     showToast(wfh ? 'WFH request submitted successfully!' : 'Leave applied successfully!');
+  };
+
+  const handleDelete = async (leave) => {
+    if (!window.confirm("Are you sure you want to delete this leave request?")) return;
+    
+    console.log("[handleDelete] Selected leave object:", leave);
+    const leaveIdToDelete = leave.leave_id || leave.leaveId;
+    console.log("[handleDelete] leave_id being sent:", leaveIdToDelete);
+    
+    if (!leaveIdToDelete) {
+      showToast('Error: Leave ID is missing', 'warning');
+      return;
+    }
+
+    try {
+      await deleteLeaveRequestApi(leaveIdToDelete);
+      // Only delete locally if the API call succeeds
+      deleteLeaveRequestLocal(leaveIdToDelete);
+      showToast('Leave request deleted successfully');
+    } catch (e) {
+      console.error("[handleDelete] Delete failed:", e);
+      showToast('Failed to delete leave request. Please try again.', 'warning');
+    }
   };
 
   const handleApprove = (leaveId) => {
@@ -633,7 +684,7 @@ function Leave() {
                         <th style={{ minWidth: "120px" }}>To Date</th>
                         <th style={{ minWidth: "150px" }}>Reason</th>
                         <th>Status</th>
-                        {isManagerOrAdmin && <th style={{ width: "1%", whiteSpace: "nowrap" }}>Actions</th>}
+                        {isManagerOrAdmin ? <th style={{ width: "1%", whiteSpace: "nowrap" }}>Actions</th> : <th style={{ width: "1%", whiteSpace: "nowrap" }}>Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -680,7 +731,7 @@ function Leave() {
                                 {leave.status}
                               </span>
                             </td>
-                            {isManagerOrAdmin && (
+                            {isManagerOrAdmin ? (
                               <td>
                                 <div className="action-btns d-flex flex-nowrap gap-2">
                                   {leave.status === "Pending" ? (
@@ -692,6 +743,18 @@ function Leave() {
                                         <i className="bi bi-x-lg" style={{ fontSize: "1.1rem" }} />
                                       </button>
                                     </>
+                                  ) : (
+                                    <span className="text-muted" style={{ fontSize: "0.85rem" }}>—</span>
+                                  )}
+                                </div>
+                              </td>
+                            ) : (
+                              <td>
+                                <div className="action-btns d-flex flex-nowrap gap-2">
+                                  {leave.status === "Pending" ? (
+                                    <button className="btn-custom-danger d-flex align-items-center justify-content-center shadow-sm rounded" style={{ width: "32px", height: "32px", padding: 0 }} onClick={(e) => { e.stopPropagation(); handleDelete(leave); }} title="Delete Request">
+                                      <i className="bi bi-trash" style={{ fontSize: "1.1rem" }} />
+                                    </button>
                                   ) : (
                                     <span className="text-muted" style={{ fontSize: "0.85rem" }}>—</span>
                                   )}
