@@ -232,7 +232,7 @@ function Profile() {
           const MAX_HEIGHT = 250;
           let width = img.width;
           let height = img.height;
-          
+
           if (width > height) {
             if (width > MAX_WIDTH) {
               height *= MAX_WIDTH / width;
@@ -248,19 +248,23 @@ function Profile() {
           canvas.height = height;
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, width, height);
-          
+
           const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
-          
-          saveEmployee({ 
-            ...(emp || {}), 
-            empid: emp?.empid || user?.employeeId, 
+          const base64Content = compressedDataUrl.split(',')[1];
+
+          saveEmployee({
+            ...(emp || {}),
+            empid: emp?.empid || user?.employeeId,
             FullName: emp?.FullName || user?.name || user?.employeeId,
-            profileImage: compressedDataUrl 
+            profileImage: compressedDataUrl, // Keeps it backward compatible if backend just saves it
+            fileName: file.name,
+            fileContent: base64Content
           }).then(() => {
-            window.location.reload(); 
-          }).catch(() => {
+            window.location.reload();
+          }).catch((err) => {
+            console.error("Profile image upload error:", err);
             showToast("Failed to upload profile image", "warning");
-          }); 
+          });
         };
         img.src = event.target.result;
       };

@@ -32,7 +32,7 @@ export async function deleteLeaveRequestApi(leave_id) {
     // or just construct directly
     const baseUrl = LEAVE_API_URL.replace('/ed_leavemanagement', '');
     const url = `${baseUrl}/leave/${leave_id}`;
-    
+
     console.log(`[deleteLeaveRequestApi] DELETE request URL:`, url);
     const res = await fetch(url, {
       method: 'DELETE',
@@ -40,18 +40,18 @@ export async function deleteLeaveRequestApi(leave_id) {
         'Content-Type': 'application/json'
       }
     });
-    
+
     if (!res.ok) {
       console.error(`[deleteLeaveRequestApi] Error Response status:`, res.status);
       throw new Error(`Failed to delete leave. Status: ${res.status}`);
     }
-    
+
     const text = await res.text();
     let json = {};
     if (text) {
       try { json = JSON.parse(text); } catch (e) { json = { message: text }; }
     }
-    
+
     console.log(`[deleteLeaveRequestApi] API response:`, json);
     return json;
   } catch (error) {
@@ -168,13 +168,7 @@ const seedLeaveRequests = [
   { leaveId: 'L005', employeeId: 'EMP001', leaveType: 'Annual', startDate: '2026-07-25', endDate: '2026-07-25', reason: 'Half day - doctor appointment', status: 'Pending', halfDay: true, wfh: false, appliedOn: '2026-07-20' },
 ];
 
-const seedExpenses = [
-  { id: 'EXP001', employeeId: 'EMP001', expenseType: 'Travel', amount: 2500, date: '2026-07-01', description: 'Client meeting - Hyderabad to Bangalore', project: 'Project Alpha', meeting: 'Client Review Meeting', paymentMode: 'Corporate Card', status: 'Pending', receipt: null, receiptName: null },
-  { id: 'EXP002', employeeId: 'EMP001', expenseType: 'Food', amount: 800, date: '2026-06-28', description: 'Team lunch - Sprint completion', project: 'Project Beta', meeting: 'Sprint Retrospective', paymentMode: 'Cash', status: 'Approved', receipt: null, receiptName: null },
-  { id: 'EXP003', employeeId: 'EMP002', expenseType: 'Accommodation', amount: 4500, date: '2026-06-15', description: 'Business trip - Pune office', project: 'Project Alpha', meeting: 'Quarterly Review', paymentMode: 'Corporate Card', status: 'Rejected', receipt: null, receiptName: null },
-  { id: 'EXP004', employeeId: 'EMP001', expenseType: 'Transport', amount: 1200, date: '2026-07-05', description: 'Site visit - client location', project: 'Project Gamma', meeting: 'Site Assessment', paymentMode: 'Personal', status: 'Pending', receipt: null, receiptName: null },
-  { id: 'EXP005', employeeId: 'EMP003', expenseType: 'Office Supplies', amount: 3500, date: '2026-06-20', description: 'Stationery and printer cartridges', project: 'General', meeting: '', paymentMode: 'Corporate Card', status: 'Approved', receipt: null, receiptName: null },
-];
+const seedExpenses = [];
 
 const seedHolidays = [
   { date: '2026-01-26', name: 'Republic Day' },
@@ -195,6 +189,11 @@ const seedDocuments = [
 ];
 
 function init() {
+  if (!localStorage.getItem('expenses_cleared_v1')) {
+    localStorage.removeItem(KEYS.EXPENSES);
+    localStorage.setItem('expenses_cleared_v1', 'true');
+  }
+  
   if (!localStorage.getItem(KEYS.EMPLOYEES)) {
     localStorage.setItem(KEYS.EMPLOYEES, JSON.stringify(seedEmployees));
   }
@@ -214,7 +213,7 @@ function init() {
       if (leaves.length !== cleaned.length) {
         localStorage.setItem(KEYS.LEAVE_REQUESTS, JSON.stringify(cleaned));
       }
-    } catch(e) {}
+    } catch (e) { }
   }
   if (!localStorage.getItem(KEYS.EXPENSES)) {
     localStorage.setItem(KEYS.EXPENSES, JSON.stringify(seedExpenses));
@@ -242,7 +241,7 @@ export async function getEmployee(id) {
       throw new Error(`Failed to fetch employee: ${response.status}`);
     }
     let data = await response.json();
-    
+
     // Handle potential AWS response wrappers
     if (data.statusCode && data.body) {
       data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
@@ -251,7 +250,7 @@ export async function getEmployee(id) {
     } else if (data.body) {
       data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
     }
-    
+
     // Check if DynamoDB typed format is returned (e.g., { empid: { S: "123" } })
     if (data && Object.keys(data).length > 0 && typeof data[Object.keys(data)[0]] === 'object' && ('S' in data[Object.keys(data)[0]] || 'N' in data[Object.keys(data)[0]])) {
       const unwrapped = {};
@@ -261,7 +260,7 @@ export async function getEmployee(id) {
       }
       data = unwrapped;
     }
-    
+
     // Convert response into a single employee object expected by Profile.jsx
     const emp = {
       empid: data.empid || id,
@@ -290,7 +289,7 @@ export async function getEmployee(id) {
       resume: data.resume || null,
       resumeName: data.resumeName || null
     };
-    
+
     return emp;
   } catch (error) {
     console.error('Error fetching employee:', error);
@@ -301,7 +300,7 @@ export async function getEmployee(id) {
 export async function saveEmployee(employee) {
   try {
     const empid = employee.empid;
-    
+
     // Create the exact payload expected by the backend
     const payload = {
       empid: employee.empid,
@@ -331,6 +330,8 @@ export async function saveEmployee(employee) {
     if (employee.profileImage !== undefined) payload.profileImage = employee.profileImage;
     if (employee.resume !== undefined) payload.resume = employee.resume;
     if (employee.resumeName !== undefined) payload.resumeName = employee.resumeName;
+    if (employee.fileName !== undefined) payload.fileName = employee.fileName;
+    if (employee.fileContent !== undefined) payload.fileContent = employee.fileContent;
 
     const response = await fetch(`${API_BASE_URL}/employees/${empid}`, {
       method: 'PUT',
@@ -399,35 +400,179 @@ export function updateLeaveStatus(leaveId, status) {
   return updated;
 }
 
-export function getExpenses(employeeId) {
-  init();
-  const all = JSON.parse(localStorage.getItem(KEYS.EXPENSES) || '[]');
-  return all.filter(e => e.employeeId === employeeId);
+const EXPENSE_API_URL = 'https://d1il4l97ib.execute-api.ap-south-1.amazonaws.com/expense';
+
+export async function getExpenses(employeeId) {
+  if (!employeeId) {
+    console.error("getExpenses Error: employeeId is undefined");
+    return [];
+  }
+  
+  console.log("getExpenses: using empid =", employeeId);
+  const url = `${EXPENSE_API_URL}/employee/${employeeId}`;
+  console.log("Request URL:", url);
+  console.log("Request Method: GET");
+  try {
+    const res = await fetch(url);
+    console.log("API Response (getExpenses):", res.status);
+    if (!res.ok) {
+      if (res.status === 404) return [];
+      throw new Error(`Failed to fetch expenses: ${res.status}`);
+    }
+    const data = await res.json();
+    const items = data.Items || data;
+    
+    return (Array.isArray(items) ? items : [items]).map(item => ({
+      id: item.expid?.S || item.id,
+      employeeId: item.empid?.S || item.employeeId,
+      expenseType: item.expenseType?.S || item.category?.S || item.expenseType,
+      amount: item.amount?.S ? parseFloat(item.amount.S) : (item.amount?.N ? parseFloat(item.amount.N) : item.amount),
+      date: item.expenseDate?.S || item.date?.S || item.date,
+      description: item.description?.S || item.description,
+      project: item.project?.S || item.project,
+      meeting: item.meeting?.S || item.meeting,
+      paymentMode: item.paymentMode?.S || item.paymentMode,
+      status: item.status?.S || item.status,
+      receipt: item.attachmentUrl?.S || item.receipt
+    }));
+  } catch (error) {
+    console.error('Error fetching expenses:', error);
+    return [];
+  }
 }
 
-export function getAllExpenses() {
-  init();
-  return JSON.parse(localStorage.getItem(KEYS.EXPENSES) || '[]');
+export async function getAllExpenses() {
+  const url = `${EXPENSE_API_URL}/ALL`;
+  console.log("Request URL:", url);
+  console.log("Request Method: GET");
+  try {
+    const res = await fetch(url);
+    console.log("API Response (getAllExpenses):", res.status);
+    if (!res.ok) {
+      if (res.status === 404) return [];
+      throw new Error(`Failed to fetch all expenses: ${res.status}`);
+    }
+    const data = await res.json();
+    const items = data.Items || data;
+    
+    return (Array.isArray(items) ? items : [items]).map(item => ({
+      id: item.expid?.S || item.id,
+      employeeId: item.empid?.S || item.employeeId,
+      expenseType: item.expenseType?.S || item.category?.S || item.expenseType,
+      amount: item.amount?.S ? parseFloat(item.amount.S) : (item.amount?.N ? parseFloat(item.amount.N) : item.amount),
+      date: item.expenseDate?.S || item.date?.S || item.date,
+      description: item.description?.S || item.description,
+      project: item.project?.S || item.project,
+      meeting: item.meeting?.S || item.meeting,
+      paymentMode: item.paymentMode?.S || item.paymentMode,
+      status: item.status?.S || item.status,
+      receipt: item.attachmentUrl?.S || item.receipt
+    }));
+  } catch (error) {
+    console.error('Error fetching all expenses:', error);
+    return [];
+  }
 }
 
-export function addExpense(expense) {
-  const all = getAllExpenses();
-  all.push(expense);
-  localStorage.setItem(KEYS.EXPENSES, JSON.stringify(all));
-  return expense;
+export async function addExpense(expense) {
+  const payload = {
+    expid: { S: expense.id },
+    empid: { S: expense.employeeId },
+    expenseType: { S: expense.expenseType },
+    amount: { S: expense.amount.toString() },
+    expenseDate: { S: expense.date },
+    description: { S: expense.description },
+    status: { S: expense.status || 'Pending' },
+    paymentMode: { S: expense.paymentMode },
+    project: { S: expense.project },
+    meeting: { S: expense.meeting || "" }
+  };
+  
+  if (expense.receipt && expense.receiptName) {
+    payload.fileName = expense.receiptName;
+    payload.fileContent = expense.receipt; // Contains the Base64 string from FileReader
+  }
+
+  const url = EXPENSE_API_URL;
+  console.log("Request URL:", url);
+  console.log("Request Method: POST");
+  console.log("Request Payload:", JSON.stringify(payload, null, 2));
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    console.log("API Response (addExpense):", res.status);
+    if (!res.ok) throw new Error(`Failed to add expense: ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error('Error adding expense:', error);
+    throw error;
+  }
 }
 
-export function updateExpenseStatus(id, status) {
-  const all = getAllExpenses();
-  const updated = all.map(e => e.id === id ? { ...e, status } : e);
-  localStorage.setItem(KEYS.EXPENSES, JSON.stringify(updated));
-  return updated;
+export async function updateExpenseStatus(id, status, empid) {
+  if (!id || !empid) {
+    console.error("updateExpenseStatus Error: expid or empid is undefined", { id, empid });
+    return;
+  }
+  const payload = {
+    expid: { S: id },
+    empid: { S: empid },
+    status: { S: status }
+  };
+  
+  const url = `${EXPENSE_API_URL}/${id}`;
+  console.log("Request URL:", url);
+  console.log("Request Method: PUT");
+  console.log("Request Payload:", JSON.stringify(payload, null, 2));
+
+  try {
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    console.log("API Response (updateExpenseStatus):", res.status);
+    if (!res.ok) throw new Error(`Failed to update expense: ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    throw error;
+  }
 }
 
-export function deleteExpense(id) {
-  const all = getAllExpenses();
-  const filtered = all.filter(e => e.id !== id);
-  localStorage.setItem(KEYS.EXPENSES, JSON.stringify(filtered));
+export async function deleteExpense(id) {
+  if (!id) {
+    console.error("deleteExpense Error: expid is undefined");
+    return;
+  }
+  const url = `${EXPENSE_API_URL}/${id}`;
+  console.log("Request URL:", url);
+  console.log("Request Method: DELETE");
+
+  try {
+    const res = await fetch(url, {
+      method: 'DELETE'
+    });
+    console.log("API Response (deleteExpense):", res.status);
+    
+    if (!res.ok) {
+      throw new Error(`Failed to delete expense: ${res.status}`);
+    }
+    
+    // Fallback: Also remove from local storage if the frontend is still partly relying on it
+    const all = JSON.parse(localStorage.getItem(KEYS.EXPENSES) || '[]');
+    const filtered = all.filter(e => e.id !== id);
+    localStorage.setItem(KEYS.EXPENSES, JSON.stringify(filtered));
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting expense:', error);
+    throw error;
+  }
 }
 
 export function getHolidays() {
