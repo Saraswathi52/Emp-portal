@@ -1,3 +1,82 @@
+
+import axios from 'axios';
+
+const MANAGER_API_BASE = 'https://5luqrfxzbi.execute-api.ap-south-1.amazonaws.com';
+
+export async function getManagerProfile(empid) {
+  try {
+    const response = await axios.get(`${MANAGER_API_BASE}/manager/${empid}`);
+    let data = response.data;
+    if (data.statusCode && data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    // Unwrap DynamoDB format if needed
+    if (data && Object.keys(data).length > 0 && typeof data[Object.keys(data)[0]] === 'object' && ('S' in data[Object.keys(data)[0]] || 'N' in data[Object.keys(data)[0]])) {
+      const unwrapped = {};
+      for (const key in data) {
+        const val = data[key];
+        unwrapped[key] = val.S !== undefined ? val.S : (val.N !== undefined ? Number(val.N) : (val.BOOL !== undefined ? val.BOOL : val));
+      }
+      data = unwrapped;
+    }
+
+    return {
+      empid: data.empid || empid,
+      Title: data.Title || '',
+      FullName: data.FullName || '',
+      DateOfBirth: data.DateOfBirth || '',
+      BloodGroup: data.BloodGroup || '',
+      Phone: data.Phone || '',
+      Email: data.Email || '',
+      Address: data.Address || '',
+      Department: data.Department || '',
+      Designation: data.Designation || '',
+      JoiningDate: data.JoiningDate || '',
+      Manager: data.Manager || '',
+      Status: data.Status || '',
+      EmergencyContactName: data.EmergencyContactName || '',
+      EmergencyContactPhone: data.EmergencyContactPhone || '',
+      EmergencyContactRelation: data.EmergencyContactRelation || '',
+      Education: data.Education || '',
+      Skills: data.Skills || '',
+      LinkedIn: data.LinkedIn || '',
+      GitHub: data.GitHub || '',
+      Role: data.Role || 'Manager',
+      Password: data.Password || '',
+      profileImage: data.profileImage || null,
+      resume: data.resume || null,
+      resumeName: data.resumeName || null
+    };
+  } catch (error) {
+    console.error('Error fetching manager profile:', error);
+    return null;
+  }
+}
+
+export async function updateManagerProfile(empid, payload) {
+  try {
+    const response = await axios.put(`${MANAGER_API_BASE}/manager/${empid}`, payload);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating manager profile:', error);
+    throw error;
+  }
+}
+
+export async function getManagerEmployees(empid) {
+  try {
+    const response = await axios.get(`${MANAGER_API_BASE}/manager/${empid}/employees`);
+    let data = response.data;
+    if (data.statusCode && data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    return data;
+  } catch (error) {
+    console.error('Error fetching manager employees:', error);
+    return { managerId: empid, employeeCount: 0, employees: [] };
+  }
+}
+
 const KEYS = {
   EMPLOYEES: 'peoplecore_employees',
   ATTENDANCE: 'peoplecore_attendance',
@@ -193,7 +272,7 @@ function init() {
     localStorage.removeItem(KEYS.EXPENSES);
     localStorage.setItem('expenses_cleared_v1', 'true');
   }
-  
+
   if (!localStorage.getItem(KEYS.EMPLOYEES)) {
     localStorage.setItem(KEYS.EMPLOYEES, JSON.stringify(seedEmployees));
   }
@@ -407,7 +486,7 @@ export async function getExpenses(employeeId) {
     console.error("getExpenses Error: employeeId is undefined");
     return [];
   }
-  
+
   console.log("getExpenses: using empid =", employeeId);
   const url = `${EXPENSE_API_URL}/employee/${employeeId}`;
   console.log("Request URL:", url);
@@ -421,7 +500,7 @@ export async function getExpenses(employeeId) {
     }
     const data = await res.json();
     const items = data.Items || data;
-    
+
     return (Array.isArray(items) ? items : [items]).map(item => ({
       id: item.expid?.S || item.id,
       employeeId: item.empid?.S || item.employeeId,
@@ -454,7 +533,7 @@ export async function getAllExpenses() {
     }
     const data = await res.json();
     const items = data.Items || data;
-    
+
     return (Array.isArray(items) ? items : [items]).map(item => ({
       id: item.expid?.S || item.id,
       employeeId: item.empid?.S || item.employeeId,
@@ -487,7 +566,7 @@ export async function addExpense(expense) {
     project: { S: expense.project },
     meeting: { S: expense.meeting || "" }
   };
-  
+
   if (expense.receipt && expense.receiptName) {
     payload.fileName = expense.receiptName;
     payload.fileContent = expense.receipt; // Contains the Base64 string from FileReader
@@ -523,7 +602,7 @@ export async function updateExpenseStatus(id, status, empid) {
     empid: { S: empid },
     status: { S: status }
   };
-  
+
   const url = `${EXPENSE_API_URL}/${id}`;
   console.log("Request URL:", url);
   console.log("Request Method: PUT");
@@ -558,16 +637,16 @@ export async function deleteExpense(id) {
       method: 'DELETE'
     });
     console.log("API Response (deleteExpense):", res.status);
-    
+
     if (!res.ok) {
       throw new Error(`Failed to delete expense: ${res.status}`);
     }
-    
+
     // Fallback: Also remove from local storage if the frontend is still partly relying on it
     const all = JSON.parse(localStorage.getItem(KEYS.EXPENSES) || '[]');
     const filtered = all.filter(e => e.id !== id);
     localStorage.setItem(KEYS.EXPENSES, JSON.stringify(filtered));
-    
+
     return true;
   } catch (error) {
     console.error('Error deleting expense:', error);

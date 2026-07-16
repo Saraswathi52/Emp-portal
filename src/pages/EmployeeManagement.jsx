@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployees } from "../services/dataService";
+import { getCurrentUser, getEmployees, getManagerEmployees } from "../services/dataService";
 
 function EmployeeManagement() {
   const [userRole] = useState(() => {
@@ -13,7 +13,9 @@ function EmployeeManagement() {
   const [showForm, setShowForm] = useState(false);
   const [viewEmployee, setViewEmployee] = useState(null);
 
-  const [employees, setEmployees] = useState(() => getEmployees());
+  const [employees, setEmployees] = useState([]);
+  const [employeeCount, setEmployeeCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [employeeId, setEmployeeId] = useState("");
   const [employeeName, setEmployeeName] = useState("");
@@ -31,6 +33,29 @@ function EmployeeManagement() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
+
+  useEffect(() => {
+    async function fetchEmployees() {
+      setIsLoading(true);
+      try {
+        if (userRole === "manager") {
+          const data = await getManagerEmployees(currentUser?.employeeId);
+          setEmployees(data?.employees || []);
+          setEmployeeCount(data?.employeeCount || (data?.employees ? data.employees.length : 0));
+        } else {
+          const data = getEmployees();
+          setEmployees(data || []);
+          setEmployeeCount(data ? data.length : 0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch employees", err);
+        showToast("Failed to fetch employees", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchEmployees();
+  }, [userRole, currentUser?.employeeId]);
 
   const resetForm = () => {
     setEmployeeId("");
@@ -87,18 +112,25 @@ function EmployeeManagement() {
     setErrors({});
   };
 
-  const departments = [...new Set(employees.map(e => e.department))];
-  
+  const getSafeProp = (obj, prop1, prop2) => obj[prop1] || obj[prop2] || "";
+
+  const departments = [...new Set(employees.map(e => getSafeProp(e, 'department', 'Department')).filter(Boolean))];
+
   let visibleEmployees = employees;
+  // Let the backend handle filtering if manager, otherwise filter locally
   if (userRole === "manager") {
-    visibleEmployees = employees.filter(e => e.id !== currentUser?.employeeId);
+    // API should return only the manager's employees, so no need to filter by currentUser.employeeId here.
   }
 
   const filtered = visibleEmployees.filter(e => {
-    const ms = e.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (e.department && e.department.toLowerCase().includes(searchTerm.toLowerCase()));
-    const md = filterDept === "All" || e.department === filterDept;
+    const id = getSafeProp(e, 'id', 'empid');
+    const name = getSafeProp(e, 'name', 'FullName');
+    const dept = getSafeProp(e, 'department', 'Department');
+    
+    const ms = id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      dept.toLowerCase().includes(searchTerm.toLowerCase());
+    const md = filterDept === "All" || dept === filterDept;
     return ms && md;
   });
 
@@ -108,21 +140,29 @@ function EmployeeManagement() {
   return (
     <div className="dashboard-wrapper">
       {toast && (
-        <div className="toast-message">
-          <div className={`alert alert-${toast.type === "warning" ? "warning" : "success"} d-flex align-items-center gap-2 shadow-sm`} style={{ borderRadius: "10px", border: "none", padding: "0.75rem 1.25rem" }}>
-            <i className={`bi ${toast.type === "warning" ? "bi-exclamation-circle" : "bi-check-circle"}`} />
+        <div className="toast-message" style={{ position: "fixed", top: "20px", right: "20px", zIndex: 1055 }}>
+          <div className={`alert alert-${toast.type === "error" ? "danger" : (toast.type === "warning" ? "warning" : "success")} d-flex align-items-center gap-2 shadow-sm`} style={{ borderRadius: "10px", border: "none", padding: "0.75rem 1.25rem" }}>
+            <i className={`bi ${toast.type === "error" ? "bi-exclamation-triangle" : (toast.type === "warning" ? "bi-exclamation-circle" : "bi-check-circle")}`} />
             {toast.message}
           </div>
         </div>
       )}
-        <Sidebar role={userRole} onClose={() => setSidebarOpen(false)} isOpen={sidebarOpen} />
+      
+      {isLoading && (
+        <div className="modal-backdrop show" style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)", zIndex: 1050, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="spinner-border text-light" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      )}
+      <Sidebar role={userRole} onClose={() => setSidebarOpen(false)} isOpen={sidebarOpen} />
       <div className="main-content">
         <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <div className="page-content">
           <div className="section-header">
             <div>
               <h4>Employee Management</h4>
-              <p>{visibleEmployees.length} employees in the system</p>
+              <p>{userRole === "manager" ? employeeCount : visibleEmployees.length} employees in the system</p>
             </div>
             {userRole !== "manager" && (
               <button
@@ -208,12 +248,26 @@ function EmployeeManagement() {
                       </td>
                     </tr>
                   ) : (
-                    paginated.map((emp) => (
-                      <tr key={emp.id}>
-                        <td><span style={{ color: "var(--primary)", fontWeight: 600 }}>{emp.id}</span></td>
-                        <td className="fw-semibold">{emp.name}</td>
-                        <td><span className="badge-status badge-uploaded">{emp.department}</span></td>
-                        <td>{emp.role}</td>
+                    paginated.map((emp) => {
+                      const empId = emp.empid || emp.id;
+                      const empName = emp.FullName || emp.name;
+                      const empDept = emp.Department || emp.department;
+                      const empRole = emp.Designation || emp.role;
+                      return (
+                      <tr key={empId}>
+                        <td><span style={{ color: "var(--primary)", fontWeight: 600 }}>{empId}</span></td>
+                        <td className="fw-semibold d-flex align-items-center gap-2">
+                          {emp.profileImage ? (
+                            <img src={emp.profileImage} alt="profile" style={{width: 30, height: 30, borderRadius: "50%", objectFit: "cover"}}/>
+                          ) : (
+                            <div style={{width:30,height:30,borderRadius:"50%",background:"var(--primary)",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.8rem",flexShrink:0}}>
+                              {empName ? empName.charAt(0).toUpperCase() : '?'}
+                            </div>
+                          )}
+                          {empName}
+                        </td>
+                        <td><span className="badge-status badge-uploaded">{empDept}</span></td>
+                        <td>{empRole}</td>
                         <td>
                           <div className="action-btns justify-content-center">
                             {userRole === "manager" ? (
@@ -225,7 +279,7 @@ function EmployeeManagement() {
                                 <button className="btn-custom-outline d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleEdit(emp)}>
                                   <i className="bi bi-pencil" /> Edit
                                 </button>
-                                <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(emp.id)}>
+                                <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(empId)}>
                                   <i className="bi bi-trash" /> Delete
                                 </button>
                               </>
@@ -233,7 +287,7 @@ function EmployeeManagement() {
                           </div>
                         </td>
                       </tr>
-                    ))
+                    )})
                   )}
                 </tbody>
               </table>
@@ -270,14 +324,25 @@ function EmployeeManagement() {
                   <h5 className="fw-bold mb-0">Employee Details</h5>
                   <button className="btn btn-sm btn-light" onClick={() => setViewEmployee(null)}><i className="bi bi-x-lg"></i></button>
                 </div>
-                <div className="mb-2"><strong>ID:</strong> {viewEmployee.id}</div>
-                <div className="mb-2"><strong>Name:</strong> {viewEmployee.name}</div>
-                <div className="mb-2"><strong>Department:</strong> {viewEmployee.department}</div>
-                <div className="mb-2"><strong>Role:</strong> {viewEmployee.role || viewEmployee.designation || 'Employee'}</div>
-                <div className="mb-2"><strong>Email:</strong> {viewEmployee.email || '—'}</div>
-                <div className="mb-2"><strong>Phone:</strong> {viewEmployee.phone || '—'}</div>
-                <div className="mb-2"><strong>Location:</strong> {viewEmployee.location || '—'}</div>
-                <div className="mb-2"><strong>Status:</strong> {viewEmployee.status || '—'}</div>
+                <div className="d-flex align-items-center gap-3 mb-4">
+                  {viewEmployee.profileImage ? (
+                    <img src={viewEmployee.profileImage} alt="profile" style={{width: 60, height: 60, borderRadius: "50%", objectFit: "cover"}}/>
+                  ) : (
+                    <div style={{width:60,height:60,borderRadius:"50%",background:"var(--primary)",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.5rem"}}>
+                      {(viewEmployee.FullName || viewEmployee.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <h6 className="mb-0 fw-bold">{viewEmployee.FullName || viewEmployee.name}</h6>
+                    <small className="text-muted">{viewEmployee.Designation || viewEmployee.role || 'Employee'}</small>
+                  </div>
+                </div>
+                <div className="mb-2"><strong>ID:</strong> <span style={{color: "var(--primary)"}}>{viewEmployee.empid || viewEmployee.id}</span></div>
+                <div className="mb-2"><strong>Department:</strong> {viewEmployee.Department || viewEmployee.department || '—'}</div>
+                <div className="mb-2"><strong>Email:</strong> {viewEmployee.Email || viewEmployee.email || '—'}</div>
+                <div className="mb-2"><strong>Phone:</strong> {viewEmployee.Phone || viewEmployee.phone || '—'}</div>
+                <div className="mb-2"><strong>Location:</strong> {viewEmployee.Address || viewEmployee.location || '—'}</div>
+                <div className="mb-2"><strong>Status:</strong> <span className="badge-status badge-approved">{viewEmployee.Status || viewEmployee.status || 'Active'}</span></div>
                 <div className="mt-3 text-end">
                   <button className="btn btn-sm btn-custom-outline" onClick={() => setViewEmployee(null)}>Close</button>
                 </div>

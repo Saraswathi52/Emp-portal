@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployees, getAllLeaveRequests, getAllExpenses } from "../services/dataService";
@@ -7,9 +7,24 @@ function ManagerDashboard() {
   const user = getCurrentUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const employees = getEmployees();
-  const allLeaves = getAllLeaveRequests();
-  const allExpenses = getAllExpenses();
+  const [employees] = useState(() => getEmployees());
+  const [allLeaves] = useState(() => getAllLeaveRequests());
+  const [allExpenses, setAllExpenses] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const expenses = await getAllExpenses();
+        setAllExpenses(expenses || []);
+      } catch (error) {
+        console.error("Failed to fetch expenses", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   const pendingLeaves = allLeaves.filter(l => l.status === 'Pending');
   const pendingExpenses = allExpenses.filter(e => e.status === 'Pending');
@@ -41,7 +56,7 @@ function ManagerDashboard() {
       employeeName: e.employeeName || e.employeeId,
       type: 'Expense',
       action: e.status === 'Pending' ? 'submitted an expense' : `had their expense ${e.status.toLowerCase()}`,
-      date: new Date(e.submittedOn || 0),
+      date: new Date(e.date || e.submittedOn || 0),
       icon: "bi-wallet2",
       color: "var(--purple, #8b5cf6)"
     })),
@@ -57,6 +72,19 @@ function ManagerDashboard() {
     if (interval > 1) return Math.floor(interval) + " mins ago";
     return "Just now";
   };
+
+  if (isLoading) {
+    return (
+      <div className="dashboard-wrapper">
+        <Sidebar role="manager" onClose={() => setSidebarOpen(false)} isOpen={sidebarOpen} />
+        <div className="main-content d-flex justify-content-center align-items-center" style={{ height: "100vh" }}>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-wrapper">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployee, saveEmployee, getAllLeaveRequests, getAllExpenses, updateLeaveStatus, updateExpenseStatus } from "../services/dataService";
+import { getCurrentUser, getEmployee, saveEmployee, getAllLeaveRequests, getAllExpenses, updateLeaveStatus, updateExpenseStatus, getManagerProfile, updateManagerProfile } from "../services/dataService";
 
 const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange }) => {
   const val = editing ? (form[name] || '') : (value || '');
@@ -42,6 +42,7 @@ function Profile() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -56,35 +57,53 @@ function Profile() {
   }, [user?.employeeId]);
 
   const isManager = role === 'manager';
-  const allLeaves = isManager ? getAllLeaveRequests() : [];
-  const allExpenses = isManager ? getAllExpenses() : [];
-  const pendingLeaves = allLeaves.filter(l => l.status === 'Pending');
-  const pendingExpenses = allExpenses.filter(e => e.status === 'Pending');
+  const [pendingItems, setPendingItems] = useState([]);
 
-  const pendingItems = [
-    ...pendingLeaves.map(l => ({
-      id: l.leaveId,
-      employeeName: l.employeeName || l.employeeId,
-      type: 'Leave',
-      typeDetail: l.wfh ? 'WFH' : l.leaveType,
-      detail: `${l.startDate} to ${l.endDate}${l.halfDay ? ' (Half Day)' : ''}`,
-      reason: l.reason,
-      appliedOn: l.appliedOn,
-      status: l.status,
-      kind: 'leave',
-    })),
-    ...pendingExpenses.map(e => ({
-      id: e.id,
-      employeeName: e.employeeName || e.employeeId,
-      type: 'Expense',
-      typeDetail: e.expenseType,
-      detail: `₹${parseFloat(e.amount).toLocaleString()}`,
-      reason: e.description,
-      appliedOn: e.submittedOn,
-      status: e.status,
-      kind: 'expense',
-    })),
-  ].sort((a, b) => new Date(b.appliedOn || 0) - new Date(a.appliedOn || 0));
+  useEffect(() => {
+    async function fetchPending() {
+      if (isManager) {
+        try {
+          const leaves = getAllLeaveRequests() || [];
+          const expenses = await getAllExpenses() || [];
+          
+          const pLeaves = leaves.filter(l => l.status === 'Pending');
+          const pExpenses = expenses.filter(e => e.status === 'Pending');
+
+          const items = [
+            ...pLeaves.map(l => ({
+              id: l.leaveId,
+              employeeName: l.employeeName || l.employeeId,
+              type: 'Leave',
+              typeDetail: l.wfh ? 'WFH' : l.leaveType,
+              detail: `${l.startDate} to ${l.endDate}${l.halfDay ? ' (Half Day)' : ''}`,
+              reason: l.reason,
+              appliedOn: l.appliedOn,
+              status: l.status,
+              kind: 'leave',
+            })),
+            ...pExpenses.map(e => ({
+              id: e.id,
+              employeeName: e.employeeName || e.employeeId,
+              type: 'Expense',
+              typeDetail: e.expenseType,
+              detail: `₹${parseFloat(e.amount).toLocaleString()}`,
+              reason: e.description,
+              appliedOn: e.submittedOn,
+              status: e.status,
+              kind: 'expense',
+            })),
+          ].sort((a, b) => new Date(b.appliedOn || 0) - new Date(a.appliedOn || 0));
+          
+          setPendingItems(items);
+        } catch (error) {
+          console.error("Failed to fetch pending items", error);
+        }
+      } else {
+        setPendingItems([]);
+      }
+    }
+    fetchPending();
+  }, [isManager, refreshKey]);
 
   const showToast2 = (message, type = "success") => {
     setToast({ message, type });
@@ -155,19 +174,44 @@ function Profile() {
   };
 
   const handleSave = async () => {
+    setIsLoading(true);
     try {
-      const updated = {
-        ...emp,
-        ...form,
-        Skills: typeof form.Skills === 'string' ? form.Skills.split(',').map(s => s.trim()).filter(Boolean) : form.Skills,
-      };
-      await saveEmployee(updated);
-      const refreshed = await getEmployee(updated.empid || user?.employeeId);
-      setEmp(refreshed || updated);
+      if (isManager) {
+        const payload = {
+          Title: form.Title,
+          FullName: form.FullName,
+          DateOfBirth: form.DateOfBirth,
+          BloodGroup: form.BloodGroup,
+          Phone: form.Phone,
+          Address: form.Address,
+          EmergencyContactName: form.EmergencyContactName,
+          EmergencyContactPhone: form.EmergencyContactPhone,
+          EmergencyContactRelation: form.EmergencyContactRelation,
+          Education: form.Education,
+          Skills: typeof form.Skills === 'string' ? form.Skills.split(',').map(s => s.trim()).filter(Boolean) : form.Skills,
+          LinkedIn: form.LinkedIn,
+          GitHub: form.GitHub,
+          Status: form.Status
+        };
+        await updateManagerProfile(user.employeeId, payload);
+        const refreshed = await getManagerProfile(user.employeeId);
+        setEmp(refreshed);
+      } else {
+        const updated = {
+          ...emp,
+          ...form,
+          Skills: typeof form.Skills === 'string' ? form.Skills.split(',').map(s => s.trim()).filter(Boolean) : form.Skills,
+        };
+        await saveEmployee(updated);
+        const refreshed = await getEmployee(updated.empid || user?.employeeId);
+        setEmp(refreshed || updated);
+      }
       setEditing(false);
       showToast("Profile updated successfully!");
     } catch (error) {
       showToast("Failed to update profile", "warning");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -256,7 +300,7 @@ function Profile() {
             ...(emp || {}),
             empid: emp?.empid || user?.employeeId,
             FullName: emp?.FullName || user?.name || user?.employeeId,
-            profileImage: compressedDataUrl, // Keeps it backward compatible if backend just saves it
+            profileImage: compressedDataUrl, 
             fileName: file.name,
             fileContent: base64Content
           }).then(() => {
@@ -271,8 +315,6 @@ function Profile() {
       reader.readAsDataURL(file);
     }
   };
-
-
 
   return (
     <div className="dashboard-wrapper">
@@ -296,8 +338,8 @@ function Profile() {
             <div className="d-flex gap-2">
               {editing ? (
                 <>
-                  <button className="btn-custom-success d-flex align-items-center gap-2" onClick={handleSave}>
-                    <i className="bi bi-check-lg" /> Save Changes
+                  <button className="btn-custom-success d-flex align-items-center gap-2" onClick={handleSave} disabled={isLoading}>
+                    <i className="bi bi-check-lg" /> {isLoading ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={handleCancel}>
                     <i className="bi bi-x-lg" /> Cancel
@@ -337,7 +379,7 @@ function Profile() {
                         {initial}
                       </div>
                     )}
-                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleProfileImageUpload} />
+                    <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleProfileImageUpload} disabled={isLoading} />
                     <div style={{
                       position: "absolute", bottom: "5px", right: "5px",
                       background: "var(--primary)", color: "#fff",
@@ -375,7 +417,7 @@ function Profile() {
                   )}
                   <label className="btn-custom-outline d-flex align-items-center justify-content-center gap-2 mt-2 w-100" style={{ cursor: "pointer", fontSize: "0.82rem", padding: "0.4rem" }}>
                     <i className="bi bi-cloud-upload" /> {emp?.resume ? 'Update Resume' : 'Upload Resume'}
-                    <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} style={{ display: 'none' }} />
+                    <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} style={{ display: 'none' }} disabled={isLoading} />
                   </label>
                   <small style={{ color: "var(--gray-400)", fontSize: "0.7rem", display: "block", marginTop: "0.25rem" }}>Supported: PDF, DOC, DOCX</small>
                 </div>
@@ -424,9 +466,9 @@ function Profile() {
                   Personal Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Title" value={emp?.Title} icon="bi-person-badge" name="Title" options={['Mr', 'Ms', 'Mrs']} editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Title" value={emp?.Title} icon="bi-person-badge" name="Title" options={['Mr', 'Ms', 'Mrs', 'Manager']} editing={editing} form={form} onChange={handleChange} />
                   <Field label="Full Name" value={emp?.FullName} icon="bi-person" name="FullName" editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Date of Birth" value={emp?.DateOfBirth} icon="bi-calendar" name="DateOfBirth" type="date" editing={false} form={form} onChange={handleChange} />
+                  <Field label="Date of Birth" value={emp?.DateOfBirth} icon="bi-calendar" name="DateOfBirth" type="date" editing={editing} form={form} onChange={handleChange} />
                   <Field label="Blood Group" value={emp?.BloodGroup} icon="bi-droplet" name="BloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} />
                   <Field label="Phone" value={emp?.Phone} icon="bi-telephone" name="Phone" editing={editing} form={form} onChange={handleChange} />
                   <Field label="Email" value={emp?.Email} icon="bi-envelope" name="Email" type="email" editing={false} form={form} onChange={handleChange} />
@@ -445,7 +487,7 @@ function Profile() {
                   <Field label="Designation" value={emp?.Designation} icon="bi-briefcase" name="Designation" editing={false} form={form} onChange={handleChange} />
                   <Field label="Joining Date" value={emp?.JoiningDate} icon="bi-calendar-check" name="JoiningDate" type="date" editing={false} form={form} onChange={handleChange} />
                   <Field label="Manager" value={emp?.Manager} icon="bi-person-up" name="Manager" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Status" value={emp?.Status} icon="bi-check-circle" name="Status" options={['Active', 'Inactive', 'On Leave']} editing={false} form={form} onChange={handleChange} />
+                  <Field label="Status" value={emp?.Status} icon="bi-check-circle" name="Status" options={['Active', 'Inactive', 'On Leave']} editing={editing} form={form} onChange={handleChange} />
                 </div>
               </div>
 
@@ -601,5 +643,4 @@ function Profile() {
     </div>
   );
 }
-
 export default Profile;
