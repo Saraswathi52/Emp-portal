@@ -49,61 +49,19 @@ function Profile() {
   useEffect(() => {
     async function fetchEmp() {
       if (user?.employeeId) {
-        const data = await getEmployee(user.employeeId);
+        let data;
+        if (role === 'manager') {
+          data = await getManagerProfile(user.employeeId);
+        } else {
+          data = await getEmployee(user.employeeId);
+        }
         setEmp(data);
       }
     }
     fetchEmp();
-  }, [user?.employeeId]);
+  }, [user?.employeeId, role]);
 
   const isManager = role === 'manager';
-  const [pendingItems, setPendingItems] = useState([]);
-
-  useEffect(() => {
-    async function fetchPending() {
-      if (isManager) {
-        try {
-          const leaves = getAllLeaveRequests() || [];
-          const expenses = await getAllExpenses() || [];
-          
-          const pLeaves = leaves.filter(l => l.status === 'Pending');
-          const pExpenses = expenses.filter(e => e.status === 'Pending');
-
-          const items = [
-            ...pLeaves.map(l => ({
-              id: l.leaveId,
-              employeeName: l.employeeName || l.employeeId,
-              type: 'Leave',
-              typeDetail: l.wfh ? 'WFH' : l.leaveType,
-              detail: `${l.startDate} to ${l.endDate}${l.halfDay ? ' (Half Day)' : ''}`,
-              reason: l.reason,
-              appliedOn: l.appliedOn,
-              status: l.status,
-              kind: 'leave',
-            })),
-            ...pExpenses.map(e => ({
-              id: e.id,
-              employeeName: e.employeeName || e.employeeId,
-              type: 'Expense',
-              typeDetail: e.expenseType,
-              detail: `₹${parseFloat(e.amount).toLocaleString()}`,
-              reason: e.description,
-              appliedOn: e.submittedOn,
-              status: e.status,
-              kind: 'expense',
-            })),
-          ].sort((a, b) => new Date(b.appliedOn || 0) - new Date(a.appliedOn || 0));
-          
-          setPendingItems(items);
-        } catch (error) {
-          console.error("Failed to fetch pending items", error);
-        }
-      } else {
-        setPendingItems([]);
-      }
-    }
-    fetchPending();
-  }, [isManager, refreshKey]);
 
   const showToast2 = (message, type = "success") => {
     setToast({ message, type });
@@ -174,26 +132,39 @@ function Profile() {
   };
 
   const handleSave = async () => {
+    // Frontend validation
+    if (!form.FullName || !form.Email || !form.Phone) {
+      showToast("Full Name, Email, and Phone are required", "warning");
+      return;
+    }
+
     setIsLoading(true);
     try {
       if (isManager) {
         const payload = {
-          Title: form.Title,
-          FullName: form.FullName,
-          DateOfBirth: form.DateOfBirth,
-          BloodGroup: form.BloodGroup,
-          Phone: form.Phone,
-          Address: form.Address,
-          EmergencyContactName: form.EmergencyContactName,
-          EmergencyContactPhone: form.EmergencyContactPhone,
-          EmergencyContactRelation: form.EmergencyContactRelation,
-          Education: form.Education,
-          Skills: typeof form.Skills === 'string' ? form.Skills.split(',').map(s => s.trim()).filter(Boolean) : form.Skills,
-          LinkedIn: form.LinkedIn,
-          GitHub: form.GitHub,
-          Status: form.Status
+          Title: form.Title || "",
+          FullName: form.FullName || "",
+          Phone: form.Phone || "",
+          Address: form.Address || "",
+          Department: form.Department || "",
+          Designation: form.Designation || "",
+          Education: form.Education || "",
+          Email: form.Email || "",
+          LinkedIn: form.LinkedIn || "",
+          GitHub: form.GitHub || "",
+          Status: form.Status || ""
         };
-        await updateManagerProfile(user.employeeId, payload);
+
+        // Do not send undefined or null values
+        Object.keys(payload).forEach(key => {
+          if (payload[key] === undefined || payload[key] === null) {
+            delete payload[key];
+          }
+        });
+
+        console.log("Final Payload:", payload);
+        const response = await updateManagerProfile(user.employeeId, payload);
+        console.log("API Response:", response);
         const refreshed = await getManagerProfile(user.employeeId);
         setEmp(refreshed);
       } else {
@@ -209,7 +180,9 @@ function Profile() {
       setEditing(false);
       showToast("Profile updated successfully!");
     } catch (error) {
-      showToast("Failed to update profile", "warning");
+      console.log("API Error Response:", error.response?.data);
+      console.error("Profile update error:", error);
+      showToast(error.response?.data?.message || "Failed to update profile", "warning");
     } finally {
       setIsLoading(false);
     }
@@ -247,15 +220,30 @@ function Profile() {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        const updated = { ...emp, resume: ev.target.result, resumeName: file.name };
-        saveEmployee(updated).then(async () => {
-          const refreshed = await getEmployee(updated.empid || user?.employeeId);
-          setEmp(refreshed || updated);
-          showToast("Resume uploaded successfully!");
-        }).catch(() => {
-          showToast("Failed to upload resume", "warning");
-        });
+      reader.onload = async (ev) => {
+        try {
+          if (isManager) {
+            const base64String = ev.target.result.split(',')[1];
+            const payload = {
+              resumeName: file.name,
+              resumeContent: base64String
+            };
+            console.log("Update Payload:", payload);
+            await updateManagerProfile(user.employeeId, payload);
+            const refreshed = await getManagerProfile(user.employeeId);
+            setEmp(refreshed);
+            showToast("Resume uploaded successfully!");
+          } else {
+            const updated = { ...emp, resume: ev.target.result, resumeName: file.name };
+            await saveEmployee(updated);
+            const refreshed = await getEmployee(updated.empid || user?.employeeId);
+            setEmp(refreshed || updated);
+            showToast("Resume uploaded successfully!");
+          }
+        } catch (error) {
+          console.error("Resume upload error:", error);
+          showToast(error.response?.data?.message || "Failed to upload resume", "warning");
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -296,19 +284,38 @@ function Profile() {
           const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
           const base64Content = compressedDataUrl.split(',')[1];
 
-          saveEmployee({
-            ...(emp || {}),
-            empid: emp?.empid || user?.employeeId,
-            FullName: emp?.FullName || user?.name || user?.employeeId,
-            profileImage: compressedDataUrl, 
-            fileName: file.name,
-            fileContent: base64Content
-          }).then(() => {
-            window.location.reload();
-          }).catch((err) => {
-            console.error("Profile image upload error:", err);
+          try {
+            if (isManager) {
+              const payload = {
+                profileImageName: file.name,
+                profileImageContent: base64Content
+              };
+              console.log("Update Payload:", payload);
+              updateManagerProfile(user.employeeId, payload).then(() => {
+                window.location.reload();
+              }).catch((err) => {
+                console.error("Profile image upload error:", err);
+                showToast(err.response?.data?.message || "Failed to upload profile image", "warning");
+              });
+            } else {
+              saveEmployee({
+                ...(emp || {}),
+                empid: emp?.empid || user?.employeeId,
+                FullName: emp?.FullName || user?.name || user?.employeeId,
+                profileImage: compressedDataUrl, 
+                fileName: file.name,
+                fileContent: base64Content
+              }).then(() => {
+                window.location.reload();
+              }).catch((err) => {
+                console.error("Profile image upload error:", err);
+                showToast(err.response?.data?.message || "Failed to upload profile image", "warning");
+              });
+            }
+          } catch (error) {
+            console.error("Profile image upload error:", error);
             showToast("Failed to upload profile image", "warning");
-          });
+          }
         };
         img.src = event.target.result;
       };
@@ -487,7 +494,7 @@ function Profile() {
                   <Field label="Designation" value={emp?.Designation} icon="bi-briefcase" name="Designation" editing={false} form={form} onChange={handleChange} />
                   <Field label="Joining Date" value={emp?.JoiningDate} icon="bi-calendar-check" name="JoiningDate" type="date" editing={false} form={form} onChange={handleChange} />
                   <Field label="Manager" value={emp?.Manager} icon="bi-person-up" name="Manager" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Status" value={emp?.Status} icon="bi-check-circle" name="Status" options={['Active', 'Inactive', 'On Leave']} editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Status" value={emp?.Status} icon="bi-check-circle" name="Status" options={['Active', 'Inactive', 'On Leave']} editing={isManager ? editing : false} form={form} onChange={handleChange} />
                 </div>
               </div>
 
@@ -560,84 +567,6 @@ function Profile() {
               </div>
             </div>
           </div>
-
-          {isManager && (
-            <div className="card-dashboard p-4 mt-4" key={refreshKey}>
-              <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
-                <i className="bi bi-hourglass-split me-2" style={{ color: "var(--warning)" }} />
-                Pending Approvals
-                {pendingItems.length > 0 && (
-                  <span className="ms-2 badge-status badge-pending" style={{ fontSize: "0.7rem" }}>{pendingItems.length} pending</span>
-                )}
-              </h5>
-              <div className="table-responsive">
-                <table className="table-custom table">
-                  <thead>
-                    <tr>
-                      <th>Employee</th>
-                      <th>Type</th>
-                      <th>Details</th>
-                      <th>Reason</th>
-                      <th>Date</th>
-                      <th>Status</th>
-                      <th className="text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingItems.length === 0 ? (
-                      <tr>
-                        <td colSpan="7" className="text-center py-4" style={{ color: "var(--gray-400)" }}>
-                          <i className="bi bi-check2-all" style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }} />
-                          No pending approvals
-                        </td>
-                      </tr>
-                    ) : (
-                      pendingItems.map((item) => (
-                        <tr key={`${item.kind}-${item.id}`}>
-                          <td className="fw-semibold">{item.employeeName}</td>
-                          <td>
-                            {item.kind === 'leave' ? (
-                              <span className="badge-status" style={{ background: "#dbeafe", color: "#1e40af" }}>
-                                <i className="bi bi-calendar-check me-1" />{item.typeDetail}
-                              </span>
-                            ) : (
-                              <span className="badge-status" style={{ background: "#fef3c7", color: "#92400e" }}>
-                                <i className="bi bi-wallet2 me-1" />{item.typeDetail}
-                              </span>
-                            )}
-                          </td>
-                          <td style={{ fontSize: "0.85rem" }}>{item.detail}</td>
-                          <td style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.reason}>
-                            {item.reason || '—'}
-                          </td>
-                          <td style={{ fontSize: "0.8rem" }}>{item.appliedOn || '—'}</td>
-                          <td><span className={`badge-status badge-${item.status === 'Pending' ? 'pending' : item.status === 'Approved' ? 'approved' : 'rejected'}`}>{item.status}</span></td>
-                          <td>
-                            <div className="action-btns justify-content-center">
-                              <button
-                                className="btn-custom-success d-flex align-items-center gap-1"
-                                style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }}
-                                onClick={() => handleApprove(item)}
-                              >
-                                <i className="bi bi-check-lg" /> Approve
-                              </button>
-                              <button
-                                className="btn-custom-danger d-flex align-items-center gap-1"
-                                style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }}
-                                onClick={() => handleReject(item)}
-                              >
-                                <i className="bi bi-x-lg" /> Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

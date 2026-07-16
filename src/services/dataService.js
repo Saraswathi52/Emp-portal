@@ -55,10 +55,19 @@ export async function getManagerProfile(empid) {
 
 export async function updateManagerProfile(empid, payload) {
   try {
-    const response = await axios.put(`${MANAGER_API_BASE}/manager/${empid}`, payload);
+    const url = `${MANAGER_API_BASE}/manager/${empid}`;
+    console.log("URL:", url);
+    console.log("Payload:", payload);
+    const response = await axios.put(url, payload, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     return response.data;
   } catch (error) {
-    console.error('Error updating manager profile:', error);
+    console.log("Error Data:", error.response?.data);
+    console.log("Error Status:", error.response?.status);
+    console.log("Full Error:", error);
     throw error;
   }
 }
@@ -70,6 +79,7 @@ export async function getManagerEmployees(empid) {
     if (data.statusCode && data.body) {
       data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
     }
+    console.log("Employee API Response:", data);
     return data;
   } catch (error) {
     console.error('Error fetching manager employees:', error);

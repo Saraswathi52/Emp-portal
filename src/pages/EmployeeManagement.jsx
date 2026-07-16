@@ -40,12 +40,12 @@ function EmployeeManagement() {
       try {
         if (userRole === "manager") {
           const data = await getManagerEmployees(currentUser?.employeeId);
-          setEmployees(data?.employees || []);
-          setEmployeeCount(data?.employeeCount || (data?.employees ? data.employees.length : 0));
+          setEmployees(Array.isArray(data?.employees) ? data.employees : []);
+          setEmployeeCount(data?.employeeCount || (Array.isArray(data?.employees) ? data.employees.length : 0));
         } else {
           const data = getEmployees();
-          setEmployees(data || []);
-          setEmployeeCount(data ? data.length : 0);
+          setEmployees(Array.isArray(data) ? data : []);
+          setEmployeeCount(Array.isArray(data) ? data.length : 0);
         }
       } catch (err) {
         console.error("Failed to fetch employees", err);
@@ -112,7 +112,15 @@ function EmployeeManagement() {
     setErrors({});
   };
 
-  const getSafeProp = (obj, prop1, prop2) => obj[prop1] || obj[prop2] || "";
+  const getSafeProp = (obj, prop1, prop2) => {
+    if (!obj) return "";
+    let val = obj[prop1] || obj[prop2];
+    if (val && typeof val === "object") {
+      if (val.S !== undefined) return val.S;
+      if (val.N !== undefined) return val.N;
+    }
+    return val || "";
+  };
 
   const departments = [...new Set(employees.map(e => getSafeProp(e, 'department', 'Department')).filter(Boolean))];
 
@@ -127,10 +135,10 @@ function EmployeeManagement() {
     const name = getSafeProp(e, 'name', 'FullName');
     const dept = getSafeProp(e, 'department', 'Department');
     
-    const ms = id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dept.toLowerCase().includes(searchTerm.toLowerCase());
-    const md = filterDept === "All" || dept === filterDept;
+    const ms = String(id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(dept).toLowerCase().includes(searchTerm.toLowerCase());
+    const md = filterDept === "All" || String(dept) === filterDept;
     return ms && md;
   });
 
@@ -248,17 +256,18 @@ function EmployeeManagement() {
                       </td>
                     </tr>
                   ) : (
-                    paginated.map((emp) => {
-                      const empId = emp.empid || emp.id;
-                      const empName = emp.FullName || emp.name;
-                      const empDept = emp.Department || emp.department;
-                      const empRole = emp.Designation || emp.role;
+                    paginated.map((emp, index) => {
+                      if (!emp) return null;
+                      const empId = emp.empid?.S || emp.id?.S || emp.empid || emp.id || "-";
+                      const empName = emp.FullName?.S || emp.name?.S || emp.FullName || emp.name || "-";
+                      const empDept = emp.Department?.S || emp.department?.S || emp.Department || emp.department || "-";
+                      const empRole = emp.Designation?.S || emp.role?.S || emp.Designation || emp.role || "-";
                       return (
-                      <tr key={empId}>
+                      <tr key={emp.empid?.S || index}>
                         <td><span style={{ color: "var(--primary)", fontWeight: 600 }}>{empId}</span></td>
                         <td className="fw-semibold d-flex align-items-center gap-2">
-                          {emp.profileImage ? (
-                            <img src={emp.profileImage} alt="profile" style={{width: 30, height: 30, borderRadius: "50%", objectFit: "cover"}}/>
+                          {emp.profileImage?.S || emp.profileImage ? (
+                            <img src={emp.profileImage?.S || emp.profileImage} alt="profile" style={{width: 30, height: 30, borderRadius: "50%", objectFit: "cover"}}/>
                           ) : (
                             <div style={{width:30,height:30,borderRadius:"50%",background:"var(--primary)",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.8rem",flexShrink:0}}>
                               {empName ? empName.charAt(0).toUpperCase() : '?'}

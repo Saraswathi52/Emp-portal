@@ -165,7 +165,7 @@ function Leave() {
       duration: halfDay ? 'Half Day' : 'Full Day',
       status: 'Pending',
       appliedOn: appliedOnStr,
-      
+
       // Keep old fields for local UI compatibility until fully refactored, or update UI to use new fields
       leaveId: uniqueLeaveId,
       employeeId: empId,
@@ -180,7 +180,7 @@ function Leave() {
     } catch (e) {
       console.warn("API failed, falling back to local storage", e);
     }
-    
+
     // Always save locally for now so the UI updates if the API isn't fully integrated for GET requests yet
     addLeaveRequest(newLeave);
 
@@ -192,11 +192,11 @@ function Leave() {
 
   const handleDelete = async (leave) => {
     if (!window.confirm("Are you sure you want to delete this leave request?")) return;
-    
+
     console.log("[handleDelete] Selected leave object:", leave);
     const leaveIdToDelete = leave.leave_id || leave.leaveId;
     console.log("[handleDelete] leave_id being sent:", leaveIdToDelete);
-    
+
     if (!leaveIdToDelete) {
       showToast('Error: Leave ID is missing', 'warning');
       return;

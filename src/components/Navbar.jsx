@@ -30,15 +30,31 @@ function Navbar({ onToggleSidebar }) {
     userData = {};
   }
   
-  const employee = getEmployee(userData?.employeeId);
+  const [employee, setEmployee] = useState(null);
+
+  useEffect(() => {
+    async function fetchEmp() {
+      if (userData?.employeeId) {
+        if (userData?.role?.toLowerCase() === 'manager') {
+          const { getManagerProfile } = await import('../services/dataService');
+          const data = await getManagerProfile(userData.employeeId);
+          setEmployee(data);
+        } else {
+          const data = await getEmployee(userData.employeeId);
+          setEmployee(data);
+        }
+      }
+    }
+    fetchEmp();
+  }, [userData?.employeeId, userData?.role]);
 
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
   };
 
-  const getName = () => employee?.name || userData?.name || "User";
-  const getRole = () => employee?.designation || employee?.role || userData?.role || "Role";
+  const getName = () => employee?.FullName || employee?.name || userData?.name || "User";
+  const getRole = () => employee?.Designation || employee?.role || userData?.role || "Role";
   
   const getInitial = () => {
     const name = getName();
@@ -196,11 +212,11 @@ function Navbar({ onToggleSidebar }) {
                 </div>
               </div>
               <div style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>
-                <div className="mb-1"><i className="bi bi-person-vcard me-2" style={{ color: "var(--primary)" }} />{employee?.id || userData?.employeeId || 'ID not available'}</div>
-                <div className="mb-1"><i className="bi bi-envelope me-2" style={{ color: "var(--primary)" }} />{employee?.email || 'Email not available'}</div>
-                <div className="mb-1"><i className="bi bi-telephone me-2" style={{ color: "var(--primary)" }} />{employee?.phone || 'Phone not available'}</div>
-                <div className="mb-1"><i className="bi bi-building me-2" style={{ color: "var(--primary)" }} />{employee?.department || 'Department not available'}</div>
-                <div><i className="bi bi-geo-alt me-2" style={{ color: "var(--primary)" }} />{employee?.location || 'Location not available'}</div>
+                <div className="mb-1"><i className="bi bi-person-vcard me-2" style={{ color: "var(--primary)" }} />{employee?.empid || employee?.id || userData?.employeeId || 'ID not available'}</div>
+                <div className="mb-1"><i className="bi bi-envelope me-2" style={{ color: "var(--primary)" }} />{employee?.Email || employee?.email || 'Email not available'}</div>
+                <div className="mb-1"><i className="bi bi-telephone me-2" style={{ color: "var(--primary)" }} />{employee?.Phone || employee?.phone || 'Phone not available'}</div>
+                <div className="mb-1"><i className="bi bi-building me-2" style={{ color: "var(--primary)" }} />{employee?.Department || employee?.department || 'Department not available'}</div>
+                <div><i className="bi bi-geo-alt me-2" style={{ color: "var(--primary)" }} />{employee?.Address || employee?.location || 'Location not available'}</div>
               </div>
             </li>
             <li><hr className="dropdown-divider" /></li>
