@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployee, getLeaveBalances, getLeaveRequests, getAllLeaveRequests, addLeaveRequest, updateLeaveStatus, getHolidays, getNextLeaveId, submitLeaveRequestApi, deleteLeaveRequestApi, deleteLeaveRequestLocal } from "../services/dataService";
+import { getCurrentUser, getEmployee, getLeaveBalances, getLeaveRequests, getAllLeaveRequests, addLeaveRequest, updateLeaveStatus, getHolidays, getNextLeaveId, submitLeaveRequestApi, deleteLeaveRequestApi, deleteLeaveRequestLocal, getManagerLeaveRequests, getEmployeeLeaveRequests, updateManagerLeaveStatus } from "../services/dataService";
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -27,7 +27,7 @@ function LeaveCalendar({ leaves, holidays, selectedDate, onSelectDate }) {
     if (date.toDateString() === today.toDateString()) classes.push('today');
     if (dayOfWeek === 0 || dayOfWeek === 6) classes.push('weekend');
     if (holidays.find(h => h.date === dateStr)) classes.push('holiday');
-    const leave = leaves.find(l => dateStr >= l.startDate && dateStr <= l.endDate && l.status !== 'Rejected');
+    const leave = leaves.find(l => dateStr >= (l.startDate || l.fromDate) && dateStr <= (l.endDate || l.toDate) && l.status !== 'Rejected');
     if (leave) {
       if (leave.wfh) classes.push('wfh');
       else classes.push('leave');
@@ -38,7 +38,7 @@ function LeaveCalendar({ leaves, holidays, selectedDate, onSelectDate }) {
   const getDayContent = (day) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const holiday = holidays.find(h => h.date === dateStr);
-    const leave = leaves.find(l => dateStr >= l.startDate && dateStr <= l.endDate && l.status !== 'Rejected');
+    const leave = leaves.find(l => dateStr >= (l.startDate || l.fromDate) && dateStr <= (l.endDate || l.toDate) && l.status !== 'Rejected');
     if (holiday) return <span title={holiday.name} className="holiday-dot">H</span>;
     if (leave?.wfh) return <span title="WFH" className="wfh-dot">W</span>;
     if (leave) return <span title={`${leave.leaveType} - ${leave.status}`} className="leave-dot">L</span>;
@@ -95,17 +95,18 @@ function Leave() {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored).role.toLowerCase() : "employee";
   });
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const allLeaves = getLeaveRequests(empId);
   const leaveBal = getLeaveBalances(empId);
   const holidays = getHolidays();
   const upcomingHolidays = holidays
     .filter(h => h.name !== 'Ambedkar Jayanti' && h.name !== 'Independence Day')
     .sort((a, b) => new Date(a.date) - new Date(b.date));
-  const allRequests = getAllLeaveRequests();
 
   const isManagerOrAdmin = role === 'manager' || role === 'admin';
+
+  const [managerLeaves, setManagerLeaves] = useState([]);
+  const [employeeLeaves, setEmployeeLeaves] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
   const [showAllHolidays, setShowAllHolidays] = useState(false);
@@ -122,7 +123,33 @@ function Leave() {
   const [toast, setToast] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [viewLeave, setViewLeave] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const perPage = 5;
+
+  useEffect(() => {
+    fetchLeaves();
+  }, [isManagerOrAdmin, empId]);
+
+  const fetchLeaves = async () => {
+    setLoading(true);
+    try {
+      if (isManagerOrAdmin) {
+        console.log(`Fetching manager leaves for: ${empId}`);
+        const data = await getManagerLeaveRequests(empId);
+        console.log("Manager Leaves fetched:", data);
+        setManagerLeaves(data || []);
+      } else {
+        console.log(`Fetching employee leaves for: ${empId}`);
+        const data = await getEmployeeLeaveRequests(empId);
+        console.log("Employee Leaves fetched:", data);
+        setEmployeeLeaves(data || []);
+      }
+    } catch (e) {
+      console.error("Error fetching leaves", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -177,17 +204,16 @@ function Leave() {
 
     try {
       await submitLeaveRequestApi(newLeave);
+      showToast(wfh ? 'WFH request submitted successfully!' : 'Leave applied successfully!');
+      fetchLeaves();
     } catch (e) {
-      console.warn("API failed, falling back to local storage", e);
+      console.warn("API failed", e);
+      showToast('Failed to apply leave. Please try again.', 'warning');
     }
-
-    // Always save locally for now so the UI updates if the API isn't fully integrated for GET requests yet
-    addLeaveRequest(newLeave);
 
     resetForm();
     setShowForm(false);
     setCurrentPage(1);
-    showToast(wfh ? 'WFH request submitted successfully!' : 'Leave applied successfully!');
   };
 
   const handleDelete = async (leave) => {
@@ -204,32 +230,62 @@ function Leave() {
 
     try {
       await deleteLeaveRequestApi(leaveIdToDelete);
-      // Only delete locally if the API call succeeds
-      deleteLeaveRequestLocal(leaveIdToDelete);
       showToast('Leave request deleted successfully');
+      fetchLeaves();
     } catch (e) {
       console.error("[handleDelete] Delete failed:", e);
       showToast('Failed to delete leave request. Please try again.', 'warning');
     }
   };
 
-  const handleApprove = (leaveId) => {
-    updateLeaveStatus(leaveId, 'Approved');
-    showToast('Leave approved');
+  const handleApprove = async (leave) => {
+    console.log("Leave Object:", leave);
+    console.log("Leave ID:", leave.leave_id);
+    const leaveId = leave.leave_id || leave.leaveId;
+    if (!leaveId) {
+      showToast('Error: Leave ID is missing', 'warning');
+      return;
+    }
+    try {
+      await updateManagerLeaveStatus(leaveId, 'Approved');
+      showToast('Leave approved');
+      fetchLeaves();
+    } catch (error) {
+      showToast('Failed to approve leave', 'warning');
+    }
   };
 
-  const handleReject = (leaveId) => {
-    updateLeaveStatus(leaveId, 'Rejected');
-    showToast('Leave rejected', 'warning');
+  const handleReject = async (leave) => {
+    console.log("Leave Object:", leave);
+    console.log("Leave ID:", leave.leave_id);
+    const leaveId = leave.leave_id || leave.leaveId;
+    if (!leaveId) {
+      showToast('Error: Leave ID is missing', 'warning');
+      return;
+    }
+    try {
+      await updateManagerLeaveStatus(leaveId, 'Rejected');
+      showToast('Leave rejected', 'warning');
+      fetchLeaves();
+    } catch (error) {
+      showToast('Failed to reject leave', 'warning');
+    }
   };
 
-  const displayLeaves = isManagerOrAdmin ? allRequests : allLeaves;
+  const displayLeaves = isManagerOrAdmin ? managerLeaves : employeeLeaves;
   const filtered = displayLeaves.filter(l => {
-    const ms = l.leaveId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.leaveType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.reason?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.employeeName?.toLowerCase().includes(searchTerm.toLowerCase());
+    const lId = (l.leaveId || l.leave_id || '').toLowerCase();
+    const lType = (l.leaveType || '').toLowerCase();
+    const lReason = (l.reason || '').toLowerCase();
+    const lEmpId = (l.employeeId || l.empid || '').toLowerCase();
+    const lEmpName = (l.employeeName || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+
+    const ms = lId.includes(search) ||
+      lType.includes(search) ||
+      lReason.includes(search) ||
+      lEmpId.includes(search) ||
+      lEmpName.includes(search);
     const mf = filterStatus === 'All' || l.status === filterStatus;
     return ms && mf;
   });
@@ -688,7 +744,15 @@ function Leave() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paginated.length === 0 ? (
+                      {loading ? (
+                        <tr>
+                          <td colSpan="7" className="text-center py-4">
+                            <div className="spinner-border text-primary" role="status">
+                              <span className="visually-hidden">Loading...</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : paginated.length === 0 ? (
                         <tr>
                           <td colSpan="7" className="text-center py-4" style={{ color: "var(--gray-400)" }}>
                             <i className="bi bi-inbox" style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }} />
@@ -696,9 +760,12 @@ function Leave() {
                           </td>
                         </tr>
                       ) : (
-                        paginated.map((leave) => (
-                          <tr key={leave.leaveId}>
-                            {isManagerOrAdmin && <td className="fw-semibold">{leave.employeeName || leave.employeeId}</td>}
+                        paginated.map((leave, index) => {
+                          const sDate = leave.startDate || leave.fromDate;
+                          const eDate = leave.endDate || leave.toDate;
+                          return (
+                          <tr key={leave.leaveId || leave.leave_id || index}>
+                            {isManagerOrAdmin && <td className="fw-semibold">{leave.employeeName || leave.employeeId || leave.empid}</td>}
                             <td>
                               {leave.wfh ? (
                                 <span className="badge-status" style={{ background: "#fef3c7", color: "#92400e" }}>
@@ -709,15 +776,15 @@ function Leave() {
                               )}
                             </td>
                             <td style={{ whiteSpace: "nowrap" }}>
-                              {new Date(leave.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {sDate ? new Date(sDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                             </td>
                             <td style={{ whiteSpace: "nowrap" }}>
-                              {new Date(leave.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {eDate ? new Date(eDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                             </td>
                             <td>
-                              {leave.halfDay && !leave.reason?.toLowerCase().startsWith('half day')
-                                ? `Half Day - ${leave.reason}`
-                                : leave.reason}
+                              {leave.halfDay && !(leave.reason || '').toLowerCase().startsWith('half day')
+                                ? `Half Day - ${leave.reason || ''}`
+                                : leave.reason || '-'}
                             </td>
                             <td>
                               <span
@@ -736,10 +803,10 @@ function Leave() {
                                 <div className="action-btns d-flex flex-nowrap gap-2">
                                   {leave.status === "Pending" ? (
                                     <>
-                                      <button className="btn-custom-success d-flex align-items-center justify-content-center shadow-sm rounded" style={{ width: "32px", height: "32px", padding: 0 }} onClick={(e) => { e.stopPropagation(); handleApprove(leave.leaveId); }} title="Approve">
+                                      <button className="btn-custom-success d-flex align-items-center justify-content-center shadow-sm rounded" style={{ width: "32px", height: "32px", padding: 0 }} onClick={(e) => { e.stopPropagation(); handleApprove(leave); }} title="Approve">
                                         <i className="bi bi-check-lg" style={{ fontSize: "1.1rem" }} />
                                       </button>
-                                      <button className="btn-custom-danger d-flex align-items-center justify-content-center shadow-sm rounded" style={{ width: "32px", height: "32px", padding: 0 }} onClick={(e) => { e.stopPropagation(); handleReject(leave.leaveId); }} title="Reject">
+                                      <button className="btn-custom-danger d-flex align-items-center justify-content-center shadow-sm rounded" style={{ width: "32px", height: "32px", padding: 0 }} onClick={(e) => { e.stopPropagation(); handleReject(leave); }} title="Reject">
                                         <i className="bi bi-x-lg" style={{ fontSize: "1.1rem" }} />
                                       </button>
                                     </>
@@ -762,7 +829,8 @@ function Leave() {
                               </td>
                             )}
                           </tr>
-                        ))
+                        );
+                      })
                       )}
                     </tbody>
                   </table>
@@ -800,7 +868,7 @@ function Leave() {
                   Leave Calendar
                 </h5>
                 <LeaveCalendar
-                  leaves={allLeaves}
+                  leaves={displayLeaves}
                   holidays={holidays}
                   selectedDate={selectedDate}
                   onSelectDate={setSelectedDate}
@@ -811,7 +879,7 @@ function Leave() {
                     {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                     {(() => {
                       const holiday = holidays.find(h => h.date === selectedDate);
-                      const leave = allLeaves.find(l => selectedDate >= l.startDate && selectedDate <= l.endDate && l.status !== 'Rejected');
+                      const leave = displayLeaves.find(l => selectedDate >= (l.startDate || l.fromDate) && selectedDate <= (l.endDate || l.toDate) && l.status !== 'Rejected');
                       const day = new Date(selectedDate).getDay();
                       if (holiday) return <span className="ms-2 badge-status" style={{ background: "#f3e8ff", color: "#6d28d9" }}>{holiday.name}</span>;
                       if (leave?.wfh) return <span className="ms-2 badge-status" style={{ background: "#fef3c7", color: "#92400e" }}>WFH</span>;
@@ -849,7 +917,7 @@ function Leave() {
               </div>
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted small">Duration:</span>
-                <span className="fw-semibold">{viewLeave.startDate} to {viewLeave.endDate}</span>
+                <span className="fw-semibold">{viewLeave.startDate || viewLeave.fromDate} to {viewLeave.endDate || viewLeave.toDate}</span>
               </div>
               <div className="d-flex justify-content-between border-bottom pb-2">
                 <span className="text-muted small">Status:</span>

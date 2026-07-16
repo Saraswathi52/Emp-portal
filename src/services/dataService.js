@@ -98,7 +98,7 @@ const KEYS = {
   DOCUMENTS: 'peoplecore_documents',
 };
 
-export const LEAVE_API_URL = 'https://rbbdgd2ai8.execute-api.ap-south-1.amazonaws.com/ed_leavemanagement';
+export const LEAVE_API_URL = 'https://rbbdgd2ai8.execute-api.ap-south-1.amazonaws.com/leave';
 
 export async function submitLeaveRequestApi(leaveData) {
   try {
@@ -115,12 +115,72 @@ export async function submitLeaveRequestApi(leaveData) {
   }
 }
 
+export async function getManagerLeaveRequests(managerId) {
+  try {
+    const url = `${LEAVE_API_URL}/manager/${managerId}`;
+    console.log("=== DEBUG GET MANAGER LEAVES ===");
+    console.log("API URL:", url);
+
+    const response = await axios.get(url);
+    
+    let data = response.data;
+    if (data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    
+    let finalData = [];
+    if (Array.isArray(data)) finalData = data;
+    else if (data.Items) finalData = data.Items;
+    else if (typeof data === 'object' && Object.keys(data).length > 0) finalData = [data];
+
+    return finalData;
+  } catch (error) {
+    console.error('Error fetching manager leaves API. Error:', error);
+    return [];
+  }
+}
+
+export async function getEmployeeLeaveRequests(employeeId) {
+  try {
+    const url = `${LEAVE_API_URL}/${employeeId}`;
+    console.log("=== DEBUG GET EMPLOYEE LEAVES ===");
+    console.log("API URL:", url);
+
+    const response = await axios.get(url);
+    
+    let data = response.data;
+    if (data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    
+    let finalData = [];
+    if (Array.isArray(data)) finalData = data;
+    else if (data.Items) finalData = data.Items;
+    else if (typeof data === 'object' && Object.keys(data).length > 0) finalData = [data];
+
+    return finalData;
+  } catch (error) {
+    console.error('Error fetching employee leaves API. Error:', error);
+    return [];
+  }
+}
+
+export async function updateManagerLeaveStatus(leaveId, status) {
+  try {
+    const url = `${LEAVE_API_URL}/${leaveId}`;
+    const response = await axios.put(url, { status }, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating leave status:', error);
+    throw error;
+  }
+}
+
 export async function deleteLeaveRequestApi(leave_id) {
   try {
-    // Extract base URL by removing /ed_leavemanagement from LEAVE_API_URL if present,
-    // or just construct directly
-    const baseUrl = LEAVE_API_URL.replace('/ed_leavemanagement', '');
-    const url = `${baseUrl}/leave/${leave_id}`;
+    const url = `${LEAVE_API_URL}/${leave_id}`;
 
     console.log(`[deleteLeaveRequestApi] DELETE request URL:`, url);
     const res = await fetch(url, {
