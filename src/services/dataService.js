@@ -623,6 +623,41 @@ export async function getAllExpenses() {
   }
 }
 
+export async function getManagerExpenses(managerId) {
+  if (!managerId) return [];
+  const url = `${EXPENSE_API_URL}/manager/${managerId}`;
+  console.log("Manager ID:", managerId);
+  console.log("Expense API URL:", url);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      if (res.status === 404) return [];
+      throw new Error(`Failed to fetch expenses: ${res.status}`);
+    }
+    const data = await res.json();
+    console.log("Expense Response:", data);
+    
+    const items = data.Items || data;
+    return (Array.isArray(items) ? items : [items]).map(item => ({
+      id: item.expid?.S || item.id,
+      employeeId: item.empid?.S || item.employeeId,
+      employeeName: item.employeeName?.S || item.employeeName || item.empid?.S || item.empid, // Fallback to id if name is missing
+      expenseType: item.expenseType?.S || item.category?.S || item.category || item.expenseType,
+      amount: item.amount?.S ? parseFloat(item.amount.S) : (item.amount?.N ? parseFloat(item.amount.N) : item.amount),
+      date: item.expenseDate?.S || item.date?.S || item.date,
+      description: item.description?.S || item.description,
+      project: item.project?.S || item.project,
+      meeting: item.meeting?.S || item.meeting,
+      paymentMode: item.paymentMode?.S || item.paymentMode,
+      status: item.status?.S || item.status,
+      receipt: item.attachmentUrl?.S || item.attachmentUrl || item.receipt
+    }));
+  } catch (error) {
+    console.error('Error fetching manager expenses:', error);
+    return [];
+  }
+}
+
 export async function addExpense(expense) {
   const payload = {
     expid: { S: expense.id },
@@ -663,14 +698,12 @@ export async function addExpense(expense) {
 }
 
 export async function updateExpenseStatus(id, status, empid) {
-  if (!id || !empid) {
-    console.error("updateExpenseStatus Error: expid or empid is undefined", { id, empid });
+  if (!id) {
+    console.error("updateExpenseStatus Error: expid is undefined", { id });
     return;
   }
   const payload = {
-    expid: { S: id },
-    empid: { S: empid },
-    status: { S: status }
+    status: status
   };
 
   const url = `${EXPENSE_API_URL}/${id}`;

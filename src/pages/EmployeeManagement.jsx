@@ -334,24 +334,24 @@ function EmployeeManagement() {
                   <button className="btn btn-sm btn-light" onClick={() => setViewEmployee(null)}><i className="bi bi-x-lg"></i></button>
                 </div>
                 <div className="d-flex align-items-center gap-3 mb-4">
-                  {viewEmployee.profileImage ? (
-                    <img src={viewEmployee.profileImage} alt="profile" style={{width: 60, height: 60, borderRadius: "50%", objectFit: "cover"}}/>
+                  {viewEmployee.profileImage?.S || viewEmployee.profileImage ? (
+                    <img src={viewEmployee.profileImage?.S || viewEmployee.profileImage} alt="profile" style={{width: 60, height: 60, borderRadius: "50%", objectFit: "cover"}}/>
                   ) : (
                     <div style={{width:60,height:60,borderRadius:"50%",background:"var(--primary)",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.5rem"}}>
-                      {(viewEmployee.FullName || viewEmployee.name || '?').charAt(0).toUpperCase()}
+                      {String(viewEmployee.FullName?.S || viewEmployee.name?.S || viewEmployee.FullName || viewEmployee.name || '?').charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div>
-                    <h6 className="mb-0 fw-bold">{viewEmployee.FullName || viewEmployee.name}</h6>
-                    <small className="text-muted">{viewEmployee.Designation || viewEmployee.role || 'Employee'}</small>
+                    <h6 className="mb-0 fw-bold">{viewEmployee.FullName?.S || viewEmployee.name?.S || viewEmployee.FullName || viewEmployee.name}</h6>
+                    <small className="text-muted">{viewEmployee.Designation?.S || viewEmployee.role?.S || viewEmployee.Designation || viewEmployee.role || 'Employee'}</small>
                   </div>
                 </div>
-                <div className="mb-2"><strong>ID:</strong> <span style={{color: "var(--primary)"}}>{viewEmployee.empid || viewEmployee.id}</span></div>
-                <div className="mb-2"><strong>Department:</strong> {viewEmployee.Department || viewEmployee.department || '—'}</div>
-                <div className="mb-2"><strong>Email:</strong> {viewEmployee.Email || viewEmployee.email || '—'}</div>
-                <div className="mb-2"><strong>Phone:</strong> {viewEmployee.Phone || viewEmployee.phone || '—'}</div>
-                <div className="mb-2"><strong>Location:</strong> {viewEmployee.Address || viewEmployee.location || '—'}</div>
-                <div className="mb-2"><strong>Status:</strong> <span className="badge-status badge-approved">{viewEmployee.Status || viewEmployee.status || 'Active'}</span></div>
+                <div className="mb-2"><strong>ID:</strong> <span style={{color: "var(--primary)"}}>{viewEmployee.empid?.S || viewEmployee.id?.S || viewEmployee.empid || viewEmployee.id}</span></div>
+                <div className="mb-2"><strong>Department:</strong> {viewEmployee.Department?.S || viewEmployee.department?.S || viewEmployee.Department || viewEmployee.department || '—'}</div>
+                <div className="mb-2"><strong>Email:</strong> {viewEmployee.Email?.S || viewEmployee.email?.S || viewEmployee.Email || viewEmployee.email || '—'}</div>
+                <div className="mb-2"><strong>Phone:</strong> {viewEmployee.Phone?.S || viewEmployee.phone?.S || viewEmployee.Phone || viewEmployee.phone || '—'}</div>
+                <div className="mb-2"><strong>Location:</strong> {viewEmployee.Address?.S || viewEmployee.location?.S || viewEmployee.Address || viewEmployee.location || '—'}</div>
+                <div className="mb-2"><strong>Status:</strong> <span className="badge-status badge-approved">{viewEmployee.Status?.S || viewEmployee.status?.S || viewEmployee.Status || viewEmployee.status || 'Active'}</span></div>
                 <div className="mt-3 text-end">
                   <button className="btn btn-sm btn-custom-outline" onClick={() => setViewEmployee(null)}>Close</button>
                 </div>

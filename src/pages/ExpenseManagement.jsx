@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getExpenses, getAllExpenses, addExpense, updateExpenseStatus, deleteExpense, getNextExpenseId } from "../services/dataService";
+import { getCurrentUser, getExpenses, getAllExpenses, getManagerExpenses, addExpense, updateExpenseStatus, deleteExpense, getNextExpenseId } from "../services/dataService";
 
 function ExpenseManagement() {
   const user = getCurrentUser();
@@ -47,7 +47,7 @@ function ExpenseManagement() {
       setIsLoading(true);
       try {
         if (isManagerOrAdmin) {
-          const data = await getAllExpenses();
+          const data = await getManagerExpenses(empId);
           setAllExpenses(data || []);
         } else {
           const data = await getExpenses(empId);
@@ -144,7 +144,9 @@ function ExpenseManagement() {
       console.log("PUT Payload: status=Approved for", id);
       await updateExpenseStatus(id, 'Approved', empid);
       showToast('Expense approved');
-      setViewItem(null);
+      if (viewItem && viewItem.id === id) {
+        setViewItem({ ...viewItem, status: 'Approved' });
+      }
       setRefreshKey(k => k + 1);
     } catch (err) {
       console.error("Failed to approve expense", err);
@@ -157,7 +159,9 @@ function ExpenseManagement() {
       console.log("PUT Payload: status=Rejected for", id);
       await updateExpenseStatus(id, 'Rejected', empid);
       showToast('Expense rejected', 'warning');
-      setViewItem(null);
+      if (viewItem && viewItem.id === id) {
+        setViewItem({ ...viewItem, status: 'Rejected' });
+      }
       setRefreshKey(k => k + 1);
     } catch (err) {
       console.error("Failed to reject expense", err);
