@@ -6,6 +6,7 @@ function Navbar({ onToggleSidebar }) {
   const navigate = useNavigate();
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   
   const notifRef = useRef(null);
   const profileRef = useRef(null);
@@ -61,15 +62,124 @@ function Navbar({ onToggleSidebar }) {
     return name ? name.charAt(0).toUpperCase() : "U";
   };
 
-  const leaveReqs = getLeaveRequests(userData?.employeeId);
-  const approvedLeaves = leaveReqs.filter(l => l.status === 'Approved').length;
-  
-  const notifications = [
-    { id: 1, title: 'Approved Leave Requests', text: approvedLeaves > 0 ? `${approvedLeaves} Processed` : 'None Currently', icon: 'bi-calendar-check-fill', color: '#10b981', bg: '#ecfdf5' },
-    { id: 2, title: 'Attendance Status', text: 'In Good Standing', icon: 'bi-graph-up-arrow', color: '#3b82f6', bg: '#eff6ff' },
-    { id: 3, title: 'Upcoming Company Events', text: 'Q3 Strategy Review', icon: 'bi-calendar-event', color: '#8b5cf6', bg: '#f5f3ff' },
-    { id: 4, title: 'Company Announcements', text: 'Policy Compliance Update', icon: 'bi-megaphone-fill', color: '#f59e0b', bg: '#fffbeb' },
-  ];
+  useEffect(() => {
+    async function loadNotifications() {
+      if (!userData?.employeeId) return;
+      
+      const notifs = [];
+      let notifId = 1;
+      
+      // 1. Birthdays
+      try {
+        const res = await fetch('https://zwfgsom5dk.execute-api.ap-south-1.amazonaws.com/employees');
+        let allEmployees = [];
+        if (res.ok) {
+           const data = await res.json();
+           allEmployees = data.body ? (typeof data.body === 'string' ? JSON.parse(data.body) : data.body) : data;
+           if (allEmployees.Items) allEmployees = allEmployees.Items;
+        }
+        
+        if (!Array.isArray(allEmployees) || allEmployees.length === 0) {
+           const { getEmployees } = await import('../services/dataService');
+           allEmployees = getEmployees();
+        }
+
+        const today = new Date();
+        const todayMonth = String(today.getMonth() + 1).padStart(2, '0');
+        const todayDate = String(today.getDate()).padStart(2, '0');
+
+        allEmployees.forEach(emp => {
+          const dob = emp.DateOfBirth?.S || emp.DateOfBirth || emp.dob?.S || emp.dob;
+          const name = emp.FullName?.S || emp.FullName || emp.name?.S || emp.name;
+          if (dob && typeof dob === 'string' && dob.includes('-')) {
+            const parts = dob.split('-'); 
+            let m, d;
+            if (parts.length === 3) {
+              m = parts[1];
+              d = parts[2];
+            }
+            if (m === todayMonth && d === todayDate) {
+              notifs.push({
+                id: notifId++,
+                title: 'Birthday',
+                text: `Happy Birthday ${name}!`,
+                icon: 'bi-gift-fill',
+                color: '#ec4899',
+                bg: '#fdf2f8'
+              });
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Failed to load birthdays", error);
+      }
+
+      // 2. Leaves
+      try {
+        const { getEmployeeLeaveRequests } = await import('../services/dataService');
+        const leaves = await getEmployeeLeaveRequests(userData.employeeId);
+        leaves.forEach(l => {
+          const status = l.status?.S || l.status;
+          const approverName = employee?.Manager || 'Your manager';
+          if (status === 'Approved') {
+            notifs.push({
+              id: notifId++,
+              title: 'Leave Approved',
+              text: `${approverName} approved your leave request.`,
+              icon: 'bi-calendar-check-fill',
+              color: '#10b981',
+              bg: '#ecfdf5'
+            });
+          } else if (status === 'Rejected') {
+            notifs.push({
+              id: notifId++,
+              title: 'Leave Rejected',
+              text: `${approverName} rejected your leave request.`,
+              icon: 'bi-calendar-x-fill',
+              color: '#ef4444',
+              bg: '#fef2f2'
+            });
+          }
+        });
+      } catch (error) {
+        console.error("Failed to load leave notifications", error);
+      }
+
+      // 3. Expenses
+      try {
+        const { getExpenses } = await import('../services/dataService');
+        const expenses = await getExpenses(userData.employeeId);
+        expenses.forEach(e => {
+          const status = e.status?.S || e.status;
+          if (status === 'Approved') {
+            notifs.push({
+              id: notifId++,
+              title: 'Expense Approved',
+              text: 'Your expense request was approved.',
+              icon: 'bi-currency-rupee',
+              color: '#10b981',
+              bg: '#ecfdf5'
+            });
+          } else if (status === 'Rejected') {
+            notifs.push({
+              id: notifId++,
+              title: 'Expense Rejected',
+              text: 'Rejected expense request.',
+              icon: 'bi-currency-rupee',
+              color: '#ef4444',
+              bg: '#fef2f2'
+            });
+          }
+        });
+      } catch (error) {
+        console.error("Failed to load expense notifications", error);
+      }
+      
+      setNotifications(notifs);
+    }
+
+    loadNotifications();
+  }, [userData?.employeeId, employee]);
 
   return (
     <nav className="navbar-custom d-flex align-items-center justify-content-between">
