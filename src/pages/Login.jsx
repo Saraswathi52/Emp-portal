@@ -7,11 +7,12 @@ function Login() {
   const { role } = useParams();
   const [employeeId, setEmployeeId] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
 
   const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : "";
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     const newErrors = {};
     if (!employeeId.trim()) newErrors.employeeId = "Employee ID is required";
@@ -22,18 +23,47 @@ function Login() {
       return;
     }
 
-    localStorage.setItem("user", JSON.stringify({
-      employeeId: employeeId.trim(),
-      role: roleLabel,
-      name: employeeId.trim(),
-    }));
+    try {
+      let userProfile = null;
+      if (role === 'manager') {
+        const { getManagerProfile } = await import('../services/dataService');
+        userProfile = await getManagerProfile(employeeId.trim());
+      } else {
+        const { getEmployee } = await import('../services/dataService');
+        userProfile = await getEmployee(employeeId.trim());
+      }
 
-    const paths = {
-      employee: "/employee-dashboard",
-      manager: "/manager-dashboard",
-      admin: "/admin-dashboard",
-    };
-    navigate(paths[role] || "/employee-dashboard");
+      if (!userProfile) {
+        setErrors({ employeeId: "User not found or invalid ID" });
+        return;
+      }
+      
+      const actualRole = (userProfile.Role || userProfile.role || "").toLowerCase();
+      
+      if (actualRole !== role.toLowerCase()) {
+        setErrors({ employeeId: `This user is not registered as ${roleLabel}. Please use the correct portal.` });
+        return;
+      }
+      
+      // If we had a real password check, it would go here.
+      // Currently, it accepts any password as long as the role matches.
+      
+      localStorage.setItem("user", JSON.stringify({
+        employeeId: employeeId.trim(),
+        role: roleLabel,
+        name: userProfile.FullName || userProfile.name || employeeId.trim(),
+      }));
+
+      const paths = {
+        employee: "/employee-dashboard",
+        manager: "/manager-dashboard",
+        admin: "/admin-dashboard",
+      };
+      navigate(paths[role] || "/employee-dashboard");
+    } catch (error) {
+      console.error(error);
+      setErrors({ employeeId: "An error occurred during login. Please try again." });
+    }
   };
 
   const roleIcon = {
@@ -74,12 +104,20 @@ function Login() {
             <div className="position-relative">
               <i className="bi bi-lock" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--gray-400)", zIndex: 5 }} />
               <input
-                type="password"
-                className={`form-control ps-5 ${errors.password ? "is-invalid" : ""}`}
+                type={showPassword ? "text" : "password"}
+                className={`form-control ps-5 pe-5 ${errors.password ? "is-invalid" : ""}`}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors({ ...errors, password: "" }); }}
               />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 5, background: 'none', border: 'none', padding: 0 }}
+                tabIndex="-1"
+              >
+                <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} style={{ color: "var(--gray-400)" }} />
+              </button>
               {errors.password && <div className="invalid-feedback">{errors.password}</div>}
             </div>
           </div>
