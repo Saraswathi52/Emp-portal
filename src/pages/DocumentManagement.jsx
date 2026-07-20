@@ -46,6 +46,16 @@ function DocumentManagement() {
     return field || "";
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
   const fetchDocuments = async () => {
     if (!currentEmpId) return;
     setIsLoading(true);
@@ -59,7 +69,8 @@ function DocumentManagement() {
           empid: getVal(doc.empid),
           documentName: getVal(doc.documentName),
           documentType: getVal(doc.documentType),
-          uploadedDate: getVal(doc.uploadedDate),
+          rawUploadedDate: getVal(doc.uploadedDate),
+          uploadedDate: formatDate(getVal(doc.uploadedDate)),
           description: getVal(doc.description),
           fileName: getVal(doc.fileName),
           fileUrl: getVal(doc.fileUrl)
@@ -178,7 +189,7 @@ function DocumentManagement() {
       empid: { S: currentEmpId },
       documentName: { S: documentName.trim() },
       documentType: { S: documentType.trim() },
-      uploadedDate: { S: currentDocument.uploadedDate },
+      uploadedDate: { S: currentDocument.rawUploadedDate || currentDocument.uploadedDate },
       description: { S: description.trim() }
     };
     
@@ -240,9 +251,12 @@ function DocumentManagement() {
   };
 
   const filtered = documents.filter(d => {
-    const ms = d.documentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               d.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               d.documentType.toLowerCase().includes(searchTerm.toLowerCase());
+    const search = searchTerm.toLowerCase();
+    const ms = (d.documentName || "").toLowerCase().includes(search) ||
+               (d.fileName || "").toLowerCase().includes(search) ||
+               (d.documentType || "").toLowerCase().includes(search) ||
+               (d.uploadedDate || "").toLowerCase().includes(search) ||
+               (d.description || "").toLowerCase().includes(search);
     const mt = filterType === "All" || d.documentType === filterType;
     return ms && mt;
   });

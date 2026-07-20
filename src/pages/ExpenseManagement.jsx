@@ -200,13 +200,35 @@ function ExpenseManagement() {
     return String(v.S || v.N || v);
   };
 
-  const expenseTypes = [...new Set(allExpenses.map(e => getStr(e.expenseType)))].filter(Boolean);
+  const expenseCategories = [
+    { value: 'Travel', label: 'Travel' },
+    { value: 'Food', label: 'Food & Dining' },
+    { value: 'Accommodation', label: 'Accommodation' },
+    { value: 'Transport', label: 'Transport' },
+    { value: 'Office Supplies', label: 'Office Supplies' },
+    { value: 'Meeting', label: 'Meeting' },
+    { value: 'Fuel', label: 'Fuel' },
+    { value: 'Internet', label: 'Internet & Communication' },
+    { value: 'Other', label: 'Other' },
+  ];
   const filtered = displayExpenses.filter(e => {
-    const ms = getStr(e.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getStr(e.expenseType).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getStr(e.description).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getStr(e.project).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getStr(e.employeeName).toLowerCase().includes(searchTerm.toLowerCase());
+    const search = searchTerm.toLowerCase();
+    
+    const dateVal = getStr(e.date);
+    const dateStr = dateVal ? new Date(dateVal).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toLowerCase() : '';
+    const amountRaw = getStr(e.amount).toLowerCase();
+    const amountFormatted = parseFloat(getStr(e.amount) || 0).toLocaleString().toLowerCase();
+
+    const ms = getStr(e.id).toLowerCase().includes(search) ||
+      getStr(e.expenseType).toLowerCase().includes(search) ||
+      getStr(e.description).toLowerCase().includes(search) ||
+      getStr(e.project).toLowerCase().includes(search) ||
+      getStr(e.employeeName).toLowerCase().includes(search) ||
+      getStr(e.status).toLowerCase().includes(search) ||
+      amountRaw.includes(search) ||
+      amountFormatted.includes(search) ||
+      dateStr.includes(search);
+
     const mf = filterStatus === 'All' || getStr(e.status) === filterStatus;
     const mt = filterType === 'All' || getStr(e.expenseType) === filterType;
     return ms && mf && mt;
@@ -215,7 +237,7 @@ function ExpenseManagement() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
 
-  const totalAmount = displayExpenses.reduce((s, e) => s + (parseFloat(getStr(e.amount)) || 0), 0);
+  const totalAmount = displayExpenses.filter(e => getStr(e.status) === 'Approved').reduce((s, e) => s + (parseFloat(getStr(e.amount)) || 0), 0);
   
   const statusBadge = (status) => {
     const map = { Pending: "badge-pending", Approved: "badge-approved", Rejected: "badge-rejected" };
@@ -509,16 +531,16 @@ function ExpenseManagement() {
                   <i className="bi bi-list-check me-2 text-primary" />
                   {isManagerOrAdmin ? 'All Expense Claims' : 'Expense History'}
                 </h5>
-                <div className="d-flex gap-2 align-items-center flex-wrap">
-                  <div className="search-box position-relative" style={{ maxWidth: 220 }}>
+                <div className="d-flex gap-2 align-items-center flex-nowrap">
+                  <div className="search-box position-relative" style={{ minWidth: 200, maxWidth: 220 }}>
                     <i className="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style={{ fontSize: "0.85rem" }} />
                     <input type="text" className="form-control rounded-pill ps-5 bg-light border-0" style={{ fontSize: "0.85rem", padding: "0.4rem 1rem" }} placeholder="Search expenses..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
                   </div>
-                  <select className="form-select rounded-pill bg-light border-0" style={{ width: "auto", fontSize: "0.85rem", padding: "0.4rem 2rem 0.4rem 1rem" }} value={filterType} onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}>
+                  <select className="form-select rounded-pill bg-light border-0" style={{ width: "auto", fontSize: "0.85rem", padding: "0.4rem 2rem 0.4rem 1rem", minWidth: 150 }} value={filterType} onChange={(e) => { setFilterType(e.target.value); setCurrentPage(1); }}>
                     <option value="All">All Categories</option>
-                    {expenseTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    {expenseCategories.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
-                  <select className="form-select rounded-pill bg-light border-0" style={{ width: "auto", fontSize: "0.85rem", padding: "0.4rem 2rem 0.4rem 1rem" }} value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}>
+                  <select className="form-select rounded-pill bg-light border-0" style={{ width: "auto", fontSize: "0.85rem", padding: "0.4rem 2rem 0.4rem 1rem", minWidth: 130 }} value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}>
                     <option value="All">All Status</option>
                     <option value="Pending">Pending</option>
                     <option value="Approved">Approved</option>

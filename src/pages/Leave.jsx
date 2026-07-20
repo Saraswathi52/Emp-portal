@@ -177,6 +177,19 @@ function Leave() {
       return;
     }
 
+    // Check for overlapping leaves
+    const hasOverlap = employeeLeaves.some(l => {
+      if (l.status === 'Rejected') return false;
+      const lStart = l.fromDate || l.startDate;
+      const lEnd = l.toDate || l.endDate;
+      return (startDate <= lEnd) && (endDate >= lStart);
+    });
+
+    if (hasOverlap) {
+      showToast("You have already applied for leave during these dates.", "warning");
+      return;
+    }
+
     const now = new Date();
     const appliedOnStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
     const uniqueLeaveId = `LV${now.getTime()}`;
@@ -279,13 +292,24 @@ function Leave() {
     const lReason = (l.reason || '').toLowerCase();
     const lEmpId = (l.employeeId || l.empid || '').toLowerCase();
     const lEmpName = (l.employeeName || '').toLowerCase();
+    const lStatus = (l.status || '').toLowerCase();
+    
+    const sDate = l.startDate || l.fromDate;
+    const eDate = l.endDate || l.toDate;
+    const sDateStr = sDate ? new Date(sDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toLowerCase() : '';
+    const eDateStr = eDate ? new Date(eDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toLowerCase() : '';
+
     const search = searchTerm.toLowerCase();
 
     const ms = lId.includes(search) ||
       lType.includes(search) ||
       lReason.includes(search) ||
       lEmpId.includes(search) ||
-      lEmpName.includes(search);
+      lEmpName.includes(search) ||
+      lStatus.includes(search) ||
+      sDateStr.includes(search) ||
+      eDateStr.includes(search);
+      
     const mf = filterStatus === 'All' || l.status === filterStatus;
     return ms && mf;
   });

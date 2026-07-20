@@ -67,7 +67,7 @@ function EmployeeDashboard() {
           </div>
 
           <div className="row g-3 mb-4">
-            <div className="col-xl-8">
+            <div className="col-12">
               <div className="card-dashboard p-4 h-100">
                 <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
                   <i className="bi bi-person-badge me-2" style={{ color: "var(--primary)" }} />
@@ -146,39 +146,6 @@ function EmployeeDashboard() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-            <div className="col-xl-4">
-              <div className="card-dashboard p-4 h-100">
-                <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
-                  <i className="bi bi-clock-history me-2" style={{ color: "var(--primary)" }} />
-                  Today's Attendance
-                </h5>
-                <div className="text-center mb-3">
-                  <div style={{ fontSize: "2.5rem", fontWeight: 700, color: todayAtt?.checkIn ? "var(--success)" : "var(--gray-400)" }}>
-                    {totalHours}
-                  </div>
-                  <small style={{ color: "var(--gray-500)" }}>Total Working Hours</small>
-                </div>
-                <div className="d-flex justify-content-around mt-2">
-                  <div className="text-center">
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: todayAtt?.checkIn ? "var(--primary)" : "var(--gray-400)" }}>
-                      {todayAtt?.checkIn || '—'}
-                    </div>
-                    <small style={{ color: "var(--gray-500)", fontSize: "0.75rem" }}>Check In</small>
-                  </div>
-                  <div className="text-center">
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: todayAtt?.checkOut ? "var(--success)" : "var(--gray-400)" }}>
-                      {todayAtt?.checkOut || '—'}
-                    </div>
-                    <small style={{ color: "var(--gray-500)", fontSize: "0.75rem" }}>Check Out</small>
-                  </div>
-                </div>
-                <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--gray-100)" }}>
-                  <span className={`badge-status ${todayAtt?.status === 'Present' ? 'badge-approved' : todayAtt?.status === 'Absent' ? 'badge-rejected' : 'badge-pending'}`}>
-                    {todayAtt?.status || 'Not Marked'}
-                  </span>
                 </div>
               </div>
             </div>
