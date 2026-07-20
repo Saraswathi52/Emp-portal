@@ -56,6 +56,23 @@ function DocumentManagement() {
     return `${day}-${month}-${year}`;
   };
 
+  const getEmbedUrl = (url, fileName) => {
+    if (!url) return "";
+    const ext = fileName ? fileName.split('.').pop().toLowerCase() : "";
+    const officeExts = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+    const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+    
+    if (imageExts.includes(ext)) {
+      return url;
+    }
+    
+    if (officeExts.includes(ext)) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    }
+    
+    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  };
+
   const fetchDocuments = async () => {
     if (!currentEmpId) return;
     setIsLoading(true);
@@ -450,14 +467,14 @@ function DocumentManagement() {
       {/* View Modal */}
       {showViewModal && currentDocument && (
         <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog modal-dialog-centered modal-lg">
             <div className="modal-content border-0 shadow">
               <div className="modal-header bg-light border-0">
                 <h5 className="modal-title fw-bold">Document Details</h5>
                 <button type="button" className="btn-close" onClick={() => setShowViewModal(false)}></button>
               </div>
-              <div className="modal-body p-4">
-                <div className="row g-3">
+              <div className="modal-body p-4" style={{ maxHeight: "80vh", overflowY: "auto" }}>
+                <div className="row g-3 mb-4">
                   <div className="col-12">
                     <small className="text-muted d-block">Document Name</small>
                     <div className="fw-semibold">{currentDocument.documentName}</div>
@@ -474,22 +491,31 @@ function DocumentManagement() {
                     <small className="text-muted d-block">Description</small>
                     <div>{currentDocument.description}</div>
                   </div>
-                  <div className="col-12">
-                    <small className="text-muted d-block">File Name</small>
-                    <div className="d-flex align-items-center gap-2 mt-1">
-                      <i className="bi bi-file-earmark-text text-primary" />
-                      {currentDocument.fileName}
-                    </div>
-                  </div>
                 </div>
+
+                {currentDocument.fileUrl && (
+                  <div className="document-preview-container border rounded" style={{ height: "400px", background: "var(--gray-100)" }}>
+                    {getEmbedUrl(currentDocument.fileUrl, currentDocument.fileName) === currentDocument.fileUrl ? (
+                      <img 
+                        src={currentDocument.fileUrl} 
+                        alt={currentDocument.fileName} 
+                        style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+                      />
+                    ) : (
+                      <iframe
+                        src={getEmbedUrl(currentDocument.fileUrl, currentDocument.fileName)}
+                        title="Document Preview"
+                        width="100%"
+                        height="100%"
+                        style={{ border: "none" }}
+                        allowFullScreen
+                      ></iframe>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="modal-footer border-0 bg-light">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowViewModal(false)}>Close</button>
-                {currentDocument.fileUrl && (
-                  <a href={currentDocument.fileUrl} target="_blank" rel="noreferrer" className="btn btn-primary d-flex align-items-center gap-2">
-                    <i className="bi bi-box-arrow-up-right" /> Preview Document
-                  </a>
-                )}
               </div>
             </div>
           </div>
