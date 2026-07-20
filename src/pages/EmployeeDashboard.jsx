@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployee, getTodayAttendance, getAttendance, getLeaveBalances, getLeaveRequests, getHolidays } from "../services/dataService";
+import { CalendarCheck, PiggyBank, Clock, Home } from "lucide-react";
 
 function EmployeeDashboard() {
   const navigate = useNavigate();
@@ -154,8 +155,8 @@ function EmployeeDashboard() {
           <div className="row g-3 mb-4">
             <div className="col-xl-3 col-md-6">
               <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#eff6ff", padding: "1rem" }}>
-                <div className="stat-icon" style={{ background: "#3b82f6", width: 38, height: 38, fontSize: "1rem", margin: 0 }}>
-                  <i className="bi bi-calendar-check" />
+                <div className="stat-icon" style={{ background: "#3b82f6", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <CalendarCheck size={18} />
                 </div>
                 <div>
                   <div className="stat-label" style={{ fontSize: "0.7rem" }}>Attendance</div>
@@ -166,8 +167,8 @@ function EmployeeDashboard() {
             </div>
             <div className="col-xl-3 col-md-6">
               <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#ecfdf5", position: "relative", overflow: "hidden", padding: "1rem" }}>
-                <div className="stat-icon" style={{ background: "#10b981", width: 38, height: 38, fontSize: "1rem", margin: 0 }}>
-                  <i className="bi bi-piggy-bank" />
+                <div className="stat-icon" style={{ background: "#10b981", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <PiggyBank size={18} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div className="stat-label" style={{ fontSize: "0.7rem" }}>Leave Balance</div>
@@ -184,8 +185,8 @@ function EmployeeDashboard() {
             </div>
             <div className="col-xl-3 col-md-6">
               <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#fffbeb", padding: "1rem" }}>
-                <div className="stat-icon" style={{ background: "#f59e0b", width: 38, height: 38, fontSize: "1rem", margin: 0 }}>
-                  <i className="bi bi-clock" />
+                <div className="stat-icon" style={{ background: "#f59e0b", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Clock size={18} />
                 </div>
                 <div>
                   <div className="stat-label" style={{ fontSize: "0.7rem" }}>Pending Leaves</div>
@@ -196,8 +197,8 @@ function EmployeeDashboard() {
             </div>
             <div className="col-xl-3 col-md-6">
               <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#f5f3ff", position: "relative", overflow: "hidden", padding: "1rem" }}>
-                <div className="stat-icon" style={{ background: "#8b5cf6", width: 38, height: 38, fontSize: "1rem", margin: 0 }}>
-                  <i className="bi bi-house-door" />
+                <div className="stat-icon" style={{ background: "#8b5cf6", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Home size={18} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div className="stat-label" style={{ fontSize: "0.7rem" }}>WFH Balance</div>

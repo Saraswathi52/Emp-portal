@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Bell, Gift, CalendarCheck, CalendarX, IndianRupee, CheckCircle2 } from "lucide-react";
 import { getEmployee, getLeaveRequests, getHolidays } from "../services/dataService";
 
 function Navbar({ onToggleSidebar }) {
@@ -103,9 +104,11 @@ function Navbar({ onToggleSidebar }) {
                 id: notifId++,
                 title: 'Birthday',
                 text: `Happy Birthday ${name}!`,
-                icon: 'bi-gift-fill',
+                icon: Gift,
                 color: '#ec4899',
-                bg: '#fdf2f8'
+                bg: '#fdf2f8',
+                time: 'Today',
+                isUnread: true
               });
             }
           }
@@ -126,18 +129,22 @@ function Navbar({ onToggleSidebar }) {
               id: notifId++,
               title: 'Leave Approved',
               text: `${approverName} approved your leave request.`,
-              icon: 'bi-calendar-check-fill',
+              icon: CalendarCheck,
               color: '#10b981',
-              bg: '#ecfdf5'
+              bg: '#ecfdf5',
+              time: 'Recent',
+              isUnread: true
             });
           } else if (status === 'Rejected') {
             notifs.push({
               id: notifId++,
               title: 'Leave Rejected',
               text: `${approverName} rejected your leave request.`,
-              icon: 'bi-calendar-x-fill',
+              icon: CalendarX,
               color: '#ef4444',
-              bg: '#fef2f2'
+              bg: '#fef2f2',
+              time: 'Recent',
+              isUnread: true
             });
           }
         });
@@ -156,18 +163,22 @@ function Navbar({ onToggleSidebar }) {
               id: notifId++,
               title: 'Expense Approved',
               text: 'Your expense request was approved.',
-              icon: 'bi-currency-rupee',
+              icon: IndianRupee,
               color: '#10b981',
-              bg: '#ecfdf5'
+              bg: '#ecfdf5',
+              time: 'Recent',
+              isUnread: true
             });
           } else if (status === 'Rejected') {
             notifs.push({
               id: notifId++,
               title: 'Expense Rejected',
               text: 'Rejected expense request.',
-              icon: 'bi-currency-rupee',
+              icon: IndianRupee,
               color: '#ef4444',
-              bg: '#fef2f2'
+              bg: '#fef2f2',
+              time: 'Recent',
+              isUnread: true
             });
           }
         });
@@ -211,30 +222,50 @@ function Navbar({ onToggleSidebar }) {
             }} 
             style={{ background: "transparent" }}
           >
-            <i className="bi bi-bell" style={{ fontSize: "1.2rem", color: "var(--gray-600)" }} />
+            <Bell size={18} style={{ color: "var(--gray-600)" }} />
             <span className="position-absolute badge rounded-pill bg-danger" style={{ top: "4px", right: "4px", fontSize: "0.55rem", padding: "0.25em 0.4em" }}>
               {notifications.length}
             </span>
           </button>
           {showNotif && (
-            <ul className="dropdown-menu dropdown-menu-end shadow-sm show" style={{ position: "absolute", top: "100%", right: 0, borderRadius: "10px", border: "1px solid var(--gray-200)", padding: "0", minWidth: "320px", overflow: "hidden", zIndex: 1000 }}>
-            <li className="p-3" style={{ background: "var(--gray-50)", borderBottom: "1px solid var(--gray-200)" }}>
-              <h6 className="mb-0 fw-bold" style={{ color: "var(--gray-800)" }}>Notifications</h6>
-            </li>
-            {notifications.map(n => (
-              <li key={n.id} style={{ borderBottom: "1px solid var(--gray-100)" }}>
-                <div className="dropdown-item d-flex align-items-start gap-3 p-3" style={{ whiteSpace: "normal" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: "8px", background: n.bg, color: n.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", flexShrink: 0 }}>
-                    <i className={n.icon} />
+            <div className="dropdown-menu dropdown-menu-end shadow-lg show p-0" style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, borderRadius: "12px", border: "1px solid rgba(0,0,0,0.06)", minWidth: "380px", overflow: "hidden", zIndex: 1000, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.15)" }}>
+              <div className="d-flex align-items-center justify-content-between p-3" style={{ background: "#fff", borderBottom: "1px solid var(--gray-100)" }}>
+                <h6 className="mb-0 fw-bold" style={{ color: "var(--gray-800)", fontSize: "1.05rem" }}>Notifications</h6>
+                <button className="btn btn-link p-0 text-primary text-decoration-none" style={{ fontSize: "0.85rem", fontWeight: 500 }}>
+                  <CheckCircle2 size={16} className="me-1" /> Mark all as read
+                </button>
+              </div>
+              <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+                {notifications.length === 0 ? (
+                  <div className="p-5 text-center">
+                    <Bell size={32} style={{ color: "var(--gray-300)" }} className="mb-3" />
+                    <h6 className="fw-semibold" style={{ color: "var(--gray-700)" }}>You're all caught up!</h6>
+                    <p className="text-muted small mb-0">No new notifications right now.</p>
                   </div>
-                  <div>
-                    <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--gray-800)" }}>{n.title}</div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--gray-500)" }}>{n.text}</div>
-                  </div>
+                ) : (
+                  notifications.map(n => (
+                    <div key={n.id} className="dropdown-item d-flex align-items-start gap-3 p-3 position-relative" style={{ borderBottom: "1px solid var(--gray-50)", whiteSpace: "normal", transition: "background 0.2s ease" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: n.bg, color: n.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <n.icon size={20} />
+                      </div>
+                      <div className="flex-grow-1 pe-3">
+                        <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--gray-900)", marginBottom: "2px" }}>{n.title}</div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--gray-600)", lineHeight: "1.4" }}>{n.text}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--gray-400)", marginTop: "4px" }}>{n.time || 'Just now'}</div>
+                      </div>
+                      {n.isUnread && (
+                        <div className="position-absolute" style={{ top: "16px", right: "16px", width: "8px", height: "8px", borderRadius: "50%", background: "var(--primary)" }}></div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+              {notifications.length > 0 && (
+                <div className="p-2 text-center" style={{ background: "var(--gray-50)", borderTop: "1px solid var(--gray-100)" }}>
+                  <button className="btn btn-link text-decoration-none p-0 fw-semibold" style={{ fontSize: "0.85rem" }}>View all notifications</button>
                 </div>
-              </li>
-            ))}
-          </ul>
+              )}
+            </div>
           )}
         </div>
 

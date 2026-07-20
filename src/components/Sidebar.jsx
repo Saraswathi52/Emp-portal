@@ -1,26 +1,25 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Gauge, CalendarCheck, Wallet, FolderOpen, Users, Building, FileBarChart, X, LogOut } from "lucide-react";
 
 const menuConfig = {
   employee: [
-    { label: "Dashboard", path: "/employee-dashboard", icon: "bi-speedometer2" },
-
-    { label: "Leave Management", path: "/leave", icon: "bi-calendar-check" },
-    { label: "Expense Management", path: "/expenses", icon: "bi-wallet2" },
-    { label: "Documents", path: "/documents", icon: "bi-folder2-open" },
+    { label: "Dashboard", path: "/employee-dashboard", icon: Gauge },
+    { label: "Leave Management", path: "/leave", icon: CalendarCheck },
+    { label: "Expense Management", path: "/expenses", icon: Wallet },
+    { label: "Documents", path: "/documents", icon: FolderOpen },
   ],
   manager: [
-    { label: "Dashboard", path: "/manager-dashboard", icon: "bi-speedometer2" },
-
-    { label: "Employees", path: "/employees", icon: "bi-people" },
-    { label: "Leave Management", path: "/leave", icon: "bi-calendar-check" },
-    { label: "Expense Management", path: "/expenses", icon: "bi-wallet2" },
+    { label: "Dashboard", path: "/manager-dashboard", icon: Gauge },
+    { label: "Employees", path: "/employees", icon: Users },
+    { label: "Leave Management", path: "/leave", icon: CalendarCheck },
+    { label: "Expense Management", path: "/expenses", icon: Wallet },
   ],
   admin: [
-    { label: "Dashboard", path: "/admin-dashboard", icon: "bi-speedometer2" },
-    { label: "Employees", path: "/employees", icon: "bi-people" },
-    { label: "Departments", path: "/departments", icon: "bi-building" },
-    { label: "Documents", path: "/documents", icon: "bi-folder2-open" },
-    { label: "Reports", path: "/reports", icon: "bi-file-earmark-bar-graph" },
+    { label: "Dashboard", path: "/admin-dashboard", icon: Gauge },
+    { label: "Employees", path: "/employees", icon: Users },
+    { label: "Departments", path: "/departments", icon: Building },
+    { label: "Documents", path: "/documents", icon: FolderOpen },
+    { label: "Reports", path: "/reports", icon: FileBarChart },
   ],
 };
 
@@ -49,23 +48,23 @@ function Sidebar({ role = "employee", onClose, isOpen = false }) {
               alignItems: "center",
               justifyContent: "center",
               color: "#fff",
-              fontSize: "1.2rem",
             }}
           >
-            <i className="bi bi-people-fill" />
+            <Users size={20} />
           </div>
           <div>
             <div className="fw-bold text-white" style={{ fontSize: "1rem" }}>PeopleCore</div>
             <div style={{ fontSize: "0.7rem", color: "var(--gray-400)", marginTop: "-2px" }}>{roleLabel} Panel</div>
           </div>
           <button className="btn d-lg-none text-white ms-auto p-0" onClick={onClose}>
-            <i className="bi bi-x-lg" style={{ fontSize: "1rem" }} />
+            <X size={16} />
           </button>
         </div>
 
         <div className="sidebar-menu">
           {items.map((item) => {
             const isActive = location.pathname === item.path;
+            const Icon = item.icon;
             return (
               <Link
                 key={item.path}
@@ -73,7 +72,7 @@ function Sidebar({ role = "employee", onClose, isOpen = false }) {
                 className={`sidebar-item ${isActive ? "active" : ""}`}
                 onClick={onClose}
               >
-                <i className={`bi ${item.icon}`} />
+                <Icon size={18} />
                 {item.label}
               </Link>
             );
@@ -81,8 +80,8 @@ function Sidebar({ role = "employee", onClose, isOpen = false }) {
         </div>
 
         <div className="sidebar-divider" />
-        <div className="sidebar-item text-danger" onClick={handleLogout}>
-          <i className="bi bi-box-arrow-right" />
+        <div className="sidebar-item text-danger" onClick={handleLogout} style={{ cursor: "pointer" }}>
+          <LogOut size={18} />
           Logout
         </div>
       </div>

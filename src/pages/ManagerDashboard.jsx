@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployees, getAllLeaveRequests, getAllExpenses } from "../services/dataService";
+import { Users, CalendarDays, Wallet, Inbox } from "lucide-react";
 
 function ManagerDashboard() {
   const user = getCurrentUser();
@@ -102,16 +103,16 @@ function ManagerDashboard() {
           {/* 4 Summary Cards */}
           <div className="row g-4 mb-4">
             {[
-              { label: "Team Members", value: teamMembers.length, icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
-              { label: "Pending Leaves", value: pendingLeaves.length, icon: "bi-calendar-event", color: "#f59e0b", bg: "#fffbeb" },
-              { label: "Pending Expenses", value: pendingExpenses.length, icon: "bi-wallet2", color: "#8b5cf6", bg: "#f5f3ff" },
-              { label: "Total Approvals", value: pendingCount, icon: "bi-inbox", color: "#10b981", bg: "#ecfdf5" },
+              { label: "Team Members", value: teamMembers.length, icon: Users, color: "#3b82f6", bg: "#eff6ff" },
+              { label: "Pending Leaves", value: pendingLeaves.length, icon: CalendarDays, color: "#f59e0b", bg: "#fffbeb" },
+              { label: "Pending Expenses", value: pendingExpenses.length, icon: Wallet, color: "#8b5cf6", bg: "#f5f3ff" },
+              { label: "Total Approvals", value: pendingCount, icon: Inbox, color: "#10b981", bg: "#ecfdf5" },
             ].map((s) => (
               <div key={s.label} className="col-xl-3 col-md-6">
                 <div className="card border-0 shadow-sm rounded-4 h-100 p-4 transition-hover" style={{ background: s.bg }}>
                   <div className="d-flex align-items-center gap-3">
-                    <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ background: s.color, width: "48px", height: "48px", color: "white", fontSize: "1.2rem", boxShadow: `0 4px 12px ${s.color}40` }}>
-                      <i className={`bi ${s.icon}`} />
+                    <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ background: s.color, width: "48px", height: "48px", color: "white", boxShadow: `0 4px 12px ${s.color}40` }}>
+                      <s.icon size={24} />
                     </div>
                     <div>
                       <div className="text-muted small fw-semibold text-uppercase tracking-wider">{s.label}</div>

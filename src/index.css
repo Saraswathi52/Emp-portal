@@ -58,39 +58,49 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
-.sidebar-menu { padding: 1rem 0; }
+.sidebar-menu { 
+  padding: 1.5rem 0; 
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
 
 .sidebar-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0.7rem 1.5rem;
-  color: var(--gray-300);
+  margin: 0 1rem;
+  padding: 0.75rem 1rem;
+  color: var(--gray-400);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
-  transition: var(--transition);
-  border-left: 3px solid transparent;
+  border-radius: 10px;
+  transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .sidebar-item:hover {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.08);
   color: #fff;
-  border-left-color: var(--primary);
+  transform: translateX(4px);
 }
 
 .sidebar-item.active {
-  background: rgba(37,99,235,0.15);
+  background: var(--primary);
   color: #fff;
-  border-left-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(37,99,235,0.4);
 }
 
-.sidebar-item i { font-size: 1.15rem; width: 20px; text-align: center; }
+.sidebar-item svg, .sidebar-item i { 
+  width: 20px; 
+  text-align: center; 
+  transition: all 0.2s ease;
+}
 
 .sidebar-divider {
   border-top: 1px solid rgba(255,255,255,0.08);
-  margin: 0.75rem 1.5rem;
+  margin: 1rem 1.5rem;
 }
 
 .main-content {
@@ -101,10 +111,12 @@ body {
 }
 
 .navbar-custom {
-  background: #fff;
-  border-bottom: 1px solid var(--gray-200);
-  padding: 0.75rem 1.5rem;
-  box-shadow: var(--shadow);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  padding: 1rem 2.5rem;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
   position: sticky;
   top: 0;
   z-index: 999;
@@ -117,29 +129,31 @@ body {
 
 .card-dashboard {
   background: #fff;
-  border: none;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  transition: var(--transition);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px -6px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
 }
 
 .card-dashboard:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
 }
 
 .stat-card {
-  border: none;
-  border-radius: var(--radius);
-  padding: 1.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 16px;
+  padding: 1.5rem;
   position: relative;
   overflow: hidden;
-  transition: var(--transition);
+  transition: all 0.3s ease;
   cursor: default;
+  box-shadow: 0 4px 24px -6px rgba(0, 0, 0, 0.04);
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.06);
 }
 
 .stat-card .stat-icon {
@@ -297,25 +311,40 @@ body {
 }
 
 .table-custom thead th {
-  background: var(--gray-50);
+  background: rgba(248, 250, 252, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 2px solid var(--gray-200);
   color: var(--gray-600);
   font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 0.85rem 0.75rem;
+  padding: 1rem 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.table-custom tbody tr {
+  transition: all 0.2s ease;
 }
 
 .table-custom tbody td {
-  padding: 0.85rem 0.75rem;
+  padding: 1rem 1.25rem;
   vertical-align: middle;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+}
+
+.table-custom tbody tr:nth-child(even) {
+  background: var(--gray-50);
 }
 
 .table-custom tbody tr:hover {
-  background: var(--primary-50);
+  background: #f1f5f9;
+  box-shadow: inset 3px 0 0 var(--primary);
 }
 
 .table-custom tbody tr:last-child td {

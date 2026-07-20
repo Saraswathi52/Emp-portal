@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+import { Users, UserCheck, Building, UserPlus } from "lucide-react";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -12,10 +13,10 @@ function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const stats = [
-    { label: "Total Employees", value: "156", icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Active Employees", value: "152", icon: "bi-person-check", color: "#10b981", bg: "#ecfdf5" },
-    { label: "Total Departments", value: "6", icon: "bi-building", color: "#f59e0b", bg: "#fffbeb" },
-    { label: "New This Month", value: "12", icon: "bi-person-plus", color: "#8b5cf6", bg: "#f5f3ff" },
+    { label: "Total Employees", value: "156", icon: Users, color: "#3b82f6", bg: "#eff6ff" },
+    { label: "Active Employees", value: "152", icon: UserCheck, color: "#10b981", bg: "#ecfdf5" },
+    { label: "Total Departments", value: "6", icon: Building, color: "#f59e0b", bg: "#fffbeb" },
+    { label: "New This Month", value: "12", icon: UserPlus, color: "#8b5cf6", bg: "#f5f3ff" },
   ];
 
   const departments = [
@@ -70,8 +71,8 @@ function AdminDashboard() {
             {stats.map((s) => (
               <div key={s.label} className="col-xl-3 col-md-6">
                 <div className="stat-card card-dashboard d-flex align-items-center gap-3 h-100" style={{ background: s.bg }}>
-                  <div className="stat-icon" style={{ background: s.color, width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
-                    <i className={`bi ${s.icon}`} />
+                  <div className="stat-icon" style={{ background: s.color, width: 44, height: 44, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <s.icon size={22} color="#fff" />
                   </div>
                   <div>
                     <div className="stat-label">{s.label}</div>
