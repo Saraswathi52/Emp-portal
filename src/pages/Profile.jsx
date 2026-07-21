@@ -258,6 +258,17 @@ function Profile() {
             const refreshed = await getManagerProfile(user.employeeId);
             setEmp(refreshed);
             showToast("Resume uploaded successfully!");
+          } else if (role === 'admin') {
+            const base64String = ev.target.result.split(',')[1];
+            const payload = {
+              resume: ev.target.result,
+              resumeName: file.name
+            };
+            const { updateAdminProfile, getAdminProfile } = await import('../services/dataService');
+            await updateAdminProfile(user.employeeId, payload);
+            const refreshed = await getAdminProfile(user.employeeId);
+            setEmp(refreshed);
+            showToast("Resume uploaded successfully!");
           } else {
             const updated = { ...emp, resume: ev.target.result, resumeName: file.name };
             await saveEmployee(updated);
@@ -321,6 +332,19 @@ function Profile() {
               }).catch((err) => {
                 console.error("Profile image upload error:", err);
                 showToast(err.response?.data?.message || "Failed to upload profile image", "warning");
+              });
+            } else if (role === 'admin') {
+              import('../services/dataService').then(({ updateAdminProfile }) => {
+                const payload = {
+                  profileImage: compressedDataUrl,
+                  profileImageName: file.name
+                };
+                updateAdminProfile(user.employeeId, payload).then(() => {
+                  window.location.reload();
+                }).catch((err) => {
+                  console.error("Profile image upload error:", err);
+                  showToast(err.response?.data?.message || "Failed to upload profile image", "warning");
+                });
               });
             } else {
               saveEmployee({
