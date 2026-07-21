@@ -104,7 +104,35 @@ export async function getAdminProfile(adm_id) {
       }
       data = unwrapped;
     }
-    return data;
+    
+    // Map to PascalCase fields expected by frontend
+    return {
+      empid: data.adm_id || data.empid || adm_id,
+      FullName: data.fullName || data.FullName || '',
+      Email: data.email || data.Email || '',
+      Phone: data.phone || data.Phone || '',
+      Department: data.department || data.Department || '',
+      Designation: data.designation || data.Designation || '',
+      Role: data.role || data.Role || 'Admin',
+      Status: data.status || data.Status || '',
+      JoiningDate: data.joiningDate || data.JoiningDate || '',
+      Address: data.address || data.Address || '',
+      Title: data.title || data.Title || '',
+      DateOfBirth: data.dateOfBirth || data.DateOfBirth || '',
+      BloodGroup: data.bloodGroup || data.BloodGroup || '',
+      Manager: data.manager || data.Manager || '',
+      EmergencyContactName: data.emergencyContactName || data.EmergencyContactName || '',
+      EmergencyContactPhone: data.emergencyContactPhone || data.EmergencyContactPhone || '',
+      EmergencyContactRelation: data.emergencyContactRelation || data.EmergencyContactRelation || '',
+      Education: data.education || data.Education || '',
+      Skills: data.skills || data.Skills || '',
+      LinkedIn: data.linkedIn || data.LinkedIn || '',
+      GitHub: data.github || data.GitHub || '',
+      profileImage: data.profileImage || null,
+      resume: data.resume || null,
+      resumeName: data.resumeName || null,
+      ...data
+    };
   } catch (error) {
     console.error('Error fetching admin profile:', error);
     return null;
@@ -113,7 +141,38 @@ export async function getAdminProfile(adm_id) {
 
 export async function updateAdminProfile(adm_id, payload) {
   try {
-    const response = await axios.put(`${ADMIN_API_BASE}/admin/${adm_id}`, payload, {
+    // Map PascalCase fields back to camelCase for the API
+    const apiPayload = {
+      ...payload,
+      fullName: payload.FullName !== undefined ? payload.FullName : payload.fullName,
+      email: payload.Email !== undefined ? payload.Email : payload.email,
+      phone: payload.Phone !== undefined ? payload.Phone : payload.phone,
+      department: payload.Department !== undefined ? payload.Department : payload.department,
+      designation: payload.Designation !== undefined ? payload.Designation : payload.designation,
+      role: payload.Role !== undefined ? payload.Role : payload.role,
+      status: payload.Status !== undefined ? payload.Status : payload.status,
+      address: payload.Address !== undefined ? payload.Address : payload.address,
+      title: payload.Title !== undefined ? payload.Title : payload.title,
+      education: payload.Education !== undefined ? payload.Education : payload.education,
+      linkedIn: payload.LinkedIn !== undefined ? payload.LinkedIn : payload.linkedIn,
+      github: payload.GitHub !== undefined ? payload.GitHub : payload.github
+    };
+
+    // Remove duplicates
+    delete apiPayload.FullName;
+    delete apiPayload.Email;
+    delete apiPayload.Phone;
+    delete apiPayload.Department;
+    delete apiPayload.Designation;
+    delete apiPayload.Role;
+    delete apiPayload.Status;
+    delete apiPayload.Address;
+    delete apiPayload.Title;
+    delete apiPayload.Education;
+    delete apiPayload.LinkedIn;
+    delete apiPayload.GitHub;
+
+    const response = await axios.put(`${ADMIN_API_BASE}/admin/${adm_id}`, apiPayload, {
       headers: { 'Content-Type': 'application/json' }
     });
     return response.data;
