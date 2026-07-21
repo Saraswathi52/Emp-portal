@@ -2,6 +2,7 @@
 import axios from 'axios';
 
 const MANAGER_API_BASE = 'https://5luqrfxzbi.execute-api.ap-south-1.amazonaws.com';
+const ADMIN_API_BASE = 'https://z312reqsx9.execute-api.ap-south-1.amazonaws.com';
 
 export async function getManagerProfile(empid) {
   try {
@@ -84,6 +85,77 @@ export async function getManagerEmployees(empid) {
   } catch (error) {
     console.error('Error fetching manager employees:', error);
     return { managerId: empid, employeeCount: 0, employees: [] };
+  }
+}
+
+export async function getAdminProfile(adm_id) {
+  try {
+    const response = await axios.get(`${ADMIN_API_BASE}/admin/${adm_id}`);
+    let data = response.data;
+    if (data.statusCode && data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    // Unwrap DynamoDB format if needed
+    if (data && Object.keys(data).length > 0 && typeof data[Object.keys(data)[0]] === 'object' && ('S' in data[Object.keys(data)[0]] || 'N' in data[Object.keys(data)[0]])) {
+      const unwrapped = {};
+      for (const key in data) {
+        const val = data[key];
+        unwrapped[key] = val.S !== undefined ? val.S : (val.N !== undefined ? Number(val.N) : (val.BOOL !== undefined ? val.BOOL : val));
+      }
+      data = unwrapped;
+    }
+    return data;
+  } catch (error) {
+    console.error('Error fetching admin profile:', error);
+    return null;
+  }
+}
+
+export async function updateAdminProfile(adm_id, payload) {
+  try {
+    const response = await axios.put(`${ADMIN_API_BASE}/admin/${adm_id}`, payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating admin profile:", error);
+    throw error;
+  }
+}
+
+export async function getAdminEmployees() {
+  try {
+    const response = await axios.get(`${ADMIN_API_BASE}/admin/employees`);
+    let data = response.data;
+    if (data.statusCode && data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    return Array.isArray(data) ? data : (data.Items || []);
+  } catch (error) {
+    console.error('Error fetching admin employees:', error);
+    return [];
+  }
+}
+
+export async function addAdminEmployee(payload) {
+  try {
+    const response = await axios.post(`${ADMIN_API_BASE}/admin/employees`, payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error adding admin employee:", error);
+    throw error;
+  }
+}
+
+export async function deleteAdminEmployee(empid) {
+  try {
+    const response = await axios.delete(`${ADMIN_API_BASE}/admin/employees/${empid}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting admin employee:", error);
+    throw error;
   }
 }
 

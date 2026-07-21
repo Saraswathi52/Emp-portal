@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployee, saveEmployee, getAllLeaveRequests, getAllExpenses, updateLeaveStatus, updateExpenseStatus, getManagerProfile, updateManagerProfile } from "../services/dataService";
+import { getCurrentUser, getEmployee, saveEmployee, getAllLeaveRequests, getAllExpenses, updateLeaveStatus, updateExpenseStatus, getManagerProfile, updateManagerProfile, getAdminProfile, updateAdminProfile } from "../services/dataService";
 
 const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange }) => {
   const val = editing ? (form[name] || '') : (value || '');
@@ -50,7 +50,9 @@ function Profile() {
     async function fetchEmp() {
       if (user?.employeeId) {
         let data;
-        if (role === 'manager') {
+        if (role === 'admin') {
+          data = await getAdminProfile(user.employeeId);
+        } else if (role === 'manager') {
           data = await getManagerProfile(user.employeeId);
         } else {
           data = await getEmployee(user.employeeId);
@@ -140,7 +142,7 @@ function Profile() {
 
     setIsLoading(true);
     try {
-      if (isManager) {
+      if (role === 'admin') {
         const payload = {
           Title: form.Title || "",
           FullName: form.FullName || "",
@@ -162,9 +164,32 @@ function Profile() {
           }
         });
 
-        console.log("Final Payload:", payload);
+        const response = await updateAdminProfile(user.employeeId, payload);
+        const refreshed = await getAdminProfile(user.employeeId);
+        setEmp(refreshed);
+      } else if (isManager) {
+        const payload = {
+          Title: form.Title || "",
+          FullName: form.FullName || "",
+          Phone: form.Phone || "",
+          Address: form.Address || "",
+          Department: form.Department || "",
+          Designation: form.Designation || "",
+          Education: form.Education || "",
+          Email: form.Email || "",
+          LinkedIn: form.LinkedIn || "",
+          GitHub: form.GitHub || "",
+          Status: form.Status || ""
+        };
+
+        // Do not send undefined or null values
+        Object.keys(payload).forEach(key => {
+          if (payload[key] === undefined || payload[key] === null) {
+            delete payload[key];
+          }
+        });
+
         const response = await updateManagerProfile(user.employeeId, payload);
-        console.log("API Response:", response);
         const refreshed = await getManagerProfile(user.employeeId);
         setEmp(refreshed);
       } else {

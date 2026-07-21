@@ -25,7 +25,10 @@ function Login() {
 
     try {
       let userProfile = null;
-      if (role === 'manager') {
+      if (role === 'admin') {
+        const { getAdminProfile } = await import('../services/dataService');
+        userProfile = await getAdminProfile(employeeId.trim());
+      } else if (role === 'manager') {
         const { getManagerProfile } = await import('../services/dataService');
         userProfile = await getManagerProfile(employeeId.trim());
       } else {

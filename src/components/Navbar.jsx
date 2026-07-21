@@ -37,7 +37,11 @@ function Navbar({ onToggleSidebar }) {
   useEffect(() => {
     async function fetchEmp() {
       if (userData?.employeeId) {
-        if (userData?.role?.toLowerCase() === 'manager') {
+        if (userData?.role?.toLowerCase() === 'admin') {
+          const { getAdminProfile } = await import('../services/dataService');
+          const data = await getAdminProfile(userData.employeeId);
+          setEmployee(data);
+        } else if (userData?.role?.toLowerCase() === 'manager') {
           const { getManagerProfile } = await import('../services/dataService');
           const data = await getManagerProfile(userData.employeeId);
           setEmployee(data);
@@ -72,17 +76,22 @@ function Navbar({ onToggleSidebar }) {
       
       // 1. Birthdays
       try {
-        const res = await fetch('https://zwfgsom5dk.execute-api.ap-south-1.amazonaws.com/employees');
         let allEmployees = [];
-        if (res.ok) {
-           const data = await res.json();
-           allEmployees = data.body ? (typeof data.body === 'string' ? JSON.parse(data.body) : data.body) : data;
-           if (allEmployees.Items) allEmployees = allEmployees.Items;
-        }
-        
-        if (!Array.isArray(allEmployees) || allEmployees.length === 0) {
-           const { getEmployees } = await import('../services/dataService');
-           allEmployees = getEmployees();
+        if (userData?.role?.toLowerCase() === 'admin') {
+          const { getAdminEmployees } = await import('../services/dataService');
+          allEmployees = await getAdminEmployees();
+        } else {
+          const res = await fetch('https://zwfgsom5dk.execute-api.ap-south-1.amazonaws.com/employees');
+          if (res.ok) {
+             const data = await res.json();
+             allEmployees = data.body ? (typeof data.body === 'string' ? JSON.parse(data.body) : data.body) : data;
+             if (allEmployees.Items) allEmployees = allEmployees.Items;
+          }
+          
+          if (!Array.isArray(allEmployees) || allEmployees.length === 0) {
+             const { getEmployees } = await import('../services/dataService');
+             allEmployees = getEmployees();
+          }
         }
 
         const today = new Date();

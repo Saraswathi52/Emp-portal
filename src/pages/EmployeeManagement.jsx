@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployees, getManagerEmployees } from "../services/dataService";
+import { getCurrentUser, getEmployees, getManagerEmployees, getAdminEmployees, addAdminEmployee, deleteAdminEmployee } from "../services/dataService";
 
 function EmployeeManagement() {
   const [userRole] = useState(() => {
@@ -38,11 +38,11 @@ function EmployeeManagement() {
     async function fetchEmployees() {
       setIsLoading(true);
       try {
-        if (userRole === "manager") {
-          const data = await getManagerEmployees(currentUser?.employeeId);
-          setEmployees(Array.isArray(data?.employees) ? data.employees : []);
-          setEmployeeCount(data?.employeeCount || (Array.isArray(data?.employees) ? data.employees.length : 0));
-        } else {
+        if (userRole === "admin") {
+          const emps = await getAdminEmployees();
+          setEmployees(emps);
+          setEmployeeCount(emps.length);
+        } else if (userRole === "manager") {
           const data = getEmployees();
           setEmployees(Array.isArray(data) ? data : []);
           setEmployeeCount(Array.isArray(data) ? data.length : 0);
@@ -66,7 +66,7 @@ function EmployeeManagement() {
     setErrors({});
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const newErrors = {};
     if (!employeeId.trim()) newErrors.employeeId = true;
     if (!employeeName.trim()) newErrors.employeeName = true;
@@ -78,18 +78,44 @@ function EmployeeManagement() {
       return;
     }
 
-    const newEmployee = { id: employeeId.trim(), name: employeeName.trim(), department: department.trim(), role: empRole.trim() };
+    if (userRole === "admin") {
+      setIsLoading(true);
+      try {
+        const fullPayload = {
+          empid: employeeId.trim(), Title: "", FullName: employeeName.trim(), DateOfBirth: "",
+          BloodGroup: "", Phone: "", Email: "", Address: "", Department: department.trim(),
+          Designation: "", JoiningDate: "", Manager: "", Status: "Active", EmergencyContactName: "",
+          EmergencyContactPhone: "", EmergencyContactRelation: "", Education: "", Skills: [],
+          LinkedIn: "", GitHub: "", Role: empRole.trim(), Password: "password123", profileImage: "",
+          resume: "", resumeName: ""
+        };
 
-    if (editId) {
-      setEmployees(employees.map(emp => emp.id === editId ? newEmployee : emp));
-      showToast("Employee updated successfully!");
-    } else {
-      if (employees.some(e => e.id === employeeId.trim())) {
-        showToast("Employee ID already exists", "warning");
-        return;
+        await addAdminEmployee(fullPayload);
+        showToast(editId ? "Employee updated successfully!" : "Employee added successfully!");
+        
+        const emps = await getAdminEmployees();
+        setEmployees(emps);
+        setEmployeeCount(emps.length);
+      } catch (e) {
+        console.error(e);
+        showToast("Failed to save employee", "error");
+      } finally {
+        setIsLoading(false);
       }
-      setEmployees([...employees, newEmployee]);
-      showToast("Employee added successfully!");
+    } else {
+      const newEmployee = { id: employeeId.trim(), name: employeeName.trim(), department: department.trim(), role: empRole.trim() };
+
+      if (editId) {
+        setEmployees(employees.map(emp => emp.id === editId ? newEmployee : emp));
+        showToast("Employee updated successfully!");
+      } else {
+        if (employees.some(e => e.id === employeeId.trim())) {
+          showToast("Employee ID already exists", "warning");
+          return;
+        }
+        setEmployees([...employees, newEmployee]);
+        showToast("Employee added successfully!");
+      }
     }
 
     resetForm();
@@ -97,9 +123,26 @@ function EmployeeManagement() {
     setCurrentPage(1);
   };
 
-  const handleDelete = (id) => {
-    setEmployees(employees.filter(emp => emp.id !== id));
-    showToast("Employee removed", "warning");
+  const handleDelete = async (id) => {
+    if (userRole === "admin") {
+      setIsLoading(true);
+      try {
+        await deleteAdminEmployee(id);
+        showToast("Employee removed", "warning");
+        
+        const emps = await getAdminEmployees();
+        setEmployees(emps);
+        setEmployeeCount(emps.length);
+      } catch (e) {
+        console.error(e);
+        showToast("Failed to delete employee", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setEmployees(employees.filter(emp => emp.id !== id && (emp.empid || emp.id) !== id));
+      showToast("Employee removed", "warning");
+    }
   };
 
   const handleEdit = (emp) => {
@@ -200,7 +243,21 @@ function EmployeeManagement() {
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Department</label>
-                  <input type="text" className={`form-control ${errors.department ? "is-invalid" : ""}`} placeholder="IT, HR, Finance..." value={department} onChange={(e) => { setDepartment(e.target.value); setErrors({ ...errors, department: false }); }} />
+                  <select 
+                    className={`form-select ${errors.department ? "is-invalid" : ""}`} 
+                    value={department} 
+                    onChange={(e) => { setDepartment(e.target.value); setErrors({ ...errors, department: false }); }}
+                  >
+                    <option value="">Select Department</option>
+                    <option value="IT">IT</option>
+                    <option value="HR">HR</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Administration">Administration</option>
+                  </select>
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Role</label>
