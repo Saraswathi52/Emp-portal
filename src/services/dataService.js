@@ -188,9 +188,17 @@ export async function getAdminEmployees() {
 }
 
 export async function addAdminEmployee(employee) {
-  if (!cachedEmployees) await getAdminEmployees();
-  cachedEmployees.push(employee);
-  return employee;
+  try {
+    const response = await axios.post(`https://z312reqsx9.execute-api.ap-south-1.amazonaws.com/admin/employees`, employee, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    // Invalidate cache so it fetches fresh data next time
+    cachedEmployees = null; 
+    return response.data;
+  } catch (error) {
+    console.error('Error adding admin employee:', error);
+    throw error;
+  }
 }
 
 export async function updateAdminEmployee(id, employeeData) {
@@ -1077,3 +1085,46 @@ export function getNextDocId() {
   const max = nums.length > 0 ? Math.max(...nums) : 0;
   return `${prefix}${String(max + 1).padStart(4, '0')}`;
 }
+
+export const REPORTS_API_BASE = 'https://wibwxqlng4.execute-api.ap-south-1.amazonaws.com/reports';
+
+const fetchReport = async (endpoint) => {
+  try {
+    const response = await axios.get(`${REPORTS_API_BASE}/${endpoint}`);
+    let data = response.data;
+    if (data.statusCode && data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    
+    // The API seems to return an object with keys for each report type, e.g., { employee: [...], manager: [...] }
+    let rawItems = data[endpoint];
+    
+    // Fallback if the API ever changes structure
+    if (!rawItems && Array.isArray(data)) rawItems = data;
+    if (!rawItems && data.Items) rawItems = data.Items;
+    if (!rawItems) rawItems = Object.values(data).find(v => Array.isArray(v)) || [];
+    if (!Array.isArray(rawItems)) rawItems = [rawItems];
+    
+    // Unwrap DynamoDB format if present
+    return rawItems.map(item => {
+      const parsedItem = {};
+      for (const key in item) {
+        if (item[key] && typeof item[key] === 'object') {
+          parsedItem[key] = item[key].S !== undefined ? item[key].S : (item[key].N !== undefined ? item[key].N : item[key]);
+        } else {
+          parsedItem[key] = item[key];
+        }
+      }
+      return parsedItem;
+    });
+  } catch (error) {
+    console.error(`Error fetching report ${endpoint}:`, error);
+    throw error;
+  }
+};
+
+export const getEmployeeReport = () => fetchReport('employee');
+export const getManagerReport = () => fetchReport('manager');
+export const getDepartmentReport = () => fetchReport('departement');
+export const getLeaveReport = () => fetchReport('leave');
+export const getExpenseReport = () => fetchReport('expenses');

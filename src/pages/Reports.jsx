@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getAdminEmployees, getAdminDepartments } from "../services/dataService";
+import { getEmployeeReport, getManagerReport, getDepartmentReport, getLeaveReport, getExpenseReport } from "../services/dataService";
 
 const reportTypes = [
   "Employee",
+  "Manager",
   "Department",
   "Leave",
   "Expense"
@@ -18,97 +19,41 @@ function Reports() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [department, setDepartment] = useState("All");
-
-  const [reportData, setReportData] = useState({
-    "Employee": { columns: ["Emp ID", "Name", "Department", "Role", "Joining Date", "Status"], rows: [] },
-    "Department": { columns: ["Dept ID", "Department", "Head", "Employee Count", "Budget Utilized", "Status"], rows: [] },
-    "Leave": {
-      columns: ["Emp ID", "Name", "Leave Type", "From", "To", "Days", "Status"],
-      rows: [
-        ["EMP001", "John Doe", "Annual Leave", "10 Jul 2026", "14 Jul 2026", "5", "Approved"],
-        ["EMP003", "Rajesh Kumar", "Sick Leave", "05 Jul 2026", "06 Jul 2026", "2", "Approved"],
-        ["EMP005", "Michael Brown", "Personal", "20 Jul 2026", "20 Jul 2026", "1", "Pending"],
-        ["EMP008", "David Lee", "Annual Leave", "01 Aug 2026", "10 Aug 2026", "10", "Rejected"],
-      ]
-    },
-    "Expense": {
-      columns: ["Exp ID", "Emp Name", "Category", "Date", "Amount", "Status"],
-      rows: [
-        ["EXP1001", "John Doe", "Travel", "01 Jul 2026", "$450.00", "Approved"],
-        ["EXP1002", "Jane Smith", "Equipment", "03 Jul 2026", "$1,200.00", "Approved"],
-        ["EXP1003", "Rajesh Kumar", "Meals", "05 Jul 2026", "$85.00", "Pending"],
-        ["EXP1004", "Anita Desai", "Software", "06 Jul 2026", "$299.99", "Pending"],
-        ["EXP1005", "Sunil Verma", "Travel", "07 Jul 2026", "$800.00", "Rejected"],
-      ]
-    }
-  });
-
-  const [globalStats, setGlobalStats] = useState([
-    { label: "Total Employees", value: "0", icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Total Departments", value: "0", icon: "bi-building", color: "#10b981", bg: "#ecfdf5" },
-    { label: "Total Leave Requests", value: "45", icon: "bi-calendar-minus", color: "#f59e0b", bg: "#fffbeb" },
-    { label: "Total Expense Claims", value: "24", icon: "bi-currency-dollar", color: "#8b5cf6", bg: "#f5f3ff" },
-  ]);
+  
+  const [reportData, setReportData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     async function loadData() {
+      setIsLoading(true);
+      setErrorMsg("");
+      setReportData([]);
+      setCurrentPage(1);
+      
       try {
-        const emps = await getAdminEmployees();
-        const depts = await getAdminDepartments();
+        let data = [];
+        if (activeTab === "Employee") data = await getEmployeeReport();
+        else if (activeTab === "Manager") data = await getManagerReport();
+        else if (activeTab === "Department") data = await getDepartmentReport();
+        else if (activeTab === "Leave") data = await getLeaveReport();
+        else if (activeTab === "Expense") data = await getExpenseReport();
         
-        setGlobalStats(prev => {
-          const newStats = [...prev];
-          newStats[0].value = emps.length.toString();
-          newStats[1].value = depts.length > 0 ? depts.length.toString() : Array.from(new Set(emps.map(e => e.Department?.S || e.Department || e.department?.S || e.department))).filter(d => d && d !== "-").length.toString();
-          return newStats;
-        });
-
-        setReportData(prev => ({
-          ...prev,
-          "Employee": {
-            ...prev["Employee"],
-            rows: emps.map(e => [
-              e.empid?.S || e.empid || e.id?.S || e.id,
-              e.FullName?.S || e.FullName || e.name?.S || e.name,
-              e.Department?.S || e.Department || e.department?.S || e.department || "-",
-              e.Role?.S || e.Role || e.role?.S || e.role || "-",
-              e.JoiningDate?.S || e.JoiningDate || e.joiningDate?.S || e.joiningDate || "-",
-              e.Status?.S || e.status?.S || e.Status || e.status || "Active"
-            ])
-          },
-          "Department": {
-            ...prev["Department"],
-            rows: depts.length > 0 ? depts.map(d => {
-              const deptName = d.Name || d.name || d.departmentName || d.id;
-              const count = emps.filter(e => {
-                const dep = e.Department?.S || e.Department || e.department?.S || e.department;
-                return dep === deptName;
-              }).length;
-              return [
-                d.id || d.depid || d.DepartmentId || `DEP-${Math.floor(Math.random()*1000)}`,
-                deptName,
-                d.Head || d.head || d.Manager || d.managerName || "Not Assigned",
-                count.toString(),
-                d.BudgetUtilized || "0%",
-                d.Status || d.status || "Active"
-              ];
-            }) : Array.from(new Set(emps.map(e => e.Department?.S || e.Department || e.department?.S || e.department))).filter(d => d && d !== "-").map((d, i) => {
-              const count = emps.filter(e => {
-                const dep = e.Department?.S || e.Department || e.department?.S || e.department;
-                return dep === d;
-              }).length;
-              return [`DEP${String(i+1).padStart(3, '0')}`, d, "Not Assigned", count.toString(), "0%", "Active"];
-            })
-          }
-        }));
+        setReportData(data || []);
       } catch (err) {
         console.error("Failed to load report data", err);
+        setErrorMsg("Failed to load report data. Please try again later.");
+      } finally {
+        setIsLoading(false);
       }
     }
     loadData();
-  }, []);
-
-  const currentReport = reportData[activeTab];
+  }, [activeTab]);
 
   const showToast = (message) => {
     setToast({ message, type: "success" });
@@ -116,7 +61,8 @@ function Reports() {
   };
 
   const getStatusBadge = (status) => {
-    const s = status.toLowerCase();
+    if (!status) return "-";
+    const s = status.toString().toLowerCase();
     if (s === 'active' || s === 'present' || s === 'approved' || s === 'verified' || s === 'joined' || s === 'accepted') {
       return <span className="badge-status badge-approved">{status}</span>;
     } else if (s === 'inactive' || s === 'absent' || s === 'rejected' || s === 'declined') {
@@ -126,6 +72,108 @@ function Reports() {
     }
     return <span className="badge bg-light text-secondary border px-2 py-1">{status}</span>;
   };
+
+  const columnsConfig = {
+    "Employee": [
+      { key: "id", label: "Employee ID", extract: r => r.empid || r.id || r.EmployeeId || "-" },
+      { key: "name", label: "Full Name", extract: r => r.FullName || r.name || "-" },
+      { key: "dept", label: "Department", extract: r => r.Department || r.department || "-" },
+      { key: "desig", label: "Designation", extract: r => r.Designation || r.role || "-" },
+      { key: "email", label: "Email", extract: r => r.Email || r.email || "-" },
+      { key: "phone", label: "Phone", extract: r => r.Phone || r.phone || r.EmergencyContactPhone || "-" },
+      { key: "status", label: "Status", extract: r => r.Status || r.status || "Active", isBadge: true },
+      { key: "join", label: "Joining Date", extract: r => r.JoiningDate || r.joiningDate || "-" },
+    ],
+    "Manager": [
+      { key: "id", label: "Manager ID", extract: r => r.ManagerId || r.empid || r.id || "-" },
+      { key: "name", label: "Full Name", extract: r => r.FullName || r.name || "-" },
+      { key: "dept", label: "Department", extract: r => r.Department || r.department || "-" },
+      { key: "desig", label: "Designation", extract: r => r.Designation || r.role || "-" },
+      { key: "email", label: "Email", extract: r => r.Email || r.email || "-" },
+      { key: "phone", label: "Phone", extract: r => r.Phone || r.phone || r.EmergencyContactPhone || "-" },
+      { key: "empCount", label: "Number of Employees", extract: r => r.EmployeeCount || r.employeeCount || r.employeeCount?.N || r.EmployeeCount?.N || "0" },
+      { key: "status", label: "Status", extract: r => r.Status || r.status || "Active", isBadge: true },
+    ],
+    "Department": [
+      { key: "name", label: "Department Name", extract: r => r.Name || r.name || r.DepartmentName || r.departmentName || "-" },
+      { key: "head", label: "Department Head", extract: r => r.Head || r.head || r.Manager || r.ManagerName || r.managerName || "-" },
+      { key: "total", label: "Number of Employees", extract: r => r.EmployeeCount || r.employeeCount || r.TotalEmployees || "0" },
+      { key: "active", label: "Active Employees", extract: r => r.ActiveEmployees || r.activeEmployees || "0" },
+      { key: "inactive", label: "Inactive Employees", extract: r => r.InactiveEmployees || r.inactiveEmployees || "0" },
+    ],
+    "Leave": [
+      { key: "name", label: "Employee Name", extract: r => r.EmployeeName || r.employeeName || r.FullName || "-" },
+      { key: "id", label: "Employee ID", extract: r => r.EmployeeId || r.employeeId || r.empid || "-" },
+      { key: "type", label: "Leave Type", extract: r => r.LeaveType || r.leaveType || r.type || "-" },
+      { key: "from", label: "From Date", extract: r => r.StartDate || r.startDate || r.fromDate || "-" },
+      { key: "to", label: "To Date", extract: r => r.EndDate || r.endDate || r.toDate || "-" },
+      { key: "days", label: "Total Days", extract: r => r.TotalDays || r.totalDays || r.days || "-" },
+      { key: "status", label: "Status", extract: r => r.Status || r.status || "-", isBadge: true },
+      { key: "approvedBy", label: "Approved By", extract: r => r.ApprovedBy || r.approvedBy || r.Manager || "-" },
+    ],
+    "Expense": [
+      { key: "id", label: "Expense ID", extract: r => r.ExpenseId || r.expenseId || r.expid || r.id || "-" },
+      { key: "name", label: "Employee Name", extract: r => r.EmployeeName || r.employeeName || r.FullName || "-" },
+      { key: "cat", label: "Category", extract: r => r.Category || r.category || r.expenseType || r.type || "-" },
+      { key: "amount", label: "Amount", extract: r => r.Amount || r.amount || "0" },
+      { key: "date", label: "Date", extract: r => r.Date || r.date || r.expenseDate || "-" },
+      { key: "status", label: "Status", extract: r => r.Status || r.status || "-", isBadge: true },
+      { key: "approvedBy", label: "Approved By", extract: r => r.ApprovedBy || r.approvedBy || r.Manager || "-" },
+    ]
+  };
+
+  const currentColumns = columnsConfig[activeTab] || [];
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Convert raw objects to an array of rows to make searching and sorting easier
+  const mappedData = useMemo(() => {
+    return reportData.map(row => {
+      const mappedRow = {};
+      currentColumns.forEach(col => {
+        mappedRow[col.key] = col.extract(row);
+      });
+      mappedRow._original = row;
+      return mappedRow;
+    });
+  }, [reportData, currentColumns]);
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return mappedData;
+    const lowerSearch = searchTerm.toLowerCase();
+    return mappedData.filter(row => {
+      return currentColumns.some(col => {
+        const val = row[col.key];
+        return val && val.toString().toLowerCase().includes(lowerSearch);
+      });
+    });
+  }, [mappedData, searchTerm, currentColumns]);
+
+  const sortedData = useMemo(() => {
+    const sortableItems = [...filteredData];
+    if (sortConfig.key !== null) {
+      sortableItems.sort((a, b) => {
+        const aVal = a[sortConfig.key] || "";
+        const bVal = b[sortConfig.key] || "";
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filteredData, sortConfig]);
+
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage) || 1;
+  const paginatedData = sortedData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="dashboard-wrapper">
@@ -142,11 +190,11 @@ function Reports() {
       <div className="main-content">
         <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         
-        <div className="page-content">
-          <div className="section-header">
+        <div className="page-content bg-light" style={{ minHeight: "calc(100vh - 70px)" }}>
+          <div className="section-header d-flex justify-content-between align-items-center mb-4">
             <div>
-              <h4>Organization Reports</h4>
-              <p>Generate and export comprehensive organizational data.</p>
+              <h4 className="fw-bold mb-1">Organization Reports</h4>
+              <p className="text-muted mb-0">Generate and export comprehensive organizational data.</p>
             </div>
             <div className="d-flex gap-2">
               <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={() => showToast(`Exported ${activeTab} Report as PDF`)}>
@@ -158,17 +206,17 @@ function Reports() {
             </div>
           </div>
 
-          <div className="card-dashboard p-3 mb-4 d-flex flex-wrap align-items-center gap-3" style={{ background: "var(--white)" }}>
+          <div className="card-dashboard p-3 mb-4 d-flex flex-wrap align-items-center gap-3 bg-white shadow-sm rounded-4 border-0">
             <div className="d-flex align-items-center gap-2 flex-grow-1" style={{ minWidth: "250px" }}>
-              <i className="bi bi-calendar-range" style={{ color: "var(--gray-500)" }}></i>
-              <input type="date" className="form-control form-control-sm" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-              <span className="text-muted small">to</span>
-              <input type="date" className="form-control form-control-sm" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+              <i className="bi bi-calendar-range text-muted"></i>
+              <input type="date" className="form-control form-control-sm border-0 bg-light" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+              <span className="text-muted small px-1">to</span>
+              <input type="date" className="form-control form-control-sm border-0 bg-light" value={dateTo} onChange={e => setDateTo(e.target.value)} />
             </div>
             
             <div className="d-flex align-items-center gap-2 flex-grow-1" style={{ minWidth: "200px" }}>
-              <i className="bi bi-building" style={{ color: "var(--gray-500)" }}></i>
-              <select className="form-select form-select-sm" value={department} onChange={e => setDepartment(e.target.value)}>
+              <i className="bi bi-building text-muted"></i>
+              <select className="form-select form-select-sm border-0 bg-light" value={department} onChange={e => setDepartment(e.target.value)}>
                 <option value="All">All Departments</option>
                 <option value="Engineering">Engineering</option>
                 <option value="Sales">Sales</option>
@@ -179,8 +227,8 @@ function Reports() {
             </div>
 
             <div className="d-flex align-items-center gap-2 flex-grow-1" style={{ minWidth: "200px" }}>
-              <i className="bi bi-file-earmark-text" style={{ color: "var(--gray-500)" }}></i>
-              <select className="form-select form-select-sm" value={activeTab} onChange={e => setActiveTab(e.target.value)}>
+              <i className="bi bi-file-earmark-text text-muted"></i>
+              <select className="form-select form-select-sm border-0 bg-light" value={activeTab} onChange={e => {setActiveTab(e.target.value); setSearchTerm("");}}>
                 {reportTypes.map((type) => (
                   <option key={type} value={type}>{type} Report</option>
                 ))}
@@ -192,52 +240,104 @@ function Reports() {
             </button>
           </div>
 
-
-
-          <div className="row g-3 mb-4">
-            {globalStats.map((s) => (
-              <div key={s.label} className="col-xl-3 col-md-6">
-                <div className="stat-card card-dashboard d-flex align-items-center gap-3 h-100" style={{ background: s.bg }}>
-                  <div className="stat-icon flex-shrink-0" style={{ background: s.color, width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
-                    <i className={`bi ${s.icon}`} />
-                  </div>
-                  <div className="overflow-hidden">
-                    <div className="stat-label text-truncate">{s.label}</div>
-                    <div className="stat-value text-truncate" style={{ color: s.color, fontSize: "1.5rem" }}>{s.value}</div>
+          <div className="card-dashboard border-0 shadow-sm rounded-4 bg-white h-100">
+            <div className="card-header bg-white border-0 pt-4 pb-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+              <h5 className="fw-bold mb-0 text-dark">
+                {activeTab} Data <span className="badge bg-primary bg-opacity-10 text-primary ms-2 rounded-pill px-3 py-1 fs-6 fw-semibold">{filteredData.length} Records</span>
+              </h5>
+              <div className="search-box position-relative" style={{ width: "300px" }}>
+                <i className="bi bi-search position-absolute text-muted" style={{ left: "1rem", top: "50%", transform: "translateY(-50%)" }} />
+                <input 
+                  type="text" 
+                  className="form-control shadow-sm border-0 bg-light" 
+                  style={{ padding: "0.5rem 1rem 0.5rem 2.5rem", borderRadius: "8px", fontSize: "0.9rem" }} 
+                  placeholder={`Search ${activeTab.toLowerCase()}s...`} 
+                  value={searchTerm} 
+                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} 
+                />
+              </div>
+            </div>
+            
+            <div className="card-body p-0">
+              {isLoading ? (
+                <div className="d-flex justify-content-center align-items-center py-5">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="card-dashboard p-4">
-            <h5 className="fw-bold mb-4" style={{ color: "var(--gray-800)" }}>
-              {activeTab} Data
-            </h5>
-            <div className="table-responsive">
-              <table className="table-custom table table-hover">
-                <thead>
-                  <tr>
-                    {currentReport.columns.map((col, i) => (
-                      <th key={i}>{col}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentReport.rows.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      {row.map((cell, cellIndex) => (
-                        <td key={cellIndex} className={cellIndex === 0 ? "fw-semibold" : ""}>
-                          {cellIndex === row.length - 1 && (cell === 'Active' || cell === 'Inactive' || cell === 'Present' || cell === 'Absent' || cell === 'Late' || cell === 'Approved' || cell === 'Pending' || cell === 'Rejected' || cell === 'Verified' || cell === 'Joined' || cell === 'Accepted' || cell === 'Declined') 
-                            ? getStatusBadge(cell) 
-                            : cell}
-                        </td>
+              ) : errorMsg ? (
+                <div className="text-center py-5">
+                  <i className="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block"></i>
+                  <h6 className="text-danger fw-semibold">{errorMsg}</h6>
+                </div>
+              ) : sortedData.length === 0 ? (
+                <div className="text-center py-5">
+                  <i className="bi bi-folder-x text-muted fs-1 mb-3 d-block opacity-50"></i>
+                  <h6 className="text-muted fw-semibold">No Records Found</h6>
+                </div>
+              ) : (
+                <div className="table-responsive" style={{ overflow: "hidden" }}>
+                  <table className="table-custom table table-hover align-middle mb-0">
+                    <thead style={{ background: "var(--gray-50)", borderTop: "1px solid var(--gray-200)", borderBottom: "1px solid var(--gray-200)" }}>
+                      <tr>
+                        {currentColumns.map((col) => (
+                          <th 
+                            key={col.key} 
+                            style={{ padding: "1rem", cursor: "pointer", userSelect: "none" }}
+                            onClick={() => handleSort(col.key)}
+                          >
+                            <div className="d-flex align-items-center gap-2">
+                              {col.label}
+                              {sortConfig.key === col.key && (
+                                <i className={`bi bi-arrow-${sortConfig.direction === 'asc' ? 'up' : 'down'} text-primary`} style={{ fontSize: "0.8rem" }}></i>
+                              )}
+                              {sortConfig.key !== col.key && (
+                                <i className="bi bi-arrow-up-down text-muted opacity-25" style={{ fontSize: "0.8rem" }}></i>
+                              )}
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedData.map((row, rowIndex) => (
+                        <tr key={rowIndex}>
+                          {currentColumns.map((col, cellIndex) => (
+                            <td key={col.key} className={cellIndex === 0 ? "fw-semibold" : ""}>
+                              {col.isBadge ? getStatusBadge(row[col.key]) : row[col.key]}
+                            </td>
+                          ))}
+                        </tr>
                       ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
+            
+            {sortedData.length > 0 && !isLoading && !errorMsg && (
+              <div className="card-footer bg-white border-0 pt-3 pb-4 px-4 d-flex justify-content-between align-items-center">
+                <span className="text-muted small">
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, sortedData.length)} of {sortedData.length} records
+                </span>
+                <div className="d-flex gap-2">
+                  <button 
+                    className="btn btn-sm btn-outline-secondary px-3" 
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  >
+                    Previous
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-outline-secondary px-3" 
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           
         </div>
