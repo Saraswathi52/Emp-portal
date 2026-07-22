@@ -49,11 +49,17 @@ function AdminDashboard() {
         });
 
         const formattedDepts = deptsData.length > 0 
-          ? deptsData.map(d => ({
-              name: d.Name || d.name || d.id,
-              head: d.Head || d.head || d.Manager || "Not Assigned",
-              count: d.EmployeeCount || d.employees || 0
-            }))
+          ? deptsData.map(d => {
+              const deptName = d.Name || d.name || d.departmentName || d.id;
+              return {
+                name: deptName,
+                head: d.Head || d.head || d.Manager || d.managerName || "Not Assigned",
+                count: emps.filter(e => {
+                  const dep = e.Department?.S || e.Department || e.department?.S || e.department;
+                  return dep === deptName;
+                }).length
+              };
+            })
           : fallbackDepts.map(d => ({
               name: d,
               head: "Not Assigned",
@@ -87,7 +93,15 @@ function AdminDashboard() {
             color: "var(--success)",
             bg: "#ecfdf5"
         })));
-
+        
+        const locations = Array.from(new Set(formattedDepts.map(d => d.location || "N/A"))).filter(Boolean);
+        
+        setMetrics({
+          totalEmps: formattedDepts.reduce((acc, d) => acc + d.count, 0),
+          totalDepts: formattedDepts.length,
+          activeDepts: formattedDepts.filter(d => (d.status || d.Status || "Active") === "Active").length,
+          officeLocations: locations.length
+        });
       } catch (err) {
         console.error("Failed to load dashboard data", err);
       }
@@ -96,10 +110,10 @@ function AdminDashboard() {
   }, []);
 
   const stats = [
-    { label: "Total Employees", value: metrics.totalEmps, icon: Users, color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Active Employees", value: metrics.activeEmps, icon: UserCheck, color: "#10b981", bg: "#ecfdf5" },
-    { label: "Total Departments", value: metrics.totalDepts, icon: Building, color: "#f59e0b", bg: "#fffbeb" },
-    { label: "New This Month", value: metrics.newEmps, icon: UserPlus, color: "#8b5cf6", bg: "#f5f3ff" },
+    { label: "Total Departments", value: metrics.totalDepts, icon: Building, color: "#3b82f6", bg: "#eff6ff" },
+    { label: "Total Employees", value: metrics.totalEmps, icon: Users, color: "#10b981", bg: "#ecfdf5" },
+    { label: "Active Departments", value: metrics.activeDepts, icon: UserCheck, color: "#f59e0b", bg: "#fffbeb" },
+    { label: "Office Locations", value: metrics.officeLocations, icon: UserPlus, color: "#8b5cf6", bg: "#f5f3ff" },
   ];
 
   const timeAgo = (dateStr) => {

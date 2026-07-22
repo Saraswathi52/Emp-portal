@@ -182,34 +182,78 @@ export async function updateAdminProfile(adm_id, payload) {
   }
 }
 
+let cachedEmployees = null;
+
 export async function getAdminEmployees() {
+  if (cachedEmployees) return cachedEmployees;
   try {
     const response = await axios.get(`${ADMIN_API_BASE}/admin/employees`);
     let data = response.data;
     if (data.statusCode && data.body) {
       data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
     }
-    return Array.isArray(data) ? data : (data.Items || []);
+    cachedEmployees = Array.isArray(data) ? data : (data.Items || []);
+    return cachedEmployees;
   } catch (error) {
     console.error('Error fetching admin employees:', error);
-    return [];
+    cachedEmployees = [];
+    return cachedEmployees;
   }
 }
 
+export async function addAdminEmployee(employee) {
+  if (!cachedEmployees) await getAdminEmployees();
+  cachedEmployees.push(employee);
+  return employee;
+}
+
+export async function updateAdminEmployee(id, employeeData) {
+  if (!cachedEmployees) return;
+  cachedEmployees = cachedEmployees.map(e => (e.empid === id || e.id === id || e.empid?.S === id || e.id?.S === id) ? { ...e, ...employeeData } : e);
+}
+
+export async function deleteAdminEmployee(id) {
+  if (!cachedEmployees) return;
+  cachedEmployees = cachedEmployees.filter(e => e.empid !== id && e.id !== id && e.empid?.S !== id && e.id?.S !== id);
+}
+
+let cachedDepartments = null;
+
 export async function getAdminDepartments() {
+  if (cachedDepartments) return cachedDepartments;
   try {
     const response = await axios.get(ED_DEPARTMENT_API);
     if (response.data) {
       if (response.data.body) {
-        return typeof response.data.body === 'string' ? JSON.parse(response.data.body) : response.data.body;
+        cachedDepartments = typeof response.data.body === 'string' ? JSON.parse(response.data.body) : response.data.body;
+      } else {
+        cachedDepartments = Array.isArray(response.data) ? response.data : (response.data.Items || []);
       }
-      return Array.isArray(response.data) ? response.data : (response.data.Items || []);
+      return cachedDepartments;
     }
-    return [];
+    cachedDepartments = [];
+    return cachedDepartments;
   } catch (error) {
     console.error('Error fetching admin departments:', error);
-    return [];
+    cachedDepartments = [];
+    return cachedDepartments;
   }
+}
+
+export async function addAdminDepartment(dept) {
+  if (!cachedDepartments) await getAdminDepartments();
+  cachedDepartments.push(dept);
+  return dept;
+}
+
+export async function updateAdminDepartment(id, deptData) {
+  if (!cachedDepartments) return;
+  cachedDepartments = cachedDepartments.map(d => d.id === id || d.DepartmentId === id ? { ...d, ...deptData } : d);
+}
+
+export async function deleteAdminDepartment(id) {
+  if (!cachedDepartments) return;
+  cachedDepartments = cachedDepartments.filter(d => d.id !== id && d.DepartmentId !== id);
 }
 
 export const ED_DEPARTMENT_API = 'https://uzxfzaqjsd.execute-api.ap-south-1.amazonaws.com/ed_department';
@@ -248,27 +292,6 @@ export async function deleteDepartment(depid) {
   }
 }
 
-export async function addAdminEmployee(payload) {
-  try {
-    const response = await axios.post(`${ADMIN_API_BASE}/admin/employees`, payload, {
-      headers: { 'Content-Type': 'application/json' }
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error adding admin employee:", error);
-    throw error;
-  }
-}
-
-export async function deleteAdminEmployee(empid) {
-  try {
-    const response = await axios.delete(`${ADMIN_API_BASE}/admin/employees/${empid}`);
-    return response.data;
-  } catch (error) {
-    console.error("Error deleting admin employee:", error);
-    throw error;
-  }
-}
 
 const KEYS = {
   EMPLOYEES: 'peoplecore_employees',

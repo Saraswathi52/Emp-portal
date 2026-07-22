@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getAdminDepartments, getAdminEmployees, createDepartment, updateDepartment, deleteDepartment } from "../services/dataService";
+import { getAdminDepartments, getAdminEmployees, addAdminDepartment, updateAdminDepartment, deleteAdminDepartment } from "../services/dataService";
 
 function Departments() {
   const [userRole] = useState(() => {
@@ -16,50 +16,51 @@ function Departments() {
   const [toast, setToast] = useState(null);
   const [editId, setEditId] = useState(null);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const fetchedDepts = await getAdminDepartments();
-        const fetchedEmps = await getAdminEmployees();
-        setEmployees(fetchedEmps);
+  const loadData = async () => {
+    try {
+      const fetchedDepts = await getAdminDepartments();
+      const fetchedEmps = await getAdminEmployees();
+      setEmployees(fetchedEmps);
 
-        const formattedDepts = fetchedDepts.map(d => {
-          return {
-            depid: d.depid || `DEP-${Math.floor(Math.random()*1000)}`,
-            departmentName: d.departmentName || d.name || "",
-            managerName: d.managerName || "Not Assigned",
-            managerEmpId: d.managerEmpId || "",
-            designation: d.designation || "-",
-            employeeCount: d.employeeCount || 0,
-            location: d.location || d.Location || "N/A",
-            status: d.status || d.Status || "Active"
-          };
-        });
-        
-        // If the backend returns no departments, we show an empty list instead of hardcoded data.
-        setDepartments(formattedDepts);
-      } catch (err) {
-        console.error("Failed to load departments or employees:", err);
-      }
+      const formattedDepts = fetchedDepts.map(d => {
+        return {
+          depid: d.depid || `DEP-${Math.floor(Math.random()*1000)}`,
+          departmentName: d.departmentName || d.name || "",
+          managerName: d.managerName || "Not Assigned",
+          managerEmpId: d.managerEmpId || "",
+          designation: d.designation || "-",
+          employeeCount: fetchedEmps.filter(e => {
+            const eDept = e.Department?.S || e.Department || e.department?.S || e.department;
+            const deptName = d.departmentName || d.name || "";
+            return eDept === deptName;
+          }).length,
+          location: d.location || d.Location || "N/A",
+          status: d.status || d.Status || "Active"
+        };
+      });
+      
+      setDepartments(formattedDepts);
+    } catch (err) {
+      console.error("Failed to load departments or employees:", err);
     }
+  };
+
+  useEffect(() => {
     loadData();
   }, []);
 
   const handleAdd = async (e) => {
     e.preventDefault();
     try {
-      console.log("Department Payload:", newDept);
       if (editId) {
-        await updateDepartment(editId, newDept);
-        setDepartments(departments.map(d => d.depid === editId ? { ...d, ...newDept } : d));
+        await updateAdminDepartment(editId, newDept);
         setToast({ message: "Department updated successfully!", type: "success" });
       } else {
-        await createDepartment(newDept);
-        const tempId = `DEP-${Math.floor(Math.random()*1000)}`;
-        setDepartments([...departments, { depid: tempId, ...newDept, employeeCount: 0, managerName: "Pending Refresh", designation: "-" }]);
+        await addAdminDepartment(newDept);
         setToast({ message: "Department added successfully!", type: "success" });
       }
       
+      await loadData();
       setShowForm(false);
       setNewDept({ departmentName: "", managerEmpId: "", location: "", status: "Active" });
       setEditId(null);
@@ -89,8 +90,8 @@ function Departments() {
     }
     if (window.confirm("Are you sure you want to delete this department?")) {
       try {
-        await deleteDepartment(id);
-        setDepartments(departments.filter(d => d.depid !== id));
+        await deleteAdminDepartment(id);
+        await loadData();
         setToast({ message: "Department deleted!", type: "success" });
         setTimeout(() => setToast(null), 3000);
       } catch (err) {

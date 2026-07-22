@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployees, getManagerEmployees, getAdminEmployees, addAdminEmployee, deleteAdminEmployee } from "../services/dataService";
+import { getCurrentUser, getEmployees, getManagerEmployees, getAdminEmployees, addAdminEmployee, updateAdminEmployee, deleteAdminEmployee } from "../services/dataService";
 
 function EmployeeManagement() {
   const [userRole] = useState(() => {
@@ -110,7 +110,11 @@ function EmployeeManagement() {
           resume: "", resumeName: ""
         };
 
-        await addAdminEmployee(fullPayload);
+        if (editId) {
+          await updateAdminEmployee(editId, fullPayload);
+        } else {
+          await addAdminEmployee(fullPayload);
+        }
         showToast(editId ? "Employee updated successfully!" : "Employee added successfully!");
         
         const emps = await getAdminEmployees();

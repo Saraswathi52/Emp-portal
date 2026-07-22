@@ -1,61 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+import { getAdminEmployees, getAdminDepartments } from "../services/dataService";
 
 const reportTypes = [
   "Employee",
   "Department",
   "Leave",
   "Expense"
-];
-
-const reportData = {
-  "Employee": {
-    columns: ["Emp ID", "Name", "Department", "Role", "Joining Date", "Status"],
-    rows: [
-      ["EMP001", "John Doe", "Engineering", "Senior Developer", "12 Jan 2023", "Active"],
-      ["EMP002", "Jane Smith", "Marketing", "Marketing Manager", "15 Mar 2023", "Active"],
-      ["EMP003", "Rajesh Kumar", "Sales", "Sales Executive", "01 Jun 2023", "Active"],
-      ["EMP004", "Anita Desai", "HR", "HR Generalist", "10 Aug 2023", "Active"],
-      ["EMP005", "Michael Brown", "Finance", "Accountant", "20 Sep 2023", "Inactive"],
-    ]
-  },
-  "Department": {
-    columns: ["Dept ID", "Department", "Head", "Employee Count", "Budget Utilized", "Status"],
-    rows: [
-      ["DEP001", "Engineering", "Rajesh Kumar", "45", "78%", "Active"],
-      ["DEP002", "Marketing", "Sophia Williams", "22", "65%", "Active"],
-      ["DEP003", "Sales", "David Brown", "30", "82%", "Active"],
-      ["DEP004", "Human Resources", "Alice Smith", "18", "45%", "Active"],
-      ["DEP005", "Finance", "Michael Johnson", "12", "50%", "Active"],
-    ]
-  },
-  "Leave": {
-    columns: ["Emp ID", "Name", "Leave Type", "From", "To", "Days", "Status"],
-    rows: [
-      ["EMP001", "John Doe", "Annual Leave", "10 Jul 2026", "14 Jul 2026", "5", "Approved"],
-      ["EMP003", "Rajesh Kumar", "Sick Leave", "05 Jul 2026", "06 Jul 2026", "2", "Approved"],
-      ["EMP005", "Michael Brown", "Personal", "20 Jul 2026", "20 Jul 2026", "1", "Pending"],
-      ["EMP008", "David Lee", "Annual Leave", "01 Aug 2026", "10 Aug 2026", "10", "Rejected"],
-    ]
-  },
-  "Expense": {
-    columns: ["Exp ID", "Emp Name", "Category", "Date", "Amount", "Status"],
-    rows: [
-      ["EXP1001", "John Doe", "Travel", "01 Jul 2026", "$450.00", "Approved"],
-      ["EXP1002", "Jane Smith", "Equipment", "03 Jul 2026", "$1,200.00", "Approved"],
-      ["EXP1003", "Rajesh Kumar", "Meals", "05 Jul 2026", "$85.00", "Pending"],
-      ["EXP1004", "Anita Desai", "Software", "06 Jul 2026", "$299.99", "Pending"],
-      ["EXP1005", "Sunil Verma", "Travel", "07 Jul 2026", "$800.00", "Rejected"],
-    ]
-  }
-};
-
-const globalStats = [
-  { label: "Total Employees", value: "156", icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
-  { label: "Total Departments", value: "6", icon: "bi-building", color: "#10b981", bg: "#ecfdf5" },
-  { label: "Total Leave Requests", value: "45", icon: "bi-calendar-minus", color: "#f59e0b", bg: "#fffbeb" },
-  { label: "Total Expense Claims", value: "24", icon: "bi-currency-dollar", color: "#8b5cf6", bg: "#f5f3ff" },
 ];
 
 function Reports() {
@@ -66,6 +18,95 @@ function Reports() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [department, setDepartment] = useState("All");
+
+  const [reportData, setReportData] = useState({
+    "Employee": { columns: ["Emp ID", "Name", "Department", "Role", "Joining Date", "Status"], rows: [] },
+    "Department": { columns: ["Dept ID", "Department", "Head", "Employee Count", "Budget Utilized", "Status"], rows: [] },
+    "Leave": {
+      columns: ["Emp ID", "Name", "Leave Type", "From", "To", "Days", "Status"],
+      rows: [
+        ["EMP001", "John Doe", "Annual Leave", "10 Jul 2026", "14 Jul 2026", "5", "Approved"],
+        ["EMP003", "Rajesh Kumar", "Sick Leave", "05 Jul 2026", "06 Jul 2026", "2", "Approved"],
+        ["EMP005", "Michael Brown", "Personal", "20 Jul 2026", "20 Jul 2026", "1", "Pending"],
+        ["EMP008", "David Lee", "Annual Leave", "01 Aug 2026", "10 Aug 2026", "10", "Rejected"],
+      ]
+    },
+    "Expense": {
+      columns: ["Exp ID", "Emp Name", "Category", "Date", "Amount", "Status"],
+      rows: [
+        ["EXP1001", "John Doe", "Travel", "01 Jul 2026", "$450.00", "Approved"],
+        ["EXP1002", "Jane Smith", "Equipment", "03 Jul 2026", "$1,200.00", "Approved"],
+        ["EXP1003", "Rajesh Kumar", "Meals", "05 Jul 2026", "$85.00", "Pending"],
+        ["EXP1004", "Anita Desai", "Software", "06 Jul 2026", "$299.99", "Pending"],
+        ["EXP1005", "Sunil Verma", "Travel", "07 Jul 2026", "$800.00", "Rejected"],
+      ]
+    }
+  });
+
+  const [globalStats, setGlobalStats] = useState([
+    { label: "Total Employees", value: "0", icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
+    { label: "Total Departments", value: "0", icon: "bi-building", color: "#10b981", bg: "#ecfdf5" },
+    { label: "Total Leave Requests", value: "45", icon: "bi-calendar-minus", color: "#f59e0b", bg: "#fffbeb" },
+    { label: "Total Expense Claims", value: "24", icon: "bi-currency-dollar", color: "#8b5cf6", bg: "#f5f3ff" },
+  ]);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const emps = await getAdminEmployees();
+        const depts = await getAdminDepartments();
+        
+        setGlobalStats(prev => {
+          const newStats = [...prev];
+          newStats[0].value = emps.length.toString();
+          newStats[1].value = depts.length > 0 ? depts.length.toString() : Array.from(new Set(emps.map(e => e.Department?.S || e.Department || e.department?.S || e.department))).filter(d => d && d !== "-").length.toString();
+          return newStats;
+        });
+
+        setReportData(prev => ({
+          ...prev,
+          "Employee": {
+            ...prev["Employee"],
+            rows: emps.map(e => [
+              e.empid?.S || e.empid || e.id?.S || e.id,
+              e.FullName?.S || e.FullName || e.name?.S || e.name,
+              e.Department?.S || e.Department || e.department?.S || e.department || "-",
+              e.Role?.S || e.Role || e.role?.S || e.role || "-",
+              e.JoiningDate?.S || e.JoiningDate || e.joiningDate?.S || e.joiningDate || "-",
+              e.Status?.S || e.status?.S || e.Status || e.status || "Active"
+            ])
+          },
+          "Department": {
+            ...prev["Department"],
+            rows: depts.length > 0 ? depts.map(d => {
+              const deptName = d.Name || d.name || d.departmentName || d.id;
+              const count = emps.filter(e => {
+                const dep = e.Department?.S || e.Department || e.department?.S || e.department;
+                return dep === deptName;
+              }).length;
+              return [
+                d.id || d.depid || d.DepartmentId || `DEP-${Math.floor(Math.random()*1000)}`,
+                deptName,
+                d.Head || d.head || d.Manager || d.managerName || "Not Assigned",
+                count.toString(),
+                d.BudgetUtilized || "0%",
+                d.Status || d.status || "Active"
+              ];
+            }) : Array.from(new Set(emps.map(e => e.Department?.S || e.Department || e.department?.S || e.department))).filter(d => d && d !== "-").map((d, i) => {
+              const count = emps.filter(e => {
+                const dep = e.Department?.S || e.Department || e.department?.S || e.department;
+                return dep === d;
+              }).length;
+              return [`DEP${String(i+1).padStart(3, '0')}`, d, "Not Assigned", count.toString(), "0%", "Active"];
+            })
+          }
+        }));
+      } catch (err) {
+        console.error("Failed to load report data", err);
+      }
+    }
+    loadData();
+  }, []);
 
   const currentReport = reportData[activeTab];
 
