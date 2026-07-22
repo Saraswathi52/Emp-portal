@@ -4,22 +4,13 @@ import Sidebar from "../components/Sidebar";
 
 const reportTypes = [
   "Employee",
-  "Attendance",
-  "Leave",
   "Department",
-  "Expense",
-  "Document",
-  "Monthly Hiring"
+  "Leave",
+  "Expense"
 ];
 
 const reportData = {
   "Employee": {
-    stats: [
-      { label: "Total Employees", value: "156", icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
-      { label: "New Hires (Month)", value: "12", icon: "bi-person-plus", color: "#10b981", bg: "#ecfdf5" },
-      { label: "Avg Tenure", value: "2.4 yrs", icon: "bi-clock-history", color: "#f59e0b", bg: "#fffbeb" },
-      { label: "Turnover Rate", value: "3.2%", icon: "bi-graph-down-arrow", color: "#ef4444", bg: "#fef2f2" },
-    ],
     columns: ["Emp ID", "Name", "Department", "Role", "Joining Date", "Status"],
     rows: [
       ["EMP001", "John Doe", "Engineering", "Senior Developer", "12 Jan 2023", "Active"],
@@ -29,44 +20,7 @@ const reportData = {
       ["EMP005", "Michael Brown", "Finance", "Accountant", "20 Sep 2023", "Inactive"],
     ]
   },
-  "Attendance": {
-    stats: [
-      { label: "Avg Attendance", value: "94%", icon: "bi-calendar2-check", color: "#3b82f6", bg: "#eff6ff" },
-      { label: "Present Today", value: "142", icon: "bi-person-check", color: "#10b981", bg: "#ecfdf5" },
-      { label: "Absent", value: "8", icon: "bi-person-x", color: "#ef4444", bg: "#fef2f2" },
-      { label: "Late Arrivals", value: "6", icon: "bi-clock", color: "#f59e0b", bg: "#fffbeb" },
-    ],
-    columns: ["Emp ID", "Name", "Date", "Check In", "Check Out", "Total Hours", "Status"],
-    rows: [
-      ["EMP001", "John Doe", "08 Jul 2026", "09:05 AM", "06:10 PM", "9h 5m", "Present"],
-      ["EMP002", "Jane Smith", "08 Jul 2026", "08:55 AM", "05:45 PM", "8h 50m", "Present"],
-      ["EMP003", "Rajesh Kumar", "08 Jul 2026", "10:15 AM", "07:00 PM", "8h 45m", "Late"],
-      ["EMP004", "Anita Desai", "08 Jul 2026", "—", "—", "0h", "Absent"],
-      ["EMP006", "Sunil Verma", "08 Jul 2026", "09:00 AM", "06:00 PM", "9h 0m", "Present"],
-    ]
-  },
-  "Leave": {
-    stats: [
-      { label: "Total Leaves Taken", value: "45", icon: "bi-calendar-minus", color: "#3b82f6", bg: "#eff6ff" },
-      { label: "Approved", value: "40", icon: "bi-check-circle", color: "#10b981", bg: "#ecfdf5" },
-      { label: "Pending", value: "3", icon: "bi-hourglass-split", color: "#f59e0b", bg: "#fffbeb" },
-      { label: "Rejected", value: "2", icon: "bi-x-circle", color: "#ef4444", bg: "#fef2f2" },
-    ],
-    columns: ["Emp ID", "Name", "Leave Type", "From", "To", "Days", "Status"],
-    rows: [
-      ["EMP001", "John Doe", "Annual Leave", "10 Jul 2026", "14 Jul 2026", "5", "Approved"],
-      ["EMP003", "Rajesh Kumar", "Sick Leave", "05 Jul 2026", "06 Jul 2026", "2", "Approved"],
-      ["EMP005", "Michael Brown", "Personal", "20 Jul 2026", "20 Jul 2026", "1", "Pending"],
-      ["EMP008", "David Lee", "Annual Leave", "01 Aug 2026", "10 Aug 2026", "10", "Rejected"],
-    ]
-  },
   "Department": {
-    stats: [
-      { label: "Total Departments", value: "6", icon: "bi-building", color: "#3b82f6", bg: "#eff6ff" },
-      { label: "Avg Emp per Dept", value: "26", icon: "bi-people", color: "#10b981", bg: "#ecfdf5" },
-      { label: "Highest Headcount", value: "Eng (45)", icon: "bi-graph-up-arrow", color: "#8b5cf6", bg: "#f5f3ff" },
-      { label: "Lowest Headcount", value: "Admin (8)", icon: "bi-graph-down-arrow", color: "#f59e0b", bg: "#fffbeb" },
-    ],
     columns: ["Dept ID", "Department", "Head", "Employee Count", "Budget Utilized", "Status"],
     rows: [
       ["DEP001", "Engineering", "Rajesh Kumar", "45", "78%", "Active"],
@@ -76,13 +30,16 @@ const reportData = {
       ["DEP005", "Finance", "Michael Johnson", "12", "50%", "Active"],
     ]
   },
+  "Leave": {
+    columns: ["Emp ID", "Name", "Leave Type", "From", "To", "Days", "Status"],
+    rows: [
+      ["EMP001", "John Doe", "Annual Leave", "10 Jul 2026", "14 Jul 2026", "5", "Approved"],
+      ["EMP003", "Rajesh Kumar", "Sick Leave", "05 Jul 2026", "06 Jul 2026", "2", "Approved"],
+      ["EMP005", "Michael Brown", "Personal", "20 Jul 2026", "20 Jul 2026", "1", "Pending"],
+      ["EMP008", "David Lee", "Annual Leave", "01 Aug 2026", "10 Aug 2026", "10", "Rejected"],
+    ]
+  },
   "Expense": {
-    stats: [
-      { label: "Total Expenses", value: "$14,500", icon: "bi-currency-dollar", color: "#3b82f6", bg: "#eff6ff" },
-      { label: "Approved", value: "$12,000", icon: "bi-check2-square", color: "#10b981", bg: "#ecfdf5" },
-      { label: "Pending", value: "$2,000", icon: "bi-hourglass", color: "#f59e0b", bg: "#fffbeb" },
-      { label: "Rejected", value: "$500", icon: "bi-x-square", color: "#ef4444", bg: "#fef2f2" },
-    ],
     columns: ["Exp ID", "Emp Name", "Category", "Date", "Amount", "Status"],
     rows: [
       ["EXP1001", "John Doe", "Travel", "01 Jul 2026", "$450.00", "Approved"],
@@ -91,40 +48,15 @@ const reportData = {
       ["EXP1004", "Anita Desai", "Software", "06 Jul 2026", "$299.99", "Pending"],
       ["EXP1005", "Sunil Verma", "Travel", "07 Jul 2026", "$800.00", "Rejected"],
     ]
-  },
-  "Document": {
-    stats: [
-      { label: "Total Documents", value: "1,245", icon: "bi-folder2-open", color: "#3b82f6", bg: "#eff6ff" },
-      { label: "Uploaded (Month)", value: "85", icon: "bi-cloud-arrow-up", color: "#10b981", bg: "#ecfdf5" },
-      { label: "Pending Verification", value: "12", icon: "bi-shield-exclamation", color: "#f59e0b", bg: "#fffbeb" },
-      { label: "Storage Used", value: "4.2 GB", icon: "bi-hdd-network", color: "#8b5cf6", bg: "#f5f3ff" },
-    ],
-    columns: ["Doc ID", "Emp Name", "Type", "Upload Date", "Size", "Status"],
-    rows: [
-      ["DOC5001", "John Doe", "Resume", "01 Jul 2026", "1.2 MB", "Verified"],
-      ["DOC5002", "Jane Smith", "ID Proof", "02 Jul 2026", "2.5 MB", "Verified"],
-      ["DOC5003", "Rajesh Kumar", "Certification", "04 Jul 2026", "800 KB", "Pending"],
-      ["DOC5004", "Anita Desai", "Offer Letter", "05 Jul 2026", "1.5 MB", "Verified"],
-      ["DOC5005", "Michael Brown", "Other", "07 Jul 2026", "3.1 MB", "Pending"],
-    ]
-  },
-  "Monthly Hiring": {
-    stats: [
-      { label: "Offers Extended", value: "15", icon: "bi-envelope-paper", color: "#3b82f6", bg: "#eff6ff" },
-      { label: "Offers Accepted", value: "12", icon: "bi-hand-thumbs-up", color: "#10b981", bg: "#ecfdf5" },
-      { label: "Candidates Joined", value: "10", icon: "bi-person-check", color: "#8b5cf6", bg: "#f5f3ff" },
-      { label: "Avg Time to Fill", value: "18 Days", icon: "bi-stopwatch", color: "#f59e0b", bg: "#fffbeb" },
-    ],
-    columns: ["Candidate Name", "Role", "Department", "Offer Date", "Joining Date", "Status"],
-    rows: [
-      ["Emily Chen", "Frontend Developer", "Engineering", "15 Jun 2026", "01 Jul 2026", "Joined"],
-      ["Robert Wilson", "Account Executive", "Sales", "20 Jun 2026", "05 Jul 2026", "Joined"],
-      ["Sarah Davis", "UI Designer", "Design", "25 Jun 2026", "15 Jul 2026", "Accepted"],
-      ["Tom Holland", "Data Analyst", "Engineering", "28 Jun 2026", "—", "Pending"],
-      ["Lucy Liu", "HR Specialist", "HR", "01 Jul 2026", "—", "Declined"],
-    ]
   }
 };
+
+const globalStats = [
+  { label: "Total Employees", value: "156", icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
+  { label: "Total Departments", value: "6", icon: "bi-building", color: "#10b981", bg: "#ecfdf5" },
+  { label: "Total Leave Requests", value: "45", icon: "bi-calendar-minus", color: "#f59e0b", bg: "#fffbeb" },
+  { label: "Total Expense Claims", value: "24", icon: "bi-currency-dollar", color: "#8b5cf6", bg: "#f5f3ff" },
+];
 
 function Reports() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -222,7 +154,7 @@ function Reports() {
 
 
           <div className="row g-3 mb-4">
-            {currentReport.stats.map((s) => (
+            {globalStats.map((s) => (
               <div key={s.label} className="col-xl-3 col-md-6">
                 <div className="stat-card card-dashboard d-flex align-items-center gap-3 h-100" style={{ background: s.bg }}>
                   <div className="stat-icon flex-shrink-0" style={{ background: s.color, width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
