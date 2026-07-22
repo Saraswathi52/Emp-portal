@@ -196,8 +196,7 @@ export async function getAdminEmployees() {
     return cachedEmployees;
   } catch (error) {
     console.error('Error fetching admin employees:', error);
-    cachedEmployees = [];
-    return cachedEmployees;
+    throw error;
   }
 }
 
@@ -303,6 +302,34 @@ const KEYS = {
   PROFILE: 'peoplecore_profile',
   DOCUMENTS: 'peoplecore_documents',
 };
+
+export const MANAGER_CRUD_API = 'https://wz4iitq6zc.execute-api.ap-south-1.amazonaws.com/manager';
+
+export async function getAdminManagers() {
+  try {
+    const response = await axios.get(MANAGER_CRUD_API);
+    let data = response.data;
+    if (data.statusCode && data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    return Array.isArray(data) ? data : (data.managers || data.Items || []);
+  } catch (error) {
+    console.error('Error fetching admin managers:', error);
+    throw error;
+  }
+}
+
+export async function addAdminManager(payload) {
+  try {
+    const response = await axios.post(MANAGER_CRUD_API, payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error adding admin manager:", error);
+    throw error;
+  }
+}
 
 export const LEAVE_API_URL = 'https://rbbdgd2ai8.execute-api.ap-south-1.amazonaws.com/leave';
 

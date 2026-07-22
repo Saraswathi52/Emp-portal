@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployees, getManagerEmployees, getAdminEmployees, addAdminEmployee, updateAdminEmployee, deleteAdminEmployee } from "../services/dataService";
+import { getCurrentUser, getEmployees, getManagerEmployees, getAdminEmployees, addAdminEmployee, updateAdminEmployee, deleteAdminEmployee, addAdminManager, getAdminManagers } from "../services/dataService";
 
 function EmployeeManagement() {
   const [userRole] = useState(() => {
@@ -55,9 +55,22 @@ function EmployeeManagement() {
       setIsLoading(true);
       try {
         if (userRole === "admin") {
-          const emps = await getAdminEmployees();
-          setEmployees(emps);
-          setEmployeeCount(emps.length);
+          const [emps, mgrs] = await Promise.all([
+            getAdminEmployees().catch(err => {
+              console.error("Failed to fetch employees", err);
+              showToast("Failed to load some employee records", "warning");
+              return [];
+            }),
+            getAdminManagers().catch(err => {
+              console.error("Failed to fetch managers", err);
+              showToast("Failed to load some manager records", "warning");
+              return [];
+            })
+          ]);
+          const combined = [...emps, ...mgrs];
+          const uniqueEmps = Array.from(new Map(combined.map(item => [item.empid || item.id, item])).values());
+          setEmployees(uniqueEmps);
+          setEmployeeCount(uniqueEmps.length);
         } else if (userRole === "manager") {
           const data = getEmployees();
           setEmployees(Array.isArray(data) ? data : []);
@@ -113,16 +126,45 @@ function EmployeeManagement() {
         if (editId) {
           await updateAdminEmployee(editId, fullPayload);
         } else {
-          await addAdminEmployee(fullPayload);
+          if (empRole.trim().toLowerCase() === "manager") {
+            const managerPayload = {
+              ...fullPayload,
+              location: ""
+            };
+            await addAdminManager(managerPayload);
+          } else {
+            await addAdminEmployee(fullPayload);
+          }
         }
         showToast(editId ? "Employee updated successfully!" : "Employee added successfully!");
         
-        const emps = await getAdminEmployees();
-        setEmployees(emps);
-        setEmployeeCount(emps.length);
+        const [emps, mgrs] = await Promise.all([
+          getAdminEmployees().catch(err => {
+            console.error("Failed to fetch employees", err);
+            showToast("Failed to load some employee records", "warning");
+            return [];
+          }),
+          getAdminManagers().catch(err => {
+            console.error("Failed to fetch managers", err);
+            showToast("Failed to load some manager records", "warning");
+            return [];
+          })
+        ]);
+        const combined = [...emps, ...mgrs];
+        const uniqueEmps = Array.from(new Map(combined.map(item => [item.empid || item.id, item])).values());
+        setEmployees(uniqueEmps);
+        setEmployeeCount(uniqueEmps.length);
       } catch (e) {
         console.error(e);
-        showToast("Failed to save employee", "error");
+        let errorMsg = "Failed to save employee";
+        if (e.response && e.response.data && e.response.data.message) {
+          errorMsg = e.response.data.message;
+        } else if (e.response && typeof e.response.data === 'string') {
+          errorMsg = e.response.data;
+        } else if (e.message) {
+          errorMsg = e.message;
+        }
+        showToast(errorMsg, "error");
       } finally {
         setIsLoading(false);
       }
@@ -154,9 +196,22 @@ function EmployeeManagement() {
         await deleteAdminEmployee(id);
         showToast("Employee removed", "warning");
         
-        const emps = await getAdminEmployees();
-        setEmployees(emps);
-        setEmployeeCount(emps.length);
+        const [emps, mgrs] = await Promise.all([
+          getAdminEmployees().catch(err => {
+            console.error("Failed to fetch employees", err);
+            showToast("Failed to load some employee records", "warning");
+            return [];
+          }),
+          getAdminManagers().catch(err => {
+            console.error("Failed to fetch managers", err);
+            showToast("Failed to load some manager records", "warning");
+            return [];
+          })
+        ]);
+        const combined = [...emps, ...mgrs];
+        const uniqueEmps = Array.from(new Map(combined.map(item => [item.empid || item.id, item])).values());
+        setEmployees(uniqueEmps);
+        setEmployeeCount(uniqueEmps.length);
       } catch (e) {
         console.error(e);
         showToast("Failed to delete employee", "error");
