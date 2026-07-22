@@ -72,9 +72,16 @@ function EmployeeManagement() {
           setEmployees(uniqueEmps);
           setEmployeeCount(uniqueEmps.length);
         } else if (userRole === "manager") {
-          const data = getEmployees();
-          setEmployees(Array.isArray(data) ? data : []);
-          setEmployeeCount(Array.isArray(data) ? data.length : 0);
+          let emps = [];
+          if (currentUser?.employeeId) {
+            emps = await getManagerEmployees(currentUser.employeeId).catch(err => {
+              console.error("Failed to fetch manager employees", err);
+              showToast("Failed to fetch employees", "error");
+              return [];
+            });
+          }
+          setEmployees(emps);
+          setEmployeeCount(emps.length);
         }
       } catch (err) {
         console.error("Failed to fetch employees", err);

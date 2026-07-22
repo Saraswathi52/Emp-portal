@@ -73,20 +73,7 @@ export async function updateManagerProfile(empid, payload) {
   }
 }
 
-export async function getManagerEmployees(empid) {
-  try {
-    const response = await axios.get(`${MANAGER_API_BASE}/manager/${empid}/employees`);
-    let data = response.data;
-    if (data.statusCode && data.body) {
-      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
-    }
-    console.log("Employee API Response:", data);
-    return data;
-  } catch (error) {
-    console.error('Error fetching manager employees:', error);
-    return { managerId: empid, employeeCount: 0, employees: [] };
-  }
-}
+
 
 export async function getAdminProfile(adm_id) {
   try {
@@ -304,6 +291,37 @@ const KEYS = {
 };
 
 export const MANAGER_CRUD_API = 'https://wz4iitq6zc.execute-api.ap-south-1.amazonaws.com/manager';
+export const MANAGER_EMPLOYEES_API = 'https://5luqrfxzbi.execute-api.ap-south-1.amazonaws.com/manager';
+
+export async function getManagerEmployees(empid) {
+  try {
+    const response = await axios.get(`${MANAGER_EMPLOYEES_API}/${empid}/employees`);
+    let data = response.data;
+    if (data.statusCode && data.body) {
+      data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+    }
+    
+    let rawEmployees = Array.isArray(data) ? data : (data.employees || data.Items || []);
+    
+    // Unwrap DynamoDB format if present
+    const employees = rawEmployees.map(emp => {
+      const parsedEmp = {};
+      for (const key in emp) {
+        if (emp[key] && typeof emp[key] === 'object') {
+          parsedEmp[key] = emp[key].S !== undefined ? emp[key].S : (emp[key].N !== undefined ? emp[key].N : emp[key]);
+        } else {
+          parsedEmp[key] = emp[key];
+        }
+      }
+      return parsedEmp;
+    });
+
+    return employees;
+  } catch (error) {
+    console.error(`Error fetching employees for manager ${empid}:`, error);
+    throw error;
+  }
+}
 
 export async function getAdminManagers() {
   try {
