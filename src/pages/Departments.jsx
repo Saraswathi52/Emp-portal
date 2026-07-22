@@ -29,10 +29,10 @@ function Departments() {
           managerName: d.managerName || "Not Assigned",
           managerEmpId: d.managerEmpId || "",
           designation: d.designation || "-",
-          employeeCount: fetchedEmps.filter(e => {
-            const eDept = e.Department?.S || e.Department || e.department?.S || e.department;
-            const deptName = d.departmentName || d.name || "";
-            return eDept === deptName;
+          employeeCount: d.employeeCount !== undefined ? Number(d.employeeCount) : fetchedEmps.filter(e => {
+            const eDept = String(e.Department?.S || e.Department || e.department?.S || e.department || "").toLowerCase().trim();
+            const deptName = String(d.departmentName || d.name || "").toLowerCase().trim();
+            return eDept === deptName || (eDept === "it" && deptName === "information technology");
           }).length,
           location: d.location || d.Location || "N/A",
           status: d.status || d.Status || "Active"
