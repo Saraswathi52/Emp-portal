@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getAdminDepartments, getAdminEmployees } from "../services/dataService";
+import { getAdminDepartments, getAdminEmployees, createDepartment, updateDepartment, deleteDepartment } from "../services/dataService";
 
 function Departments() {
   const [userRole] = useState(() => {
@@ -12,7 +12,7 @@ function Departments() {
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [newDept, setNewDept] = useState({ name: "", head: "", location: "", status: "Active" });
+  const [newDept, setNewDept] = useState({ departmentName: "", managerEmpId: "", location: "", status: "Active" });
   const [toast, setToast] = useState(null);
   const [editId, setEditId] = useState(null);
 
@@ -24,17 +24,15 @@ function Departments() {
         setEmployees(fetchedEmps);
 
         const formattedDepts = fetchedDepts.map(d => {
-          const deptName = d.Name || d.name || d.id;
           return {
-            id: d.id || d.DepartmentId || `DEP-${Math.floor(Math.random()*1000)}`,
-            name: deptName,
-            head: d.Head || d.head || d.Manager || "Not Assigned",
-            employees: fetchedEmps.filter(e => {
-              const eDept = e.Department?.S || e.Department || e.department?.S || e.department;
-              return eDept === deptName;
-            }).length,
-            location: d.Location || d.location || "N/A",
-            status: d.Status || d.status || "Active"
+            depid: d.depid || `DEP-${Math.floor(Math.random()*1000)}`,
+            departmentName: d.departmentName || d.name || "",
+            managerName: d.managerName || "Not Assigned",
+            managerEmpId: d.managerEmpId || "",
+            designation: d.designation || "-",
+            employeeCount: d.employeeCount || 0,
+            location: d.location || d.Location || "N/A",
+            status: d.status || d.Status || "Active"
           };
         });
         
@@ -47,50 +45,58 @@ function Departments() {
     loadData();
   }, []);
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
-    if (editId) {
-      // TODO: API integration for updating a department will happen here later.
-      // e.g., await updateAdminDepartment(editId, newDept);
-      setDepartments(departments.map(d => d.id === editId ? { ...d, ...newDept } : d));
-      setToast({ message: "Department updated successfully!", type: "success" });
-    } else {
-      // TODO: API integration for adding a department will happen here later.
-      // e.g., await addAdminDepartment(newDept);
-      const newId = `DEP${String(departments.length + 1).padStart(3, '0')}`;
-      setDepartments([...departments, { id: newId, ...newDept, employees: 0 }]);
-      setToast({ message: "Department added successfully!", type: "success" });
+    try {
+      console.log("Department Payload:", newDept);
+      if (editId) {
+        await updateDepartment(editId, newDept);
+        setDepartments(departments.map(d => d.depid === editId ? { ...d, ...newDept } : d));
+        setToast({ message: "Department updated successfully!", type: "success" });
+      } else {
+        await createDepartment(newDept);
+        const tempId = `DEP-${Math.floor(Math.random()*1000)}`;
+        setDepartments([...departments, { depid: tempId, ...newDept, employeeCount: 0, managerName: "Pending Refresh", designation: "-" }]);
+        setToast({ message: "Department added successfully!", type: "success" });
+      }
+      
+      setShowForm(false);
+      setNewDept({ departmentName: "", managerEmpId: "", location: "", status: "Active" });
+      setEditId(null);
+      setTimeout(() => setToast(null), 3000);
+    } catch (err) {
+      console.error("Failed to save department", err);
+      alert("Failed to save department. Please try again.");
     }
-    
-    setShowForm(false);
-    setNewDept({ name: "", head: "", location: "", status: "Active" });
-    setEditId(null);
-    setTimeout(() => setToast(null), 3000);
   };
 
   const handleEdit = (dept) => {
-    setEditId(dept.id);
+    setEditId(dept.depid);
     setNewDept({
-      name: dept.name,
-      head: dept.head,
+      departmentName: dept.departmentName,
+      managerEmpId: dept.managerEmpId,
       location: dept.location,
       status: dept.status
     });
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    const dept = departments.find(d => d.id === id);
-    if (dept && dept.employees > 0) {
+  const handleDelete = async (id) => {
+    const dept = departments.find(d => d.depid === id);
+    if (dept && dept.employeeCount > 0) {
       alert("Cannot delete this department because employees are assigned to it. Please move the employees to another department first.");
       return;
     }
     if (window.confirm("Are you sure you want to delete this department?")) {
-      // TODO: API integration for deleting a department will happen here later.
-      // e.g., await deleteAdminDepartment(id);
-      setDepartments(departments.filter(d => d.id !== id));
-      setToast({ message: "Department deleted!", type: "success" });
-      setTimeout(() => setToast(null), 3000);
+      try {
+        await deleteDepartment(id);
+        setDepartments(departments.filter(d => d.depid !== id));
+        setToast({ message: "Department deleted!", type: "success" });
+        setTimeout(() => setToast(null), 3000);
+      } catch (err) {
+        console.error("Failed to delete department", err);
+        alert("Failed to delete department. Please try again.");
+      }
     }
   };
   
@@ -101,7 +107,7 @@ function Departments() {
   const locations = [...new Set(departments.map(d => d.location))];
 
   const filtered = departments.filter(d => {
-    const ms = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const ms = d.departmentName.toLowerCase().includes(searchTerm.toLowerCase()) || d.depid.toLowerCase().includes(searchTerm.toLowerCase());
     const ml = filterLocation === "All" || d.location === filterLocation;
     const ms2 = filterStatus === "All" || d.status === filterStatus;
     return ms && ml && ms2;
@@ -109,7 +115,7 @@ function Departments() {
 
   const stats = [
     { label: "Total Departments", value: departments.length, icon: "bi-building", color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Total Employees", value: departments.reduce((acc, d) => acc + d.employees, 0), icon: "bi-people", color: "#10b981", bg: "#ecfdf5" },
+    { label: "Total Employees", value: departments.reduce((acc, d) => acc + d.employeeCount, 0), icon: "bi-people", color: "#10b981", bg: "#ecfdf5" },
     { label: "Active Departments", value: departments.filter(d => d.status === "Active").length, icon: "bi-check-circle", color: "#f59e0b", bg: "#fffbeb" },
     { label: "Office Locations", value: locations.length, icon: "bi-geo-alt", color: "#8b5cf6", bg: "#f5f3ff" },
   ];
@@ -180,7 +186,9 @@ function Departments() {
                   <tr>
                     <th>Department ID</th>
                     <th>Department Name</th>
-                    <th>Department Manager</th>
+                    <th>Manager Name</th>
+                    <th>Manager ID</th>
+                    <th>Designation</th>
                     <th>Employees</th>
                     <th>Location</th>
                     <th>Status</th>
@@ -190,20 +198,22 @@ function Departments() {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="text-center py-4" style={{ color: "var(--gray-400)" }}>
+                      <td colSpan="9" className="text-center py-4" style={{ color: "var(--gray-400)" }}>
                         <i className="bi bi-building" style={{ fontSize: "2rem", display: "block", marginBottom: "0.5rem" }} />
                         No departments found
                       </td>
                     </tr>
                   ) : (
                     filtered.map((dept) => (
-                      <tr key={dept.id}>
-                        <td><span style={{ color: "var(--primary)", fontWeight: 600 }}>{dept.id}</span></td>
-                        <td className="fw-semibold">{dept.name}</td>
-                        <td>{dept.head}</td>
+                      <tr key={dept.depid}>
+                        <td><span style={{ color: "var(--primary)", fontWeight: 600 }}>{dept.depid}</span></td>
+                        <td className="fw-semibold">{dept.departmentName}</td>
+                        <td>{dept.managerName}</td>
+                        <td>{dept.managerEmpId}</td>
+                        <td>{dept.designation}</td>
                         <td>
-                          <span className={`badge-status ${dept.employees === 0 ? "" : "badge-pending"}`} style={dept.employees === 0 ? { background: "var(--gray-500)", color: "#fff", border: "none" } : {}}>
-                            <i className="bi bi-people me-1" />{dept.employees}
+                          <span className={`badge-status ${dept.employeeCount === 0 ? "" : "badge-pending"}`} style={dept.employeeCount === 0 ? { background: "var(--gray-500)", color: "#fff", border: "none" } : {}}>
+                            <i className="bi bi-people me-1" />{dept.employeeCount}
                           </span>
                         </td>
                         <td>{dept.location}</td>
@@ -217,7 +227,7 @@ function Departments() {
                             <button className="btn-custom-primary d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleEdit(dept)}>
                               <i className="bi bi-pencil" /> Edit
                             </button>
-                            <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(dept.id)}>
+                            <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(dept.depid)}>
                               <i className="bi bi-trash" /> Delete
                             </button>
                           </div>
@@ -234,18 +244,18 @@ function Departments() {
       {showForm && (
         <div className="popup-overlay" onClick={() => setShowForm(false)}>
           <div className="popup-box form-custom" onClick={e => e.stopPropagation()} style={{ maxWidth: "500px" }}>
-            <button className="close-btn" onClick={() => { setShowForm(false); setEditId(null); setNewDept({ name: "", head: "", location: "", status: "Active" }); }}>
+            <button className="close-btn" onClick={() => { setShowForm(false); setEditId(null); setNewDept({ departmentName: "", managerEmpId: "", location: "", status: "Active" }); }}>
               <i className="bi bi-x-lg"></i>
             </button>
             <h4 className="fw-bold mb-4">{editId ? "Edit Department" : "Add New Department"}</h4>
             <form onSubmit={handleAdd}>
               <div className="mb-3">
                 <label className="form-label">Department Name</label>
-                <input type="text" className="form-control" required value={newDept.name} onChange={e => setNewDept({...newDept, name: e.target.value})} disabled={!!editId} />
+                <input type="text" className="form-control" required value={newDept.departmentName} onChange={e => setNewDept({...newDept, departmentName: e.target.value})} disabled={!!editId} />
               </div>
               <div className="mb-3">
                 <label className="form-label">Department Manager</label>
-                <select className="form-select" required value={newDept.head} onChange={e => setNewDept({...newDept, head: e.target.value})}>
+                <select className="form-select" required value={newDept.managerEmpId} onChange={e => setNewDept({...newDept, managerEmpId: e.target.value})}>
                   <option value="">Select Manager</option>
                   {employees
                     .filter(e => {
@@ -254,7 +264,8 @@ function Departments() {
                     })
                     .map((m, i) => {
                       const mName = m.FullName?.S || m.name?.S || m.FullName || m.name || m.empid || m.id;
-                      return <option key={i} value={mName}>{mName}</option>;
+                      const mId = m.empid?.S || m.id?.S || m.empid || m.id;
+                      return <option key={i} value={mId}>{mName} ({mId})</option>;
                     })
                   }
                 </select>
@@ -271,7 +282,7 @@ function Departments() {
                 </select>
               </div>
               <div className="d-flex justify-content-end gap-2 mt-4">
-                <button type="button" className="btn btn-light" onClick={() => { setShowForm(false); setEditId(null); setNewDept({ name: "", head: "", location: "", status: "Active" }); }}>Cancel</button>
+                <button type="button" className="btn btn-light" onClick={() => { setShowForm(false); setEditId(null); setNewDept({ departmentName: "", managerEmpId: "", location: "", status: "Active" }); }}>Cancel</button>
                 <button type="submit" className="btn-custom-primary px-4">{editId ? "Update Department" : "Save Department"}</button>
               </div>
             </form>

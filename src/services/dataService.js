@@ -198,14 +198,53 @@ export async function getAdminEmployees() {
 
 export async function getAdminDepartments() {
   try {
-    const response = await axios.get(`${ADMIN_API_BASE}/admin/departments`);
+    const response = await axios.get(ED_DEPARTMENT_API);
     if (response.data) {
-      return JSON.parse(response.data.body || "[]");
+      if (response.data.body) {
+        return typeof response.data.body === 'string' ? JSON.parse(response.data.body) : response.data.body;
+      }
+      return Array.isArray(response.data) ? response.data : (response.data.Items || []);
     }
     return [];
   } catch (error) {
     console.error('Error fetching admin departments:', error);
     return [];
+  }
+}
+
+export const ED_DEPARTMENT_API = 'https://uzxfzaqjsd.execute-api.ap-south-1.amazonaws.com/ed_department';
+
+export async function createDepartment(payload) {
+  try {
+    const response = await axios.post(ED_DEPARTMENT_API, payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error adding department:", error);
+    throw error;
+  }
+}
+
+export async function updateDepartment(depid, payload) {
+  try {
+    const response = await axios.put(`${ED_DEPARTMENT_API}/${depid}`, payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating department:", error);
+    throw error;
+  }
+}
+
+export async function deleteDepartment(depid) {
+  try {
+    const response = await axios.delete(`${ED_DEPARTMENT_API}/${depid}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting department:", error);
+    throw error;
   }
 }
 
