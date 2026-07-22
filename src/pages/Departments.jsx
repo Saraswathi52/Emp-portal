@@ -33,9 +33,16 @@ function Departments() {
   };
 
   const handleDelete = (id) => {
-    setDepartments(departments.filter(d => d.id !== id));
-    setToast({ message: "Department deleted!", type: "success" });
-    setTimeout(() => setToast(null), 3000);
+    const dept = departments.find(d => d.id === id);
+    if (dept && dept.employees > 0) {
+      alert("Cannot delete this department because employees are assigned to it. Please move the employees to another department first.");
+      return;
+    }
+    if (window.confirm("Are you sure you want to delete this department?")) {
+      setDepartments(departments.filter(d => d.id !== id));
+      setToast({ message: "Department deleted!", type: "success" });
+      setTimeout(() => setToast(null), 3000);
+    }
   };
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -124,7 +131,7 @@ function Departments() {
                   <tr>
                     <th>Department ID</th>
                     <th>Department Name</th>
-                    <th>Department Head</th>
+                    <th>Department Manager</th>
                     <th>Employees</th>
                     <th>Location</th>
                     <th>Status</th>
@@ -145,7 +152,11 @@ function Departments() {
                         <td><span style={{ color: "var(--primary)", fontWeight: 600 }}>{dept.id}</span></td>
                         <td className="fw-semibold">{dept.name}</td>
                         <td>{dept.head}</td>
-                        <td><span className="badge-status badge-pending">{dept.employees}</span></td>
+                        <td>
+                          <span className={`badge-status ${dept.employees === 0 ? "" : "badge-pending"}`} style={dept.employees === 0 ? { background: "var(--gray-500)", color: "#fff", border: "none" } : {}}>
+                            <i className="bi bi-people me-1" />{dept.employees}
+                          </span>
+                        </td>
                         <td>{dept.location}</td>
                         <td>
                           <span className={`badge-status ${dept.status === "Active" ? "badge-approved" : "badge-rejected"}`}>
@@ -154,7 +165,7 @@ function Departments() {
                         </td>
                         <td>
                           <div className="action-btns justify-content-center">
-                            <button className="btn-custom-outline d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }}>
+                            <button className="btn-custom-primary d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => {}}>
                               <i className="bi bi-pencil" /> Edit
                             </button>
                             <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(dept.id)}>

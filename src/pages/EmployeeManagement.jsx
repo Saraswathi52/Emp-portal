@@ -21,8 +21,24 @@ function EmployeeManagement() {
   const [employeeName, setEmployeeName] = useState("");
   const [department, setDepartment] = useState("");
   const [empRole, setEmpRole] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [manager, setManager] = useState("");
+  const [generatedEmail, setGeneratedEmail] = useState("");
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    if (employeeName.trim()) {
+      const parts = employeeName.trim().toLowerCase().split(/\s+/);
+      if (parts.length === 1) {
+        setGeneratedEmail(`${parts[0]}@peoplecore.com`);
+      } else {
+        setGeneratedEmail(`${parts[0]}.${parts[parts.length - 1]}@peoplecore.com`);
+      }
+    } else {
+      setGeneratedEmail("");
+    }
+  }, [employeeName]);
   const [filterDept, setFilterDept] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [errors, setErrors] = useState({});
@@ -62,6 +78,9 @@ function EmployeeManagement() {
     setEmployeeName("");
     setDepartment("");
     setEmpRole("");
+    setDesignation("");
+    setManager("");
+    setGeneratedEmail("");
     setEditId(null);
     setErrors({});
   };
@@ -72,6 +91,7 @@ function EmployeeManagement() {
     if (!employeeName.trim()) newErrors.employeeName = true;
     if (!department.trim()) newErrors.department = true;
     if (!empRole.trim()) newErrors.empRole = true;
+    if (!designation.trim()) newErrors.designation = true;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -83,10 +103,10 @@ function EmployeeManagement() {
       try {
         const fullPayload = {
           empid: employeeId.trim(), Title: "", FullName: employeeName.trim(), DateOfBirth: "",
-          BloodGroup: "", Phone: "", Email: "", Address: "", Department: department.trim(),
-          Designation: "", JoiningDate: "", Manager: "", Status: "Active", EmergencyContactName: "",
+          BloodGroup: "", Phone: "", Email: generatedEmail, Address: "", Department: department.trim(),
+          Designation: designation.trim(), JoiningDate: "", Manager: manager, Status: "Active", EmergencyContactName: "",
           EmergencyContactPhone: "", EmergencyContactRelation: "", Education: "", Skills: [],
-          LinkedIn: "", GitHub: "", Role: empRole.trim(), Password: "password123", profileImage: "",
+          LinkedIn: "", GitHub: "", Role: empRole.trim(), Password: `${employeeId.trim()}@123`, profileImage: "",
           resume: "", resumeName: ""
         };
 
@@ -103,7 +123,7 @@ function EmployeeManagement() {
         setIsLoading(false);
       }
     } else {
-      const newEmployee = { id: employeeId.trim(), name: employeeName.trim(), department: department.trim(), role: empRole.trim() };
+      const newEmployee = { id: employeeId.trim(), name: employeeName.trim(), department: department.trim(), role: empRole.trim(), Designation: designation.trim(), Email: generatedEmail, Manager: manager, Password: `${employeeId.trim()}@123` };
 
       if (editId) {
         setEmployees(employees.map(emp => emp.id === editId ? newEmployee : emp));
@@ -146,12 +166,12 @@ function EmployeeManagement() {
   };
 
   const handleEdit = (emp) => {
-    setEmployeeId(emp.id);
-    setEmployeeName(emp.name);
-    setDepartment(emp.department);
-    setEmpRole(emp.role);
-    setEditId(emp.id);
-    setShowForm(true);
+    setEmployeeName(emp.name || emp.FullName?.S || emp.FullName || "");
+    setDepartment(emp.department || emp.Department?.S || emp.Department || "");
+    setEmpRole(emp.role || emp.Role?.S || emp.Role || "");
+    setDesignation(emp.Designation?.S || emp.Designation || "");
+    setManager(emp.Manager?.S || emp.Manager || "");
+    setEditId(emp.id || emp.empid?.S || emp.empid);
     setErrors({});
   };
 
@@ -210,10 +230,10 @@ function EmployeeManagement() {
       <div className="main-content">
         <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <div className="page-content">
-          <div className="section-header">
+          <div className="section-header mb-4">
             <div>
-              <h4>Employee Management</h4>
-              <p>{userRole === "manager" ? employeeCount : visibleEmployees.length} employees in the system</p>
+              <h3 className="fw-bold mb-1" style={{ color: "var(--gray-900)" }}>Employee Management</h3>
+              <p className="text-muted mb-0" style={{ fontSize: "0.95rem" }}>{userRole === "manager" ? employeeCount : visibleEmployees.length} employees in the system</p>
             </div>
             {userRole !== "manager" && (
               <button
@@ -226,12 +246,57 @@ function EmployeeManagement() {
             )}
           </div>
 
+          <div className="row g-3 mb-4">
+            <div className="col-xl-4 col-md-4">
+              <div className="stat-card card-dashboard d-flex align-items-center gap-3 h-100" style={{ background: "#eff6ff", border: "none" }}>
+                <div className="stat-icon" style={{ background: "#3b82f6", width: 44, height: 44, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "10px" }}>
+                  <i className="bi bi-people" style={{ color: "#fff", fontSize: "1.2rem" }} />
+                </div>
+                <div>
+                  <div className="stat-label" style={{ color: "var(--gray-600)", fontSize: "0.85rem", fontWeight: 600 }}>Total Employees</div>
+                  <div className="stat-value" style={{ color: "#3b82f6", fontSize: "1.5rem", fontWeight: 700 }}>{visibleEmployees.length}</div>
+                </div>
+              </div>
+            </div>
+            <div className="col-xl-4 col-md-4">
+              <div className="stat-card card-dashboard d-flex align-items-center gap-3 h-100" style={{ background: "#ecfdf5", border: "none" }}>
+                <div className="stat-icon" style={{ background: "#10b981", width: 44, height: 44, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "10px" }}>
+                  <i className="bi bi-person-check" style={{ color: "#fff", fontSize: "1.2rem" }} />
+                </div>
+                <div>
+                  <div className="stat-label" style={{ color: "var(--gray-600)", fontSize: "0.85rem", fontWeight: 600 }}>Active Employees</div>
+                  <div className="stat-value" style={{ color: "#10b981", fontSize: "1.5rem", fontWeight: 700 }}>{visibleEmployees.filter(e => { const status = e.Status?.S || e.status?.S || e.Status || e.status; return status !== "Inactive"; }).length}</div>
+                </div>
+              </div>
+            </div>
+            <div className="col-xl-4 col-md-4">
+              <div className="stat-card card-dashboard d-flex align-items-center gap-3 h-100" style={{ background: "#fffbeb", border: "none" }}>
+                <div className="stat-icon" style={{ background: "#f59e0b", width: 44, height: 44, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "10px" }}>
+                  <i className="bi bi-building" style={{ color: "#fff", fontSize: "1.2rem" }} />
+                </div>
+                <div>
+                  <div className="stat-label" style={{ color: "var(--gray-600)", fontSize: "0.85rem", fontWeight: 600 }}>Total Departments</div>
+                  <div className="stat-value" style={{ color: "#f59e0b", fontSize: "1.5rem", fontWeight: 700 }}>
+                    {new Set(visibleEmployees.map(e => e.Department?.S || e.department?.S || e.Department || e.department).filter(d => d && d !== "-")).size}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {showForm && (
             <div className="card-dashboard p-4 mb-4">
               <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)" }}>
                 <i className={`bi ${editId ? "bi-pencil-square" : "bi-person-plus"} me-2`} style={{ color: "var(--primary)" }} />
                 {editId ? "Edit Employee" : "New Employee"}
               </h5>
+              
+              {(() => {
+                const filteredManagers = employees.filter(e => {
+                  const dept = e.Department?.S || e.department?.S || e.Department || e.department || "";
+                  return dept === department;
+                });
+                return (
               <div className="row g-3 form-custom">
                 <div className="col-md-3">
                   <label className="form-label">Employee ID</label>
@@ -260,48 +325,67 @@ function EmployeeManagement() {
                   </select>
                 </div>
                 <div className="col-md-3">
-                  <label className="form-label">Role</label>
+                  <label className="form-label">Designation</label>
+                  <input type="text" className={`form-control ${errors.designation ? "is-invalid" : ""}`} placeholder="Software Engineer" value={designation} onChange={(e) => { setDesignation(e.target.value); setErrors({ ...errors, designation: false }); }} />
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Portal Role</label>
                   <select className={`form-select ${errors.empRole ? "is-invalid" : ""}`} value={empRole} onChange={(e) => { setEmpRole(e.target.value); setErrors({ ...errors, empRole: false }); }}>
                     <option value="">Select Role</option>
                     <option value="Employee">Employee</option>
                     <option value="Manager">Manager</option>
-                    <option value="Admin">Admin</option>
                   </select>
                 </div>
-                <div className="col-12">
+                <div className="col-md-3">
+                  <label className="form-label">Email (Auto-generated)</label>
+                  <input type="text" className="form-control text-muted" value={generatedEmail} disabled style={{ backgroundColor: "var(--gray-100)" }} />
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Manager</label>
+                  <select className={`form-select ${errors.manager ? "is-invalid" : ""}`} value={manager} onChange={(e) => { setManager(e.target.value); setErrors({ ...errors, manager: false }); }} disabled={!department}>
+                    <option value="">Select Manager</option>
+                    {filteredManagers.map((m, i) => {
+                      const mName = m.FullName?.S || m.name?.S || m.FullName || m.name;
+                      return <option key={i} value={mName}>{mName}</option>;
+                    })}
+                  </select>
+                </div>
+                <div className="col-12 mt-4">
                   <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={handleSave}>
                     <i className={`bi ${editId ? "bi-arrow-repeat" : "bi-save"}`} />
                     {editId ? "Update Employee" : "Save Employee"}
                   </button>
                 </div>
               </div>
+              );
+              })()}
             </div>
           )}
 
           <div className="card-dashboard p-4">
-            <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-              <div className="search-box">
-                <i className="bi bi-search" />
-                <input type="text" className="form-control" placeholder="Search employees..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-4 mb-4">
+              <div className="search-box position-relative" style={{ width: "350px", maxWidth: "100%" }}>
+                <i className="bi bi-search position-absolute" style={{ left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--gray-500)" }} />
+                <input type="text" className="form-control shadow-sm" style={{ padding: "0.6rem 1rem 0.6rem 2.5rem", borderRadius: "8px", border: "1px solid var(--gray-200)", fontSize: "0.95rem" }} placeholder="Search employees..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
               </div>
               <div className="d-flex gap-2 align-items-center">
-                <i className="bi bi-funnel" style={{ color: "var(--gray-400)" }} />
-                <select className="form-select" style={{ width: "auto", borderRadius: "50px", fontSize: "0.85rem", padding: "0.35rem 2rem 0.35rem 0.75rem" }} value={filterDept} onChange={(e) => { setFilterDept(e.target.value); setCurrentPage(1); }}>
+                <i className="bi bi-funnel" style={{ color: "var(--gray-500)", fontSize: "1.1rem" }} />
+                <select className="form-select shadow-sm" style={{ width: "auto", borderRadius: "8px", fontSize: "0.95rem", padding: "0.6rem 2.5rem 0.6rem 1rem", border: "1px solid var(--gray-200)" }} value={filterDept} onChange={(e) => { setFilterDept(e.target.value); setCurrentPage(1); }}>
                   <option value="All">All Departments</option>
                   {departments.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             </div>
 
-            <div className="table-responsive">
-              <table className="table-custom table">
-                <thead>
+            <div className="table-responsive shadow-sm rounded-4 border" style={{ overflow: "hidden" }}>
+              <table className="table-custom table table-hover align-middle mb-0">
+                <thead style={{ background: "var(--gray-200)" }}>
                   <tr>
-                    <th>Employee ID</th>
-                    <th>Name</th>
-                    <th>Department</th>
-                    <th>Role</th>
-                    <th className="text-center">Actions</th>
+                    <th style={{ padding: "1rem" }}>Employee ID</th>
+                    <th style={{ padding: "1rem" }}>Name</th>
+                    <th style={{ padding: "1rem" }}>Department</th>
+                    <th style={{ padding: "1rem" }}>Role</th>
+                    <th className="text-center" style={{ padding: "1rem" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -319,33 +403,48 @@ function EmployeeManagement() {
                       const empName = emp.FullName?.S || emp.name?.S || emp.FullName || emp.name || "-";
                       const empDept = emp.Department?.S || emp.department?.S || emp.Department || emp.department || "-";
                       const empRole = emp.Designation?.S || emp.role?.S || emp.Designation || emp.role || "-";
+                      const getInitials = (name) => {
+                        if (!name || name === "-") return "?";
+                        const parts = name.trim().split(" ");
+                        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                        return name.substring(0, 2).toUpperCase();
+                      };
+                      const initials = getInitials(empName);
+                      
+                      // Generate a consistent color based on name string
+                      const colors = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6"];
+                      const colorIndex = empName !== "-" ? empName.length % colors.length : 0;
+                      const avatarBg = colors[colorIndex];
+
                       return (
                       <tr key={emp.empid?.S || index}>
                         <td><span style={{ color: "var(--primary)", fontWeight: 600 }}>{empId}</span></td>
-                        <td className="fw-semibold d-flex align-items-center gap-2">
-                          {emp.profileImage?.S || emp.profileImage ? (
-                            <img src={emp.profileImage?.S || emp.profileImage} alt="profile" style={{width: 30, height: 30, borderRadius: "50%", objectFit: "cover"}}/>
-                          ) : (
-                            <div style={{width:30,height:30,borderRadius:"50%",background:"var(--primary)",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.8rem",flexShrink:0}}>
-                              {empName ? empName.charAt(0).toUpperCase() : '?'}
-                            </div>
-                          )}
-                          {empName}
+                        <td>
+                          <div className="d-flex align-items-center gap-3">
+                            {emp.profileImage?.S || emp.profileImage ? (
+                              <img src={emp.profileImage?.S || emp.profileImage} alt="profile" style={{width: 42, height: 42, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff", boxShadow: "0 2px 4px rgba(0,0,0,0.08)"}}/>
+                            ) : (
+                              <div style={{width: 42, height: 42, borderRadius: "50%", background: avatarBg, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.95rem", fontWeight: 600, flexShrink: 0, boxShadow: "0 2px 4px rgba(0,0,0,0.08)"}}>
+                                {initials}
+                              </div>
+                            )}
+                            <span className="fw-semibold" style={{ fontSize: "0.95rem" }}>{empName}</span>
+                          </div>
                         </td>
                         <td><span className="badge-status badge-uploaded">{empDept}</span></td>
                         <td>{empRole}</td>
                         <td>
-                          <div className="action-btns justify-content-center">
+                          <div className="action-btns justify-content-center d-flex gap-2">
                             {userRole === "manager" ? (
                               <button className="btn-custom-primary d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => setViewEmployee(emp)}>
                                 <i className="bi bi-eye" /> View
                               </button>
                             ) : (
                               <>
-                                <button className="btn-custom-outline d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleEdit(emp)}>
+                                <button className="btn-custom-outline d-flex align-items-center justify-content-center gap-1" style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem", borderRadius: "6px" }} onClick={() => handleEdit(emp)}>
                                   <i className="bi bi-pencil" /> Edit
                                 </button>
-                                <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(empId)}>
+                                <button className="btn-custom-danger d-flex align-items-center justify-content-center gap-1" style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem", borderRadius: "6px" }} onClick={() => { if(window.confirm("Are you sure you want to delete this employee?")) handleDelete(empId); }}>
                                   <i className="bi bi-trash" /> Delete
                                 </button>
                               </>

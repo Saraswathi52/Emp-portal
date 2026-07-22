@@ -196,6 +196,19 @@ export async function getAdminEmployees() {
   }
 }
 
+export async function getAdminDepartments() {
+  try {
+    const response = await axios.get(`${ADMIN_API_BASE}/admin/departments`);
+    if (response.data) {
+      return JSON.parse(response.data.body || "[]");
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching admin departments:', error);
+    return [];
+  }
+}
+
 export async function addAdminEmployee(payload) {
   try {
     const response = await axios.post(`${ADMIN_API_BASE}/admin/employees`, payload, {

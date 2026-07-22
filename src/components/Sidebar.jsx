@@ -1,12 +1,11 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Gauge, CalendarCheck, Wallet, FolderOpen, Users, Building, FileBarChart, X, LogOut } from "lucide-react";
+import { Gauge, CalendarCheck, Wallet, FolderOpen, Users, Building, FileBarChart, X, LogOut, Activity } from "lucide-react";
 
 const menuConfig = {
   employee: [
     { label: "Dashboard", path: "/employee-dashboard", icon: Gauge },
     { label: "Leave Management", path: "/leave", icon: CalendarCheck },
     { label: "Expense Management", path: "/expenses", icon: Wallet },
-    { label: "Documents", path: "/documents", icon: FolderOpen },
   ],
   manager: [
     { label: "Dashboard", path: "/manager-dashboard", icon: Gauge },
@@ -18,7 +17,7 @@ const menuConfig = {
     { label: "Dashboard", path: "/admin-dashboard", icon: Gauge },
     { label: "Employees", path: "/employees", icon: Users },
     { label: "Departments", path: "/departments", icon: Building },
-    { label: "Documents", path: "/documents", icon: FolderOpen },
+    { label: "Monitor Application", path: "/monitor", icon: Activity },
     { label: "Reports", path: "/reports", icon: FileBarChart },
   ],
 };

@@ -13,6 +13,7 @@ import ManagerDashboard from "./pages/ManagerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Departments from "./pages/Departments";
 import Reports from "./pages/Reports";
+import Monitor from "./pages/Monitor";
 
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
       <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
       <Route path="/manager-dashboard" element={<ManagerDashboard />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route path="/monitor" element={<Monitor />} />
       <Route path="/reports" element={<Reports />} />
 
     </Routes>
