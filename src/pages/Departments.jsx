@@ -1,15 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-
-const initialDepartments = [
-  { id: "DEP001", name: "Software Development", head: "John Doe", employees: 45, location: "Hyderabad", status: "Active" },
-  { id: "DEP002", name: "Human Resources", head: "Alice Smith", employees: 18, location: "Hyderabad", status: "Active" },
-  { id: "DEP003", name: "Finance", head: "Michael Johnson", employees: 12, location: "Bengaluru", status: "Active" },
-  { id: "DEP004", name: "Marketing", head: "Sophia Williams", employees: 22, location: "Chennai", status: "Active" },
-  { id: "DEP005", name: "Sales", head: "David Brown", employees: 30, location: "Mumbai", status: "Active" },
-  { id: "DEP006", name: "Administration", head: "Admin User", employees: 8, location: "Hyderabad", status: "Active" },
-];
+import { getAdminDepartments, getAdminEmployees } from "../services/dataService";
 
 function Departments() {
   const [userRole] = useState(() => {
@@ -17,19 +9,74 @@ function Departments() {
     return stored ? JSON.parse(stored).role.toLowerCase() : "employee";
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [departments, setDepartments] = useState(initialDepartments);
+  const [departments, setDepartments] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [newDept, setNewDept] = useState({ name: "", head: "", location: "", status: "Active" });
   const [toast, setToast] = useState(null);
+  const [editId, setEditId] = useState(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const fetchedDepts = await getAdminDepartments();
+        const fetchedEmps = await getAdminEmployees();
+        setEmployees(fetchedEmps);
+
+        const formattedDepts = fetchedDepts.map(d => {
+          const deptName = d.Name || d.name || d.id;
+          return {
+            id: d.id || d.DepartmentId || `DEP-${Math.floor(Math.random()*1000)}`,
+            name: deptName,
+            head: d.Head || d.head || d.Manager || "Not Assigned",
+            employees: fetchedEmps.filter(e => {
+              const eDept = e.Department?.S || e.Department || e.department?.S || e.department;
+              return eDept === deptName;
+            }).length,
+            location: d.Location || d.location || "N/A",
+            status: d.Status || d.status || "Active"
+          };
+        });
+        
+        // If the backend returns no departments, we show an empty list instead of hardcoded data.
+        setDepartments(formattedDepts);
+      } catch (err) {
+        console.error("Failed to load departments or employees:", err);
+      }
+    }
+    loadData();
+  }, []);
 
   const handleAdd = (e) => {
     e.preventDefault();
-    const newId = `DEP00${departments.length + 1}`;
-    setDepartments([...departments, { id: newId, ...newDept, employees: 0 }]);
+    if (editId) {
+      // TODO: API integration for updating a department will happen here later.
+      // e.g., await updateAdminDepartment(editId, newDept);
+      setDepartments(departments.map(d => d.id === editId ? { ...d, ...newDept } : d));
+      setToast({ message: "Department updated successfully!", type: "success" });
+    } else {
+      // TODO: API integration for adding a department will happen here later.
+      // e.g., await addAdminDepartment(newDept);
+      const newId = `DEP${String(departments.length + 1).padStart(3, '0')}`;
+      setDepartments([...departments, { id: newId, ...newDept, employees: 0 }]);
+      setToast({ message: "Department added successfully!", type: "success" });
+    }
+    
     setShowForm(false);
     setNewDept({ name: "", head: "", location: "", status: "Active" });
-    setToast({ message: "Department added successfully!", type: "success" });
+    setEditId(null);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleEdit = (dept) => {
+    setEditId(dept.id);
+    setNewDept({
+      name: dept.name,
+      head: dept.head,
+      location: dept.location,
+      status: dept.status
+    });
+    setShowForm(true);
   };
 
   const handleDelete = (id) => {
@@ -39,6 +86,8 @@ function Departments() {
       return;
     }
     if (window.confirm("Are you sure you want to delete this department?")) {
+      // TODO: API integration for deleting a department will happen here later.
+      // e.g., await deleteAdminDepartment(id);
       setDepartments(departments.filter(d => d.id !== id));
       setToast({ message: "Department deleted!", type: "success" });
       setTimeout(() => setToast(null), 3000);
@@ -165,7 +214,7 @@ function Departments() {
                         </td>
                         <td>
                           <div className="action-btns justify-content-center">
-                            <button className="btn-custom-primary d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => {}}>
+                            <button className="btn-custom-primary d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleEdit(dept)}>
                               <i className="bi bi-pencil" /> Edit
                             </button>
                             <button className="btn-custom-danger d-flex align-items-center gap-1" style={{ padding: "0.3rem 0.7rem", fontSize: "0.78rem" }} onClick={() => handleDelete(dept.id)}>
@@ -185,18 +234,30 @@ function Departments() {
       {showForm && (
         <div className="popup-overlay" onClick={() => setShowForm(false)}>
           <div className="popup-box form-custom" onClick={e => e.stopPropagation()} style={{ maxWidth: "500px" }}>
-            <button className="close-btn" onClick={() => setShowForm(false)}>
+            <button className="close-btn" onClick={() => { setShowForm(false); setEditId(null); setNewDept({ name: "", head: "", location: "", status: "Active" }); }}>
               <i className="bi bi-x-lg"></i>
             </button>
-            <h4 className="fw-bold mb-4">Add New Department</h4>
+            <h4 className="fw-bold mb-4">{editId ? "Edit Department" : "Add New Department"}</h4>
             <form onSubmit={handleAdd}>
               <div className="mb-3">
                 <label className="form-label">Department Name</label>
-                <input type="text" className="form-control" required value={newDept.name} onChange={e => setNewDept({...newDept, name: e.target.value})} />
+                <input type="text" className="form-control" required value={newDept.name} onChange={e => setNewDept({...newDept, name: e.target.value})} disabled={!!editId} />
               </div>
               <div className="mb-3">
-                <label className="form-label">Department Head</label>
-                <input type="text" className="form-control" required value={newDept.head} onChange={e => setNewDept({...newDept, head: e.target.value})} />
+                <label className="form-label">Department Manager</label>
+                <select className="form-select" required value={newDept.head} onChange={e => setNewDept({...newDept, head: e.target.value})}>
+                  <option value="">Select Manager</option>
+                  {employees
+                    .filter(e => {
+                      const role = e.Role?.S || e.role?.S || e.Role || e.role || "";
+                      return role.toLowerCase() === "manager";
+                    })
+                    .map((m, i) => {
+                      const mName = m.FullName?.S || m.name?.S || m.FullName || m.name || m.empid || m.id;
+                      return <option key={i} value={mName}>{mName}</option>;
+                    })
+                  }
+                </select>
               </div>
               <div className="mb-3">
                 <label className="form-label">Location</label>
@@ -210,8 +271,8 @@ function Departments() {
                 </select>
               </div>
               <div className="d-flex justify-content-end gap-2 mt-4">
-                <button type="button" className="btn btn-light" onClick={() => setShowForm(false)}>Cancel</button>
-                <button type="submit" className="btn-custom-primary px-4">Save Department</button>
+                <button type="button" className="btn btn-light" onClick={() => { setShowForm(false); setEditId(null); setNewDept({ name: "", head: "", location: "", status: "Active" }); }}>Cancel</button>
+                <button type="submit" className="btn-custom-primary px-4">{editId ? "Update Department" : "Save Department"}</button>
               </div>
             </form>
           </div>
