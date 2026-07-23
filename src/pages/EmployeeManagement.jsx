@@ -3,6 +3,14 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployees, getManagerEmployees, getAdminEmployees, addAdminEmployee, updateAdminEmployee, deleteAdminEmployee, addAdminManager, getAdminManagers } from "../services/dataService";
 
+const designationMap = {
+  "IT": ["Software Engineer", "Senior Software Engineer", "QA Engineer", "Technical Lead", "DevOps Engineer"],
+  "Cloud": ["Cloud Engineer", "AWS Engineer", "Azure Engineer", "Cloud Architect"],
+  "Finance": ["Accountant", "Financial Analyst", "Finance Executive", "Finance Manager"],
+  "HR": ["HR Executive", "HR Manager", "Recruiter", "Talent Acquisition Specialist"],
+  "Admin": ["Admin Executive", "Office Administrator", "Operations Executive"]
+};
+
 function EmployeeManagement() {
   const [userRole] = useState(() => {
     const stored = localStorage.getItem("user");
@@ -23,22 +31,11 @@ function EmployeeManagement() {
   const [empRole, setEmpRole] = useState("");
   const [designation, setDesignation] = useState("");
   const [manager, setManager] = useState("");
-  const [generatedEmail, setGeneratedEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [joiningDate, setJoiningDate] = useState(new Date().toISOString().split('T')[0]);
+  const [email, setEmail] = useState("");
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-
-  useEffect(() => {
-    if (employeeName.trim()) {
-      const parts = employeeName.trim().toLowerCase().split(/\s+/);
-      if (parts.length === 1) {
-        setGeneratedEmail(`${parts[0]}@peoplecore.com`);
-      } else {
-        setGeneratedEmail(`${parts[0]}.${parts[parts.length - 1]}@peoplecore.com`);
-      }
-    } else {
-      setGeneratedEmail("");
-    }
-  }, [employeeName]);
   const [filterDept, setFilterDept] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [errors, setErrors] = useState({});
@@ -100,7 +97,9 @@ function EmployeeManagement() {
     setEmpRole("");
     setDesignation("");
     setManager("");
-    setGeneratedEmail("");
+    setPhoneNumber("");
+    setJoiningDate(new Date().toISOString().split('T')[0]);
+    setEmail("");
     setEditId(null);
     setErrors({});
   };
@@ -112,9 +111,23 @@ function EmployeeManagement() {
     if (!department.trim()) newErrors.department = true;
     if (!empRole.trim()) newErrors.empRole = true;
     if (!designation.trim()) newErrors.designation = true;
+    if (!phoneNumber.trim() || !/^\d{10}$/.test(phoneNumber)) newErrors.phoneNumber = true;
+    if (empRole.trim() === "Employee" && !manager.trim()) newErrors.manager = true;
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) newErrors.email = true;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      return;
+    }
+
+    const isEmailDuplicate = employees.some(emp => {
+      const empEmail = emp.Email?.S || emp.email?.S || emp.Email || emp.email;
+      const id = emp.empid?.S || emp.id?.S || emp.empid || emp.id;
+      return empEmail === email.trim() && id !== editId;
+    });
+
+    if (isEmailDuplicate) {
+      showToast("Email address already exists", "warning");
       return;
     }
 
@@ -123,8 +136,8 @@ function EmployeeManagement() {
       try {
         const fullPayload = {
           empid: employeeId.trim(), Title: "", FullName: employeeName.trim(), DateOfBirth: "",
-          BloodGroup: "", Phone: "", Email: generatedEmail, Address: "", Department: department.trim(),
-          Designation: designation.trim(), JoiningDate: "", Manager: manager, Status: "Active", EmergencyContactName: "",
+          BloodGroup: "", Phone: phoneNumber.trim(), Email: email.trim(), Address: "", Department: department.trim(),
+          Designation: designation.trim(), JoiningDate: joiningDate, Manager: manager, Status: "Active", EmergencyContactName: "",
           EmergencyContactPhone: "", EmergencyContactRelation: "", Education: "", Skills: [],
           LinkedIn: "", GitHub: "", Role: empRole.trim(), Password: `${employeeId.trim()}@123`, profileImage: "",
           resume: "", resumeName: ""
@@ -176,7 +189,7 @@ function EmployeeManagement() {
         setIsLoading(false);
       }
     } else {
-      const newEmployee = { id: employeeId.trim(), name: employeeName.trim(), department: department.trim(), role: empRole.trim(), Designation: designation.trim(), Email: generatedEmail, Manager: manager, Password: `${employeeId.trim()}@123` };
+      const newEmployee = { id: employeeId.trim(), name: employeeName.trim(), department: department.trim(), role: empRole.trim(), Designation: designation.trim(), Email: email.trim(), Phone: phoneNumber.trim(), JoiningDate: joiningDate, Manager: manager, Password: `${employeeId.trim()}@123`, Status: "Active" };
 
       if (editId) {
         setEmployees(employees.map(emp => emp.id === editId ? newEmployee : emp));
@@ -237,6 +250,9 @@ function EmployeeManagement() {
     setEmpRole(emp.role || emp.Role?.S || emp.Role || "");
     setDesignation(emp.Designation?.S || emp.Designation || "");
     setManager(emp.Manager?.S || emp.Manager || "");
+    setPhoneNumber(emp.Phone?.S || emp.Phone || "");
+    setJoiningDate(emp.JoiningDate?.S || emp.JoiningDate || new Date().toISOString().split('T')[0]);
+    setEmail(emp.Email?.S || emp.email?.S || emp.Email || emp.email || "");
     setEditId(emp.id || emp.empid?.S || emp.empid);
     setErrors({});
   };
@@ -377,22 +393,27 @@ function EmployeeManagement() {
                   <select 
                     className={`form-select ${errors.department ? "is-invalid" : ""}`} 
                     value={department} 
-                    onChange={(e) => { setDepartment(e.target.value); setErrors({ ...errors, department: false }); }}
+                    onChange={(e) => { 
+                      setDepartment(e.target.value); 
+                      setDesignation("");
+                      setErrors({ ...errors, department: false }); 
+                    }}
                   >
                     <option value="">Select Department</option>
-                    <option value="IT">IT</option>
-                    <option value="HR">HR</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Engineering">Engineering</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Sales">Sales</option>
-                    <option value="Operations">Operations</option>
-                    <option value="Administration">Administration</option>
+                    {Object.keys(designationMap).map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Designation</label>
-                  <input type="text" className={`form-control ${errors.designation ? "is-invalid" : ""}`} placeholder="Software Engineer" value={designation} onChange={(e) => { setDesignation(e.target.value); setErrors({ ...errors, designation: false }); }} />
+                  <select 
+                    className={`form-select ${errors.designation ? "is-invalid" : ""}`} 
+                    value={designation} 
+                    onChange={(e) => { setDesignation(e.target.value); setErrors({ ...errors, designation: false }); }}
+                    disabled={!department}
+                  >
+                    <option value="">Select Designation</option>
+                    {department && designationMap[department] && designationMap[department].map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Portal Role</label>
@@ -403,8 +424,8 @@ function EmployeeManagement() {
                   </select>
                 </div>
                 <div className="col-md-3">
-                  <label className="form-label">Email (Auto-generated)</label>
-                  <input type="text" className="form-control text-muted" value={generatedEmail} disabled style={{ backgroundColor: "var(--gray-100)" }} />
+                  <label className="form-label">Email Address</label>
+                  <input type="email" className={`form-control ${errors.email ? "is-invalid" : ""}`} placeholder="employee@example.com" value={email} onChange={(e) => { setEmail(e.target.value); setErrors({ ...errors, email: false }); }} />
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Manager</label>
@@ -415,6 +436,15 @@ function EmployeeManagement() {
                       return <option key={i} value={mName}>{mName}</option>;
                     })}
                   </select>
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Phone Number</label>
+                  <input type="text" className={`form-control ${errors.phoneNumber ? "is-invalid" : ""}`} placeholder="1234567890" value={phoneNumber} onChange={(e) => { setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10)); setErrors({ ...errors, phoneNumber: false }); }} />
+                  {errors.phoneNumber && <small className="text-danger">Must be exactly 10 digits</small>}
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Joining Date</label>
+                  <input type="date" className="form-control text-muted" value={joiningDate} disabled style={{ backgroundColor: "var(--gray-100)" }} />
                 </div>
                 <div className="col-12 mt-4">
                   <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={handleSave}>

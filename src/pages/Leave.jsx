@@ -91,9 +91,18 @@ function Leave() {
     fetchEmp();
   }, [empId]);
 
-  const [role] = useState(() => {
+  const [role, setRole] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored).role.toLowerCase() : "employee";
+  });
+
+  const [userName] = useState(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      const u = JSON.parse(stored);
+      return u.FullName || u.fullName || u.name || u.empid || "Manager";
+    }
+    return "Manager";
   });
 
   const leaveBal = getLeaveBalances(empId);
@@ -260,7 +269,7 @@ function Leave() {
       return;
     }
     try {
-      await updateManagerLeaveStatus(leaveId, 'Approved');
+      await updateManagerLeaveStatus(leaveId, 'Approved', userName);
       showToast('Leave approved');
       fetchLeaves();
     } catch (error) {
@@ -277,7 +286,7 @@ function Leave() {
       return;
     }
     try {
-      await updateManagerLeaveStatus(leaveId, 'Rejected');
+      await updateManagerLeaveStatus(leaveId, 'Rejected', userName);
       showToast('Leave rejected', 'warning');
       fetchLeaves();
     } catch (error) {

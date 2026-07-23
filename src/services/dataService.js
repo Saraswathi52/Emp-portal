@@ -424,10 +424,10 @@ export async function getEmployeeLeaveRequests(employeeId) {
   }
 }
 
-export async function updateManagerLeaveStatus(leaveId, status) {
+export async function updateManagerLeaveStatus(leaveId, status, approvedBy) {
   try {
     const url = `${LEAVE_API_URL}/${leaveId}`;
-    const response = await axios.put(url, { status }, {
+    const response = await axios.put(url, { status, approvedBy }, {
       headers: { 'Content-Type': 'application/json' }
     });
     return response.data;
@@ -956,7 +956,7 @@ export async function addExpense(expense) {
   }
 }
 
-export async function updateExpenseStatus(id, status, empid) {
+export async function updateExpenseStatus(id, status, empid, approvedBy) {
   if (!id) {
     console.error("updateExpenseStatus Error: expid is undefined", { id });
     return;
@@ -964,6 +964,9 @@ export async function updateExpenseStatus(id, status, empid) {
   const payload = {
     status: status
   };
+  if (approvedBy) {
+    payload.approvedBy = approvedBy;
+  }
 
   const url = `${EXPENSE_API_URL}/${id}`;
   console.log("Request URL:", url);

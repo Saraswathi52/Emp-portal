@@ -29,7 +29,7 @@ function Departments() {
           managerName: d.managerName || "Not Assigned",
           managerEmpId: d.managerEmpId || "",
           designation: d.designation || "-",
-          employeeCount: d.employeeCount !== undefined ? Number(d.employeeCount) : fetchedEmps.filter(e => {
+          employeeCount: fetchedEmps.filter(e => {
             const eDept = String(e.Department?.S || e.Department || e.department?.S || e.department || "").toLowerCase().trim();
             const deptName = String(d.departmentName || d.name || "").toLowerCase().trim();
             return eDept === deptName || (eDept === "it" && deptName === "information technology");

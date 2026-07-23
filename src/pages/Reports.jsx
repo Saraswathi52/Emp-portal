@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getEmployeeReport, getManagerReport, getDepartmentReport, getLeaveReport, getExpenseReport } from "../services/dataService";
+import { getEmployeeReport, getManagerReport, getDepartmentReport, getLeaveReport, getExpenseReport, getAdminDepartments, getAdminEmployees } from "../services/dataService";
 
 const reportTypes = [
   "Employee",
@@ -40,9 +40,57 @@ function Reports() {
         let data = [];
         if (activeTab === "Employee") data = await getEmployeeReport();
         else if (activeTab === "Manager") data = await getManagerReport();
-        else if (activeTab === "Department") data = await getDepartmentReport();
+        else if (activeTab === "Department") {
+          const fetchedDepts = await getAdminDepartments();
+          const fetchedEmps = await getAdminEmployees();
+          
+          data = fetchedDepts.map(d => {
+            const deptName = String(d.departmentName || d.name || "").toLowerCase().trim();
+            const deptEmps = fetchedEmps.filter(e => {
+              const eDept = String(e.Department?.S || e.Department || e.department?.S || e.department || "").toLowerCase().trim();
+              return eDept === deptName || (eDept === "it" && deptName === "information technology");
+            });
+
+            const inactiveCount = deptEmps.filter(e => {
+              const status = String(e.Status?.S || e.Status || e.status?.S || e.status || "").toLowerCase().trim();
+              return status === "inactive";
+            }).length;
+            
+            const totalCount = deptEmps.length;
+            const activeCount = totalCount - inactiveCount;
+
+            return {
+              ...d,
+              DepartmentName: d.departmentName || d.name || "",
+              ManagerName: d.managerName || "Not Assigned",
+              TotalEmployees: totalCount,
+              ActiveEmployees: activeCount,
+              InactiveEmployees: inactiveCount
+            };
+          });
+        }
         else if (activeTab === "Leave") data = await getLeaveReport();
-        else if (activeTab === "Expense") data = await getExpenseReport();
+        else if (activeTab === "Expense") {
+          const fetchedExp = await getExpenseReport();
+          const fetchedEmps = await getAdminEmployees();
+          data = fetchedExp.map(exp => {
+            let eName = exp.EmployeeName?.S || exp.EmployeeName || exp.employeeName?.S || exp.employeeName || exp.FullName?.S || exp.FullName;
+            if (!eName || eName === "-") {
+              const empId = exp.employeeId?.S || exp.employeeId || exp.EmployeeId?.S || exp.EmployeeId || exp.empid?.S || exp.empid;
+              const empMatch = fetchedEmps.find(e => {
+                const id = String(e.empid?.S || e.empid || e.id?.S || e.id);
+                return id === String(empId);
+              });
+              if (empMatch) {
+                eName = empMatch.FullName?.S || empMatch.FullName || empMatch.name?.S || empMatch.name;
+              }
+            }
+            return {
+              ...exp,
+              EmployeeName: typeof eName === 'string' ? eName : String(eName || "-")
+            };
+          });
+        }
         
         setReportData(data || []);
       } catch (err) {
@@ -82,7 +130,13 @@ function Reports() {
       { key: "email", label: "Email", extract: r => r.Email || r.email || "-" },
       { key: "phone", label: "Phone", extract: r => r.Phone || r.phone || r.EmergencyContactPhone || "-" },
       { key: "status", label: "Status", extract: r => r.Status || r.status || "Active", isBadge: true },
-      { key: "join", label: "Joining Date", extract: r => r.JoiningDate || r.joiningDate || "-" },
+      { key: "join", label: "Joining Date", extract: r => {
+        const d = r.JoiningDate || r.joiningDate;
+        if (!d || d === "-") return "-";
+        const parts = d.split('-');
+        if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return d;
+      }},
     ],
     "Manager": [
       { key: "id", label: "Manager ID", extract: r => r.ManagerId || r.empid || r.id || "-" },
@@ -276,14 +330,14 @@ function Reports() {
                   <h6 className="text-muted fw-semibold">No Records Found</h6>
                 </div>
               ) : (
-                <div className="table-responsive" style={{ overflow: "hidden" }}>
+                <div className="table-responsive" style={{ overflowX: "auto" }}>
                   <table className="table-custom table table-hover align-middle mb-0">
                     <thead style={{ background: "var(--gray-50)", borderTop: "1px solid var(--gray-200)", borderBottom: "1px solid var(--gray-200)" }}>
                       <tr>
                         {currentColumns.map((col) => (
                           <th 
                             key={col.key} 
-                            style={{ padding: "1rem", cursor: "pointer", userSelect: "none" }}
+                            style={{ padding: "1rem", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
                             onClick={() => handleSort(col.key)}
                           >
                             <div className="d-flex align-items-center gap-2">
@@ -303,7 +357,7 @@ function Reports() {
                       {paginatedData.map((row, rowIndex) => (
                         <tr key={rowIndex}>
                           {currentColumns.map((col, cellIndex) => (
-                            <td key={col.key} className={cellIndex === 0 ? "fw-semibold" : ""}>
+                            <td key={col.key} className={cellIndex === 0 ? "fw-semibold" : ""} style={col.key === 'join' ? { whiteSpace: "nowrap" } : {}}>
                               {col.isBadge ? getStatusBadge(row[col.key]) : row[col.key]}
                             </td>
                           ))}

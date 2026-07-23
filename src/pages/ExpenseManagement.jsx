@@ -5,9 +5,18 @@ import { getCurrentUser, getExpenses, getAllExpenses, getManagerExpenses, addExp
 
 function ExpenseManagement() {
   const user = getCurrentUser();
-  const [role] = useState(() => {
+  const [role, setRole] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored).role.toLowerCase() : "employee";
+  });
+  
+  const [userName] = useState(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      const u = JSON.parse(stored);
+      return u.FullName || u.fullName || u.name || u.empid || "Manager";
+    }
+    return "Manager";
   });
   const empId = user?.employeeId || 'EMP001';
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -142,7 +151,7 @@ function ExpenseManagement() {
   const handleApprove = async (id, empid) => {
     try {
       console.log("PUT Payload: status=Approved for", id);
-      await updateExpenseStatus(id, 'Approved', empid);
+      await updateExpenseStatus(id, 'Approved', empid, userName);
       showToast('Expense approved');
       if (viewItem && viewItem.id === id) {
         setViewItem({ ...viewItem, status: 'Approved' });
@@ -157,7 +166,7 @@ function ExpenseManagement() {
   const handleReject = async (id, empid) => {
     try {
       console.log("PUT Payload: status=Rejected for", id);
-      await updateExpenseStatus(id, 'Rejected', empid);
+      await updateExpenseStatus(id, 'Rejected', empid, userName);
       showToast('Expense rejected', 'warning');
       if (viewItem && viewItem.id === id) {
         setViewItem({ ...viewItem, status: 'Rejected' });
