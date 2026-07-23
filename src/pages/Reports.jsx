@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getEmployeeReport, getManagerReport, getDepartmentReport, getLeaveReport, getExpenseReport, getAdminDepartments, getAdminEmployees } from "../services/dataService";
+import { exportToPDF, exportToExcel } from "../utils/exportUtils";
 
 const reportTypes = [
   "Employee",
@@ -251,10 +252,16 @@ function Reports() {
               <p className="text-muted mb-0">Generate and export comprehensive organizational data.</p>
             </div>
             <div className="d-flex gap-2">
-              <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={() => showToast(`Exported ${activeTab} Report as PDF`)}>
+              <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={() => {
+                  exportToPDF(activeTab, currentColumns, sortedData, { From: dateFrom, To: dateTo, Department: department });
+                  showToast(`Exported ${activeTab} Report as PDF`);
+                }}>
                 <i className="bi bi-file-earmark-pdf" style={{ color: "var(--danger)" }} /> Export PDF
               </button>
-              <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={() => showToast(`Exported ${activeTab} Report as Excel`)}>
+              <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={() => {
+                  exportToExcel(activeTab, currentColumns, sortedData, { From: dateFrom, To: dateTo, Department: department });
+                  showToast(`Exported ${activeTab} Report as Excel`);
+                }}>
                 <i className="bi bi-file-earmark-excel" style={{ color: "var(--success)" }} /> Export Excel
               </button>
             </div>
