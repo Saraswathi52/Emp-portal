@@ -40,13 +40,6 @@ function AdminDashboard() {
         }).length;
         
         const fallbackDepts = Array.from(new Set(emps.map(e => e.Department?.S || e.Department || e.department?.S || e.department))).filter(d => d && d !== "-");
-        
-        setMetrics({
-          totalEmps: emps.length,
-          activeEmps: active,
-          totalDepts: deptsData.length > 0 ? deptsData.length : fallbackDepts.length,
-          newEmps: newEmps
-        });
 
         const formattedDepts = deptsData.length > 0 
           ? deptsData.map(d => {
@@ -97,8 +90,10 @@ function AdminDashboard() {
         const locations = Array.from(new Set(formattedDepts.map(d => d.location || "N/A"))).filter(Boolean);
         
         setMetrics({
-          totalEmps: formattedDepts.reduce((acc, d) => acc + d.count, 0),
-          totalDepts: formattedDepts.length,
+          totalEmps: emps.length,
+          activeEmps: active,
+          newEmps: newEmps,
+          totalDepts: formattedDepts.length || (deptsData.length > 0 ? deptsData.length : fallbackDepts.length),
           activeDepts: formattedDepts.filter(d => (d.status || d.Status || "Active") === "Active").length,
           officeLocations: locations.length
         });
