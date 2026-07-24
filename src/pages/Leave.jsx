@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployee, getLeaveBalances, getLeaveRequests, getAllLeaveRequests, addLeaveRequest, updateLeaveStatus, getHolidays, getNextLeaveId, submitLeaveRequestApi, deleteLeaveRequestApi, deleteLeaveRequestLocal, getManagerLeaveRequests, getEmployeeLeaveRequests, updateManagerLeaveStatus } from "../services/dataService";
+import { addNotification } from "../services/notificationService";
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -226,6 +227,17 @@ function Leave() {
 
     try {
       await submitLeaveRequestApi(newLeave);
+      
+      const managerId = employee?.ManagerEmpId || employee?.managerEmpId || employee?.managerId || employee?.Manager || 'manager';
+      const empName = employee?.name || employee?.FullName || empId;
+      addNotification(managerId, {
+        title: "New Leave Request",
+        text: `New leave request from ${empName}.`,
+        iconType: 'leave-request',
+        color: '#3b82f6',
+        bg: '#eff6ff'
+      });
+      
       showToast(wfh ? 'WFH request submitted successfully!' : 'Leave applied successfully!');
       fetchLeaves();
     } catch (e) {

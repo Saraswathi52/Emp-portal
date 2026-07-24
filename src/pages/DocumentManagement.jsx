@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser } from "../services/dataService";
+import { getCurrentUser, getEmployee } from "../services/dataService";
+import { addNotification } from "../services/notificationService";
 
 function DocumentManagement() {
   const currentUser = getCurrentUser() || {};
@@ -171,6 +172,18 @@ function DocumentManagement() {
         body: JSON.stringify(payload)
       });
       if (response.ok) {
+        // Send notification to manager
+        getEmployee(currentEmpId).then(emp => {
+          const managerId = emp?.ManagerEmpId || emp?.managerEmpId || emp?.managerId || emp?.Manager || 'manager';
+          addNotification(managerId, {
+            title: "New Document",
+            text: `New document uploaded by ${currentUser.name || currentUser.FullName || currentEmpId} pending approval.`,
+            iconType: 'document',
+            color: '#3b82f6',
+            bg: '#eff6ff'
+          });
+        }).catch(() => {});
+        
         showToast("Document uploaded successfully!");
         setShowAddForm(false);
         resetForm();

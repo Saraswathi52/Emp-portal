@@ -15,6 +15,8 @@ function Departments() {
   const [newDept, setNewDept] = useState({ departmentName: "", managerEmpId: "", location: "", status: "Active" });
   const [toast, setToast] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const loadData = async () => {
     try {
@@ -58,7 +60,25 @@ function Departments() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
+    
+    const errors = {};
+    if (!newDept.departmentName.trim()) errors.departmentName = "Department Name is required.";
+    else if (!editId && departments.some(d => d.departmentName.toLowerCase() === newDept.departmentName.toLowerCase())) {
+        errors.departmentName = "Department Name already exists.";
+    }
+    if (!newDept.managerEmpId) errors.managerEmpId = "Manager is required.";
+    if (!newDept.location) errors.location = "Location is required.";
+    
+    if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        return;
+    }
+    
+    setValidationErrors({});
+    setIsSaving(true);
+    
     try {
+      newDept.departmentName = newDept.departmentName.trim();
       if (editId) {
         await updateAdminDepartment(editId, newDept);
         setToast({ message: "Department updated successfully!", type: "success" });
@@ -75,6 +95,8 @@ function Departments() {
     } catch (err) {
       console.error("Failed to save department", err);
       alert("Failed to save department. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -256,35 +278,74 @@ function Departments() {
       {showForm && (
         <div className="popup-overlay" onClick={() => setShowForm(false)}>
           <div className="popup-box form-custom" onClick={e => e.stopPropagation()} style={{ maxWidth: "500px" }}>
-            <button className="close-btn" onClick={() => { setShowForm(false); setEditId(null); setNewDept({ departmentName: "", managerEmpId: "", location: "", status: "Active" }); }}>
+            <button className="close-btn" onClick={() => { setShowForm(false); setEditId(null); setValidationErrors({}); setNewDept({ departmentName: "", managerEmpId: "", location: "", status: "Active" }); }}>
               <i className="bi bi-x-lg"></i>
             </button>
             <h4 className="fw-bold mb-4">{editId ? "Edit Department" : "Add New Department"}</h4>
             <form onSubmit={handleAdd}>
               <div className="mb-3">
-                <label className="form-label">Department Name</label>
-                <input type="text" className="form-control" required value={newDept.departmentName} onChange={e => setNewDept({...newDept, departmentName: e.target.value})} disabled={!!editId} />
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Department Manager</label>
-                <select className="form-select" required value={newDept.managerEmpId} onChange={e => setNewDept({...newDept, managerEmpId: e.target.value})}>
-                  <option value="">Select Manager</option>
-                  {employees
-                    .filter(e => {
-                      const role = e.Role?.S || e.role?.S || e.Role || e.role || "";
-                      return role.toLowerCase() === "manager";
-                    })
-                    .map((m, i) => {
-                      const mName = m.FullName?.S || m.name?.S || m.FullName || m.name || m.empid || m.id;
-                      const mId = m.empid?.S || m.id?.S || m.empid || m.id;
-                      return <option key={i} value={mId}>{mName} ({mId})</option>;
-                    })
-                  }
+                <label className="form-label">Department Name <span className="text-danger">*</span></label>
+                <select className={`form-select ${validationErrors.departmentName ? 'is-invalid' : ''}`} required value={newDept.departmentName} onChange={e => { setNewDept({...newDept, departmentName: e.target.value}); setValidationErrors({...validationErrors, departmentName: null}); }} disabled={!!editId}>
+                  <option value="" disabled>Select Department</option>
+                  <option value="Engineering">Engineering</option>
+                  <option value="Human Resources (HR)">Human Resources (HR)</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Sales">Sales</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Operations">Operations</option>
+                  <option value="Customer Support">Customer Support</option>
+                  <option value="Quality Assurance (QA)">Quality Assurance (QA)</option>
+                  <option value="DevOps">DevOps</option>
+                  <option value="Administration">Administration</option>
                 </select>
+                {validationErrors.departmentName && <div className="invalid-feedback">{validationErrors.departmentName}</div>}
               </div>
               <div className="mb-3">
-                <label className="form-label">Location</label>
-                <input type="text" className="form-control" required value={newDept.location} onChange={e => setNewDept({...newDept, location: e.target.value})} />
+                <label className="form-label">Department Manager <span className="text-danger">*</span></label>
+                {(() => {
+                    const availableManagers = employees.filter(e => {
+                      const role = e.Role?.S || e.role?.S || e.Role || e.role || "";
+                      const dept = e.Department?.S || e.department?.S || e.Department || e.department || "";
+                      const isManager = role.toLowerCase() === "manager";
+                      
+                      if (!newDept.departmentName) return isManager;
+                      
+                      const selectedDept = newDept.departmentName.toLowerCase();
+                      const eDept = dept.toLowerCase();
+                      
+                      let matchesDept = eDept === selectedDept;
+                      // Handle abbreviations and common mismatches
+                      if (selectedDept === "human resources (hr)" && eDept.includes("human resources")) matchesDept = true;
+                      if (selectedDept === "quality assurance (qa)" && eDept.includes("quality assurance")) matchesDept = true;
+                      if (selectedDept === "information technology" && eDept === "it") matchesDept = true;
+                      
+                      return isManager && matchesDept;
+                    });
+                    
+                    const noManagers = newDept.departmentName && availableManagers.length === 0;
+
+                    return (
+                      <select className={`form-select ${validationErrors.managerEmpId ? 'is-invalid' : ''}`} required value={newDept.managerEmpId} onChange={e => { setNewDept({...newDept, managerEmpId: e.target.value}); setValidationErrors({...validationErrors, managerEmpId: null}); }} disabled={noManagers}>
+                        <option value="" disabled>{noManagers ? "No managers available for this department" : "Select Department Manager"}</option>
+                        {availableManagers.map((m, i) => {
+                          const mName = m.FullName?.S || m.name?.S || m.FullName || m.name || m.empid || m.id;
+                          const mId = m.empid?.S || m.id?.S || m.empid || m.id;
+                          return <option key={i} value={mId}>{mName} ({mId})</option>;
+                        })}
+                      </select>
+                    );
+                })()}
+                {validationErrors.managerEmpId && <div className="invalid-feedback">{validationErrors.managerEmpId}</div>}
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Location <span className="text-danger">*</span></label>
+                <select className={`form-select ${validationErrors.location ? 'is-invalid' : ''}`} required value={newDept.location} onChange={e => { setNewDept({...newDept, location: e.target.value}); setValidationErrors({...validationErrors, location: null}); }}>
+                  <option value="" disabled>Select Office Location</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                  <option value="Chennai">Chennai</option>
+                  <option value="Bangalore">Bangalore</option>
+                </select>
+                {validationErrors.location && <div className="invalid-feedback">{validationErrors.location}</div>}
               </div>
               <div className="mb-4">
                 <label className="form-label">Status</label>
@@ -294,8 +355,14 @@ function Departments() {
                 </select>
               </div>
               <div className="d-flex justify-content-end gap-2 mt-4">
-                <button type="button" className="btn btn-light" onClick={() => { setShowForm(false); setEditId(null); setNewDept({ departmentName: "", managerEmpId: "", location: "", status: "Active" }); }}>Cancel</button>
-                <button type="submit" className="btn-custom-primary px-4">{editId ? "Update Department" : "Save Department"}</button>
+                <button type="button" className="btn btn-light" onClick={() => { setShowForm(false); setEditId(null); setValidationErrors({}); setNewDept({ departmentName: "", managerEmpId: "", location: "", status: "Active" }); }}>Cancel</button>
+                <button type="submit" className="btn-custom-primary px-4" disabled={!newDept.departmentName.trim() || !newDept.managerEmpId || !newDept.location || isSaving}>
+                  {isSaving ? (
+                    <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...</>
+                  ) : (
+                    editId ? "Update Department" : "Save Department"
+                  )}
+                </button>
               </div>
             </form>
           </div>

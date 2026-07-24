@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Gift, CalendarCheck, CalendarX, IndianRupee, CheckCircle2 } from "lucide-react";
 import { getEmployee, getLeaveRequests, getHolidays } from "../services/dataService";
+import { getNotifications, markAllAsRead, markAsRead } from "../services/notificationService";
+import { FileText } from "lucide-react";
 
 function Navbar({ onToggleSidebar }) {
   const navigate = useNavigate();
@@ -33,6 +35,17 @@ function Navbar({ onToggleSidebar }) {
   }
   
   const [employee, setEmployee] = useState(null);
+
+  useEffect(() => {
+    const handleSync = (e) => {
+      if (e.detail?.userId === userData?.employeeId) {
+        loadNotifications();
+      }
+    };
+    window.addEventListener('notificationSync', handleSync);
+    return () => window.removeEventListener('notificationSync', handleSync);
+  }, [userData?.employeeId]);
+
 
   useEffect(() => {
     async function fetchEmp() {
@@ -126,74 +139,31 @@ function Navbar({ onToggleSidebar }) {
         console.error("Failed to load birthdays", error);
       }
 
-      // 2. Leaves
+      // 2. Fetch from Notification Service
       try {
-        const { getEmployeeLeaveRequests } = await import('../services/dataService');
-        const leaves = await getEmployeeLeaveRequests(userData.employeeId);
-        leaves.forEach(l => {
-          const status = l.status?.S || l.status;
-          const approverName = employee?.Manager || 'Your manager';
-          if (status === 'Approved') {
-            notifs.push({
-              id: notifId++,
-              title: 'Leave Approved',
-              text: `${approverName} approved your leave request.`,
-              icon: CalendarCheck,
-              color: '#10b981',
-              bg: '#ecfdf5',
-              time: 'Recent',
-              isUnread: true
-            });
-          } else if (status === 'Rejected') {
-            notifs.push({
-              id: notifId++,
-              title: 'Leave Rejected',
-              text: `${approverName} rejected your leave request.`,
-              icon: CalendarX,
-              color: '#ef4444',
-              bg: '#fef2f2',
-              time: 'Recent',
-              isUnread: true
-            });
-          }
+        const storedNotifs = getNotifications(userData.employeeId) || [];
+        
+        storedNotifs.forEach(n => {
+           // map iconType to lucide icon component
+           let IconComp = Bell;
+           if (n.iconType === 'leave-approve') IconComp = CalendarCheck;
+           if (n.iconType === 'leave-reject') IconComp = CalendarX;
+           if (n.iconType === 'leave-request') IconComp = CalendarCheck;
+           if (n.iconType === 'expense') IconComp = IndianRupee;
+           if (n.iconType === 'document') IconComp = FileText;
+           
+           notifs.push({
+             ...n,
+             icon: IconComp
+           });
         });
-      } catch (error) {
-        console.error("Failed to load leave notifications", error);
-      }
-
-      // 3. Expenses
-      try {
-        const { getExpenses } = await import('../services/dataService');
-        const expenses = await getExpenses(userData.employeeId);
-        expenses.forEach(e => {
-          const status = e.status?.S || e.status;
-          if (status === 'Approved') {
-            notifs.push({
-              id: notifId++,
-              title: 'Expense Approved',
-              text: 'Your expense request was approved.',
-              icon: IndianRupee,
-              color: '#10b981',
-              bg: '#ecfdf5',
-              time: 'Recent',
-              isUnread: true
-            });
-          } else if (status === 'Rejected') {
-            notifs.push({
-              id: notifId++,
-              title: 'Expense Rejected',
-              text: 'Rejected expense request.',
-              icon: IndianRupee,
-              color: '#ef4444',
-              bg: '#fef2f2',
-              time: 'Recent',
-              isUnread: true
-            });
-          }
-        });
-      } catch (error) {
-        console.error("Failed to load expense notifications", error);
-      }
+      } catch (e) { console.error(e); }
+      
+      // Sort so newest is first by id (timestamp is embedded) or timestamp
+      notifs.sort((a, b) => {
+        if (a.timestamp && b.timestamp) return new Date(b.timestamp) - new Date(a.timestamp);
+        return 0; // Birthdays stay at top/where they are
+      });
       
       setNotifications(notifs);
     }
@@ -233,14 +203,14 @@ function Navbar({ onToggleSidebar }) {
           >
             <Bell size={18} style={{ color: "var(--gray-600)" }} />
             <span className="position-absolute badge rounded-pill bg-danger" style={{ top: "4px", right: "4px", fontSize: "0.55rem", padding: "0.25em 0.4em" }}>
-              {notifications.length}
+              {notifications.filter(n => n.isUnread).length > 0 ? notifications.filter(n => n.isUnread).length : ''}
             </span>
           </button>
           {showNotif && (
             <div className="dropdown-menu dropdown-menu-end shadow-lg show p-0" style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, borderRadius: "12px", border: "1px solid rgba(0,0,0,0.06)", minWidth: "380px", overflow: "hidden", zIndex: 1000, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.15)" }}>
               <div className="d-flex align-items-center justify-content-between p-3" style={{ background: "#fff", borderBottom: "1px solid var(--gray-100)" }}>
                 <h6 className="mb-0 fw-bold" style={{ color: "var(--gray-800)", fontSize: "1.05rem" }}>Notifications</h6>
-                <button className="btn btn-link p-0 text-primary text-decoration-none" style={{ fontSize: "0.85rem", fontWeight: 500 }}>
+                <button onClick={() => markAllAsRead(userData?.employeeId)} className="btn btn-link p-0 text-primary text-decoration-none" style={{ fontSize: "0.85rem", fontWeight: 500 }}>
                   <CheckCircle2 size={16} className="me-1" /> Mark all as read
                 </button>
               </div>
@@ -253,7 +223,7 @@ function Navbar({ onToggleSidebar }) {
                   </div>
                 ) : (
                   notifications.map(n => (
-                    <div key={n.id} className="dropdown-item d-flex align-items-start gap-3 p-3 position-relative" style={{ borderBottom: "1px solid var(--gray-50)", whiteSpace: "normal", transition: "background 0.2s ease" }}>
+                    <div key={n.id} onClick={() => n.isUnread && markAsRead(userData?.employeeId, n.id)} className="dropdown-item d-flex align-items-start gap-3 p-3 position-relative" style={{ borderBottom: "1px solid var(--gray-50)", whiteSpace: "normal", transition: "background 0.2s ease", cursor: n.isUnread ? 'pointer' : 'default' }}>
                       <div style={{ width: 40, height: 40, borderRadius: "50%", background: n.bg, color: n.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <n.icon size={20} />
                       </div>
