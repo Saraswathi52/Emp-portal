@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { Users, UserCheck, Building, UserPlus } from "lucide-react";
-import { getAdminEmployees, getAdminDepartments } from "../services/dataService";
+import { getAdminEmployees, getAdminManagers, getAdminDepartments } from "../services/dataService";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -20,7 +20,12 @@ function AdminDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const emps = await getAdminEmployees();
+        const [regEmps, mgrs] = await Promise.all([
+          getAdminEmployees().catch(() => []),
+          getAdminManagers().catch(() => [])
+        ]);
+        const combined = [...regEmps, ...mgrs];
+        const emps = Array.from(new Map(combined.map(item => [item.empid || item.id, item])).values());
         const deptsData = await getAdminDepartments();
         
         const active = emps.filter(e => {
@@ -107,10 +112,9 @@ function AdminDashboard() {
   }, []);
 
   const stats = [
-    { label: "Total Departments", value: metrics.totalDepts, icon: Building, color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Total Employees", value: metrics.totalEmps, icon: Users, color: "#10b981", bg: "#ecfdf5" },
-    { label: "Active Departments", value: metrics.activeDepts, icon: UserCheck, color: "#f59e0b", bg: "#fffbeb" },
-    { label: "Office Locations", value: metrics.officeLocations, icon: UserPlus, color: "#8b5cf6", bg: "#f5f3ff" },
+    { label: "Total Employees", value: metrics.totalEmps, icon: Users, color: "#3b82f6", bg: "#eff6ff" },
+    { label: "Active Employees", value: metrics.activeEmps, icon: UserCheck, color: "#10b981", bg: "#ecfdf5" },
+    { label: "Total Departments", value: metrics.totalDepts, icon: Building, color: "#f59e0b", bg: "#fffbeb" }
   ];
 
   const timeAgo = (dateStr) => {
@@ -144,7 +148,7 @@ function AdminDashboard() {
 
           <div className="row g-3 mb-4">
             {stats.map((s) => (
-              <div key={s.label} className="col-xl-3 col-md-6">
+              <div key={s.label} className="col-xl-4 col-md-4">
                 <div className="stat-card card-dashboard d-flex align-items-center gap-3 h-100" style={{ background: s.bg }}>
                   <div className="stat-icon" style={{ background: s.color, width: 44, height: 44, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <s.icon size={22} color="#fff" />

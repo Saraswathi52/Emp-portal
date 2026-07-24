@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getAdminDepartments, getAdminEmployees, addAdminDepartment, updateAdminDepartment, deleteAdminDepartment } from "../services/dataService";
+import { getAdminDepartments, getAdminEmployees, getAdminManagers, addAdminDepartment, updateAdminDepartment, deleteAdminDepartment } from "../services/dataService";
 
 function Departments() {
   const [userRole] = useState(() => {
@@ -19,7 +19,12 @@ function Departments() {
   const loadData = async () => {
     try {
       const fetchedDepts = await getAdminDepartments();
-      const fetchedEmps = await getAdminEmployees();
+      const [regEmps, mgrs] = await Promise.all([
+        getAdminEmployees().catch(() => []),
+        getAdminManagers().catch(() => [])
+      ]);
+      const combined = [...regEmps, ...mgrs];
+      const fetchedEmps = Array.from(new Map(combined.map(item => [item.empid || item.id, item])).values());
       setEmployees(fetchedEmps);
 
       const formattedDepts = fetchedDepts.map(d => {
@@ -47,6 +52,8 @@ function Departments() {
 
   useEffect(() => {
     loadData();
+    window.addEventListener('dataSync', loadData);
+    return () => window.removeEventListener('dataSync', loadData);
   }, []);
 
   const handleAdd = async (e) => {
@@ -114,11 +121,15 @@ function Departments() {
     return ms && ml && ms2;
   });
 
+  const activeEmps = employees.filter(e => {
+    const s = e.Status?.S || e.status?.S || e.Status || e.status;
+    return s !== "Inactive";
+  }).length;
+  
   const stats = [
-    { label: "Total Departments", value: departments.length, icon: "bi-building", color: "#3b82f6", bg: "#eff6ff" },
-    { label: "Total Employees", value: departments.reduce((acc, d) => acc + d.employeeCount, 0), icon: "bi-people", color: "#10b981", bg: "#ecfdf5" },
-    { label: "Active Departments", value: departments.filter(d => d.status === "Active").length, icon: "bi-check-circle", color: "#f59e0b", bg: "#fffbeb" },
-    { label: "Office Locations", value: locations.length, icon: "bi-geo-alt", color: "#8b5cf6", bg: "#f5f3ff" },
+    { label: "Total Employees", value: employees.length, icon: "bi-people", color: "#3b82f6", bg: "#eff6ff" },
+    { label: "Active Employees", value: activeEmps, icon: "bi-person-check", color: "#10b981", bg: "#ecfdf5" },
+    { label: "Total Departments", value: new Set(employees.map(e => e.Department?.S || e.department?.S || e.Department || e.department).filter(d => d && d !== "-")).size, icon: "bi-building", color: "#f59e0b", bg: "#fffbeb" }
   ];
 
   return (
@@ -147,7 +158,7 @@ function Departments() {
 
           <div className="row g-3 mb-4">
             {stats.map((s) => (
-              <div key={s.label} className="col-xl-3 col-md-6">
+              <div key={s.label} className="col-xl-4 col-md-4">
                 <div className="stat-card card-dashboard d-flex align-items-center gap-3" style={{ background: s.bg }}>
                   <div className="stat-icon" style={{ background: s.color, width: 44, height: 44, fontSize: "1.2rem", margin: 0 }}>
                     <i className={`bi ${s.icon}`} />

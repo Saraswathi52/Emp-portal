@@ -88,6 +88,8 @@ function EmployeeManagement() {
       }
     }
     fetchEmployees();
+    window.addEventListener('dataSync', fetchEmployees);
+    return () => window.removeEventListener('dataSync', fetchEmployees);
   }, [userRole, currentUser?.employeeId]);
 
   const resetForm = () => {

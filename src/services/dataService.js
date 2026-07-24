@@ -224,8 +224,7 @@ export async function deleteAdminEmployee(id) {
 let cachedDepartments = null;
 
 export async function getAdminDepartments() {
-  if (cachedDepartments) emitDataSync();
-    return cachedDepartments;
+  if (cachedDepartments) return cachedDepartments;
   try {
     const response = await axios.get(ED_DEPARTMENT_API);
     if (response.data) {
@@ -234,11 +233,9 @@ export async function getAdminDepartments() {
       } else {
         cachedDepartments = Array.isArray(response.data) ? response.data : (response.data.Items || []);
       }
-      emitDataSync();
-    return cachedDepartments;
+      return cachedDepartments;
     }
     cachedDepartments = [];
-    emitDataSync();
     return cachedDepartments;
   } catch (error) {
     console.error('Error fetching admin departments:', error);
