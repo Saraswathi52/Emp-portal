@@ -1,6 +1,13 @@
 
 import axios from 'axios';
 
+export const emitDataSync = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('dataSync'));
+  }
+};
+
+
 
 
 const MANAGER_API_BASE = 'https://5luqrfxzbi.execute-api.ap-south-1.amazonaws.com';
@@ -196,6 +203,7 @@ export async function addAdminEmployee(employee) {
     });
     // Invalidate cache so it fetches fresh data next time
     cachedEmployees = null; 
+    emitDataSync();
     return response.data;
   } catch (error) {
     console.error('Error adding admin employee:', error);
@@ -205,18 +213,19 @@ export async function addAdminEmployee(employee) {
 
 export async function updateAdminEmployee(id, employeeData) {
   if (!cachedEmployees) return;
-  cachedEmployees = cachedEmployees.map(e => (e.empid === id || e.id === id || e.empid?.S === id || e.id?.S === id) ? { ...e, ...employeeData } : e);
+  cachedEmployees = null;
 }
 
 export async function deleteAdminEmployee(id) {
   if (!cachedEmployees) return;
-  cachedEmployees = cachedEmployees.filter(e => e.empid !== id && e.id !== id && e.empid?.S !== id && e.id?.S !== id);
+  cachedEmployees = null;
 }
 
 let cachedDepartments = null;
 
 export async function getAdminDepartments() {
-  if (cachedDepartments) return cachedDepartments;
+  if (cachedDepartments) emitDataSync();
+    return cachedDepartments;
   try {
     const response = await axios.get(ED_DEPARTMENT_API);
     if (response.data) {
@@ -225,9 +234,11 @@ export async function getAdminDepartments() {
       } else {
         cachedDepartments = Array.isArray(response.data) ? response.data : (response.data.Items || []);
       }
-      return cachedDepartments;
+      emitDataSync();
+    return cachedDepartments;
     }
     cachedDepartments = [];
+    emitDataSync();
     return cachedDepartments;
   } catch (error) {
     console.error('Error fetching admin departments:', error);
@@ -238,18 +249,19 @@ export async function getAdminDepartments() {
 
 export async function addAdminDepartment(dept) {
   if (!cachedDepartments) await getAdminDepartments();
-  cachedDepartments.push(dept);
+  cachedDepartments = null;
+  emitDataSync();
   return dept;
 }
 
 export async function updateAdminDepartment(id, deptData) {
   if (!cachedDepartments) return;
-  cachedDepartments = cachedDepartments.map(d => d.id === id || d.DepartmentId === id ? { ...d, ...deptData } : d);
+  cachedDepartments = null;
 }
 
 export async function deleteAdminDepartment(id) {
   if (!cachedDepartments) return;
-  cachedDepartments = cachedDepartments.filter(d => d.id !== id && d.DepartmentId !== id);
+  cachedDepartments = null;
 }
 
 export const ED_DEPARTMENT_API = 'https://uzxfzaqjsd.execute-api.ap-south-1.amazonaws.com/ed_department';
@@ -259,6 +271,7 @@ export async function createDepartment(payload) {
     const response = await axios.post(ED_DEPARTMENT_API, payload, {
       headers: { 'Content-Type': 'application/json' }
     });
+    emitDataSync();
     return response.data;
   } catch (error) {
     console.error("Error adding department:", error);
@@ -271,6 +284,7 @@ export async function updateDepartment(depid, payload) {
     const response = await axios.put(`${ED_DEPARTMENT_API}/${depid}`, payload, {
       headers: { 'Content-Type': 'application/json' }
     });
+    emitDataSync();
     return response.data;
   } catch (error) {
     console.error("Error updating department:", error);
@@ -281,6 +295,7 @@ export async function updateDepartment(depid, payload) {
 export async function deleteDepartment(depid) {
   try {
     const response = await axios.delete(`${ED_DEPARTMENT_API}/${depid}`);
+    emitDataSync();
     return response.data;
   } catch (error) {
     console.error("Error deleting department:", error);
@@ -753,6 +768,7 @@ export async function saveEmployee(employee) {
     if (!response.ok) {
       throw new Error(`Failed to save employee: ${response.status}`);
     }
+    emitDataSync();
     return employee;
   } catch (error) {
     console.error('Error saving employee:', error);

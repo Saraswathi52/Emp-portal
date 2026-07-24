@@ -20,7 +20,6 @@ const menuConfig = {
     { label: "Employees", path: "/employees", icon: Users },
     { label: "Departments", path: "/departments", icon: Building },
     { label: "Documents", path: "/documents", icon: FolderOpen },
-    { label: "Monitor Application", path: "/monitor", icon: Activity },
     { label: "Reports", path: "/reports", icon: FileBarChart },
   ],
 };

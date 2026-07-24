@@ -102,6 +102,8 @@ function AdminDashboard() {
       }
     }
     loadData();
+    window.addEventListener('dataSync', loadData);
+    return () => window.removeEventListener('dataSync', loadData);
   }, []);
 
   const stats = [
