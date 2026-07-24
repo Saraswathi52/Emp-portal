@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getAllLeaveRequests, getAllExpenses, getManagerEmployees } from "../services/dataService";
+import { getCurrentUser, getAllLeaveRequests, getAllExpenses, getManagerEmployees, getManagerLeaveRequests } from "../services/dataService";
 import { Users, CalendarDays, Wallet, Inbox } from "lucide-react";
 
 function ManagerDashboard() {
@@ -10,7 +10,7 @@ function ManagerDashboard() {
 
   const [employees, setEmployees] = useState([]);
   const [employeesError, setEmployeesError] = useState("");
-  const [allLeaves] = useState(() => getAllLeaveRequests());
+  const [allLeaves, setAllLeaves] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -31,11 +31,20 @@ function ManagerDashboard() {
           console.error("Failed to fetch manager employees", error);
           setEmployeesError("Unable to load employees");
         }
+        
+        try {
+          const fetchedLeaves = await getManagerLeaveRequests(user.employeeId);
+          setAllLeaves(fetchedLeaves || []);
+        } catch (error) {
+          console.error("Failed to fetch manager leaves", error);
+        }
       }
       
       setIsLoading(false);
     }
     fetchData();
+    window.addEventListener('dataSync', fetchData);
+    return () => window.removeEventListener('dataSync', fetchData);
   }, [user?.employeeId]);
 
   const pendingLeaves = allLeaves.filter(l => l.status === 'Pending');
@@ -278,96 +287,6 @@ function ManagerDashboard() {
                 </div>
               </div>
 
-            </div>
-          </div>
-
-          {/* Assigned Employees Table */}
-          <div className="row g-4 mt-1 mb-4">
-            <div className="col-12">
-              <div className="card border-0 shadow-sm rounded-4 h-100">
-                <div className="card-header bg-white border-0 pt-4 pb-0 px-4">
-                  <h5 className="fw-bold mb-0 text-dark">
-                    <i className="bi bi-people text-secondary me-2" /> Assigned Employees
-                  </h5>
-                </div>
-                <div className="card-body p-4">
-                  {employeesError ? (
-                    <div className="alert alert-danger text-center" role="alert">
-                      {employeesError}
-                    </div>
-                  ) : teamMembers.length === 0 ? (
-                    <div className="text-center py-5 text-muted border rounded bg-light">
-                      <i className="bi bi-person-x fs-1 text-secondary mb-2 d-block" />
-                      No employees assigned to this manager.
-                    </div>
-                  ) : (
-                    <div className="table-responsive shadow-sm rounded border">
-                      <table className="table-custom table table-hover align-middle mb-0">
-                        <thead style={{ background: "var(--gray-200)" }}>
-                          <tr>
-                            <th style={{ padding: "1rem" }}>Employee ID</th>
-                            <th style={{ padding: "1rem" }}>Name</th>
-                            <th style={{ padding: "1rem" }}>Department</th>
-                            <th style={{ padding: "1rem" }}>Designation</th>
-                            <th style={{ padding: "1rem" }}>Email</th>
-                            <th style={{ padding: "1rem" }}>Phone</th>
-                            <th style={{ padding: "1rem" }}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {teamMembers.map((emp, index) => {
-                            const empId = emp.empid || emp.id || "-";
-                            const empName = emp.FullName || emp.name || "-";
-                            const empDept = emp.Department || emp.department || "-";
-                            const empDesig = emp.Designation || emp.role || "-";
-                            const empEmail = emp.Email || emp.email || "-";
-                            const empPhone = emp.Phone || emp.phone || "-";
-                            const empStatus = emp.Status || emp.status || "Active";
-                            
-                            const getInitials = (name) => {
-                              if (!name || name === "-") return "?";
-                              const parts = name.trim().split(" ");
-                              if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-                              return name.substring(0, 2).toUpperCase();
-                            };
-                            const initials = getInitials(empName);
-                            const colors = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6"];
-                            const colorIndex = empName !== "-" ? empName.length % colors.length : 0;
-                            const avatarBg = colors[colorIndex];
-
-                            return (
-                              <tr key={empId + index}>
-                                <td><span style={{ color: "var(--primary)", fontWeight: 600 }}>{empId}</span></td>
-                                <td>
-                                  <div className="d-flex align-items-center gap-3">
-                                    {emp.profileImage ? (
-                                      <img src={emp.profileImage} alt="profile" style={{width: 42, height: 42, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff", boxShadow: "0 2px 4px rgba(0,0,0,0.08)"}}/>
-                                    ) : (
-                                      <div style={{width: 42, height: 42, borderRadius: "50%", background: avatarBg, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.95rem", fontWeight: 600, flexShrink: 0, boxShadow: "0 2px 4px rgba(0,0,0,0.08)"}}>
-                                        {initials}
-                                      </div>
-                                    )}
-                                    <span className="fw-semibold" style={{ fontSize: "0.95rem" }}>{empName}</span>
-                                  </div>
-                                </td>
-                                <td><span className="badge-status badge-uploaded">{empDept}</span></td>
-                                <td>{empDesig}</td>
-                                <td>{empEmail}</td>
-                                <td>{empPhone}</td>
-                                <td>
-                                  <span className={`badge-status ${empStatus.toLowerCase() === 'active' ? 'badge-approved' : 'badge-rejected'}`}>
-                                    {empStatus}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </div>
