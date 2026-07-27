@@ -3,7 +3,7 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployee, saveEmployee, getAllLeaveRequests, getAllExpenses, updateLeaveStatus, updateExpenseStatus, getManagerProfile, updateManagerProfile, getAdminProfile, updateAdminProfile } from "../services/dataService";
 
-const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange }) => {
+const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange, error }) => {
   const val = editing ? (form[name] || '') : (value || '');
   return (
     <div className="col-md-6">
@@ -14,14 +14,17 @@ const Field = ({ label, value, icon, name, type = 'text', options = null, editin
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: "0.7rem", color: "var(--gray-500)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.3px" }}>{label}</div>
           {editing ? (
-            options ? (
-              <select name={name} value={val} onChange={onChange} className="form-select form-select-sm" style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }}>
-                <option value="">Select...</option>
-                {options.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            ) : (
-              <input type={type} name={name} value={val} onChange={onChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }} />
-            )
+            <>
+              {options ? (
+                <select name={name} value={val} onChange={onChange} className={`form-select form-select-sm ${error ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }}>
+                  <option value="">Select...</option>
+                  {options.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : (
+                <input type={type} name={name} value={val} onChange={onChange} className={`form-control form-control-sm ${error ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }} />
+              )}
+              {error && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{error}</div>}
+            </>
           ) : (
             <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--gray-700)", overflow: "hidden", textOverflow: "ellipsis" }}>
               {type === 'url' && val ? <a href={val} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>{val}</a> : (val || '—')}
@@ -129,32 +132,65 @@ function Profile() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const errors = {};
+  if (editing) {
+    if (!form.FullName?.trim()) errors.FullName = 'Full Name is required';
+    if (!form.Email?.trim()) {
+      errors.Email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.Email)) {
+      errors.Email = 'Invalid email format';
+    }
+    if (!form.Phone?.trim()) {
+      errors.Phone = 'Phone is required';
+    } else if (form.Phone.length !== 10) {
+      errors.Phone = 'Phone must be exactly 10 digits';
+    }
+    if (form.EmergencyContactPhone && form.EmergencyContactPhone.length !== 10) {
+      errors.EmergencyContactPhone = 'Phone must be exactly 10 digits';
+    }
+  }
+  const hasErrors = Object.keys(errors).length > 0;
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let newValue = value;
+
+    if (name === 'Phone' || name === 'EmergencyContactPhone') {
+      newValue = value.replace(/\D/g, '').slice(0, 10);
+    } else if (name === 'EmergencyContactName' || name === 'EmergencyContactRelation') {
+      newValue = value.replace(/[^A-Za-z\s]/g, '').trimStart();
+    } else {
+      newValue = value.trimStart();
+    }
+
+    setForm({ ...form, [name]: newValue });
   };
 
   const handleSave = async () => {
-    // Frontend validation
-    if (!form.FullName || !form.Email || !form.Phone) {
-      showToast("Full Name, Email, and Phone are required", "warning");
-      return;
-    }
+    if (hasErrors) return;
 
     setIsLoading(true);
+
+    const trimmedForm = { ...form };
+    Object.keys(trimmedForm).forEach(key => {
+      if (typeof trimmedForm[key] === 'string') {
+        trimmedForm[key] = trimmedForm[key].trim();
+      }
+    });
     try {
       if (role === 'admin') {
         const payload = {
-          Title: form.Title || "",
-          FullName: form.FullName || "",
-          Phone: form.Phone || "",
-          Address: form.Address || "",
-          Department: form.Department || "",
-          Designation: form.Designation || "",
-          Education: form.Education || "",
-          Email: form.Email || "",
-          LinkedIn: form.LinkedIn || "",
-          GitHub: form.GitHub || "",
-          Status: form.Status || ""
+          Title: trimmedForm.Title || "",
+          FullName: trimmedForm.FullName || "",
+          Phone: trimmedForm.Phone || "",
+          Address: trimmedForm.Address || "",
+          Department: trimmedForm.Department || "",
+          Designation: trimmedForm.Designation || "",
+          Education: trimmedForm.Education || "",
+          Email: trimmedForm.Email || "",
+          LinkedIn: trimmedForm.LinkedIn || "",
+          GitHub: trimmedForm.GitHub || "",
+          Status: trimmedForm.Status || ""
         };
 
         // Do not send undefined or null values
@@ -169,17 +205,17 @@ function Profile() {
         setEmp(refreshed);
       } else if (isManager) {
         const payload = {
-          Title: form.Title || "",
-          FullName: form.FullName || "",
-          Phone: form.Phone || "",
-          Address: form.Address || "",
-          Department: form.Department || "",
-          Designation: form.Designation || "",
-          Education: form.Education || "",
-          Email: form.Email || "",
-          LinkedIn: form.LinkedIn || "",
-          GitHub: form.GitHub || "",
-          Status: form.Status || ""
+          Title: trimmedForm.Title || "",
+          FullName: trimmedForm.FullName || "",
+          Phone: trimmedForm.Phone || "",
+          Address: trimmedForm.Address || "",
+          Department: trimmedForm.Department || "",
+          Designation: trimmedForm.Designation || "",
+          Education: trimmedForm.Education || "",
+          Email: trimmedForm.Email || "",
+          LinkedIn: trimmedForm.LinkedIn || "",
+          GitHub: trimmedForm.GitHub || "",
+          Status: trimmedForm.Status || ""
         };
 
         // Do not send undefined or null values
@@ -195,8 +231,8 @@ function Profile() {
       } else {
         const updated = {
           ...emp,
-          ...form,
-          Skills: typeof form.Skills === 'string' ? form.Skills.split(',').map(s => s.trim()).filter(Boolean) : form.Skills,
+          ...trimmedForm,
+          Skills: typeof trimmedForm.Skills === 'string' ? trimmedForm.Skills.split(',').map(s => s.trim()).filter(Boolean) : trimmedForm.Skills,
         };
         await saveEmployee(updated);
         const refreshed = await getEmployee(updated.empid || user?.employeeId);
@@ -394,7 +430,7 @@ function Profile() {
             <div className="d-flex gap-2">
               {editing ? (
                 <>
-                  <button className="btn-custom-success d-flex align-items-center gap-2" onClick={handleSave} disabled={isLoading}>
+                  <button className="btn-custom-success d-flex align-items-center gap-2" onClick={handleSave} disabled={isLoading || (editing && hasErrors)}>
                     <i className="bi bi-check-lg" /> {isLoading ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={handleCancel}>
@@ -486,11 +522,13 @@ function Profile() {
                     <div className="d-flex flex-column gap-2">
                       <div className="input-group input-group-sm">
                         <span className="input-group-text" style={{ fontSize: "0.75rem", background: "var(--gray-50)" }}><i className="bi bi-linkedin" /></span>
-                        <input type="url" name="LinkedIn" value={form.LinkedIn} onChange={handleChange} className="form-control form-control-sm" placeholder="LinkedIn URL" style={{ fontSize: "0.8rem" }} />
+                        <input type="url" name="LinkedIn" value={form.LinkedIn} onChange={handleChange} className={`form-control form-control-sm ${errors.LinkedIn ? 'is-invalid' : ''}`} placeholder="LinkedIn URL" style={{ fontSize: "0.8rem" }} />
+                        {errors.LinkedIn && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.LinkedIn}</div>}
                       </div>
                       <div className="input-group input-group-sm">
                         <span className="input-group-text" style={{ fontSize: "0.75rem", background: "var(--gray-50)" }}><i className="bi bi-github" /></span>
-                        <input type="url" name="GitHub" value={form.GitHub} onChange={handleChange} className="form-control form-control-sm" placeholder="GitHub URL" style={{ fontSize: "0.8rem" }} />
+                        <input type="url" name="GitHub" value={form.GitHub} onChange={handleChange} className={`form-control form-control-sm ${errors.GitHub ? 'is-invalid' : ''}`} placeholder="GitHub URL" style={{ fontSize: "0.8rem" }} />
+                        {errors.GitHub && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.GitHub}</div>}
                       </div>
                     </div>
                   ) : (
@@ -522,13 +560,13 @@ function Profile() {
                   Personal Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Title" value={emp?.Title} icon="bi-person-badge" name="Title" options={['Mr', 'Ms', 'Mrs', 'Manager']} editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Full Name" value={emp?.FullName} icon="bi-person" name="FullName" editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Date of Birth" value={emp?.DateOfBirth} icon="bi-calendar" name="DateOfBirth" type="date" editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Blood Group" value={emp?.BloodGroup} icon="bi-droplet" name="BloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Phone" value={emp?.Phone} icon="bi-telephone" name="Phone" editing={editing} form={form} onChange={handleChange} />
-                  <Field label="Email" value={emp?.Email} icon="bi-envelope" name="Email" type="email" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Address" value={emp?.Address} icon="bi-geo-alt" name="Address" editing={editing} form={form} onChange={handleChange} />
+                  <Field label="Title" value={emp?.Title} icon="bi-person-badge" name="Title" options={['Mr', 'Ms', 'Mrs', 'Manager']} editing={editing} form={form} onChange={handleChange} error={errors.Title} />
+                  <Field label="Full Name" value={emp?.FullName} icon="bi-person" name="FullName" editing={editing} form={form} onChange={handleChange} error={errors.FullName} />
+                  <Field label="Date of Birth" value={emp?.DateOfBirth} icon="bi-calendar" name="DateOfBirth" type="date" editing={editing} form={form} onChange={handleChange} error={errors.DateOfBirth} />
+                  <Field label="Blood Group" value={emp?.BloodGroup} icon="bi-droplet" name="BloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} error={errors.BloodGroup} />
+                  <Field label="Phone" value={emp?.Phone} icon="bi-telephone" name="Phone" editing={editing} form={form} onChange={handleChange} error={errors.Phone} />
+                  <Field label="Email" value={emp?.Email} icon="bi-envelope" name="Email" type="email" editing={false} form={form} onChange={handleChange} error={errors.Email} />
+                  <Field label="Address" value={emp?.Address} icon="bi-geo-alt" name="Address" editing={editing} form={form} onChange={handleChange} error={errors.Address} />
                 </div>
               </div>
 
@@ -538,12 +576,12 @@ function Profile() {
                   Official Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Employee ID" value={emp?.empid} icon="bi-person-badge" name="empid" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Department" value={emp?.Department} icon="bi-building" name="Department" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Designation" value={emp?.Designation} icon="bi-briefcase" name="Designation" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Joining Date" value={emp?.JoiningDate} icon="bi-calendar-check" name="JoiningDate" type="date" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Manager" value={emp?.Manager} icon="bi-person-up" name="Manager" editing={false} form={form} onChange={handleChange} />
-                  <Field label="Status" value={emp?.Status} icon="bi-check-circle" name="Status" options={['Active', 'Inactive', 'On Leave']} editing={isManager ? editing : false} form={form} onChange={handleChange} />
+                  <Field label="Employee ID" value={emp?.empid} icon="bi-person-badge" name="empid" editing={false} form={form} onChange={handleChange} error={errors.empid} />
+                  <Field label="Department" value={emp?.Department} icon="bi-building" name="Department" editing={false} form={form} onChange={handleChange} error={errors.Department} />
+                  <Field label="Designation" value={emp?.Designation} icon="bi-briefcase" name="Designation" editing={false} form={form} onChange={handleChange} error={errors.Designation} />
+                  <Field label="Joining Date" value={emp?.JoiningDate} icon="bi-calendar-check" name="JoiningDate" type="date" editing={false} form={form} onChange={handleChange} error={errors.JoiningDate} />
+                  <Field label="Manager" value={emp?.Manager} icon="bi-person-up" name="Manager" editing={false} form={form} onChange={handleChange} error={errors.Manager} />
+                  <Field label="Status" value={emp?.Status} icon="bi-check-circle" name="Status" options={['Active', 'Inactive', 'On Leave']} editing={isManager ? editing : false} form={form} onChange={handleChange} error={errors.Status} />
                 </div>
               </div>
 
@@ -558,7 +596,10 @@ function Profile() {
                       <div>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Name</small>
                         {editing ? (
-                          <input name="EmergencyContactName" value={form.EmergencyContactName} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem" }} />
+                          <>
+                            <input name="EmergencyContactName" value={form.EmergencyContactName} onChange={handleChange} className={`form-control form-control-sm ${errors.EmergencyContactName ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
+                            {errors.EmergencyContactName && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactName}</div>}
+                          </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactName || '—'}</div>
                         )}
@@ -566,7 +607,10 @@ function Profile() {
                       <div>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Phone</small>
                         {editing ? (
-                          <input name="EmergencyContactPhone" value={form.EmergencyContactPhone} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem" }} />
+                          <>
+                            <input name="EmergencyContactPhone" value={form.EmergencyContactPhone} onChange={handleChange} className={`form-control form-control-sm ${errors.EmergencyContactPhone ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
+                            {errors.EmergencyContactPhone && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactPhone}</div>}
+                          </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactPhone || '—'}</div>
                         )}
@@ -574,7 +618,10 @@ function Profile() {
                       <div>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Relation</small>
                         {editing ? (
-                          <input name="EmergencyContactRelation" value={form.EmergencyContactRelation} onChange={handleChange} className="form-control form-control-sm" style={{ fontSize: "0.85rem" }} />
+                          <>
+                            <input name="EmergencyContactRelation" value={form.EmergencyContactRelation} onChange={handleChange} className={`form-control form-control-sm ${errors.EmergencyContactRelation ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
+                            {errors.EmergencyContactRelation && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactRelation}</div>}
+                          </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactRelation || '—'}</div>
                         )}
