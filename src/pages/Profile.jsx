@@ -13,8 +13,16 @@ const formatDateDisplay = (d) => {
   return d;
 };
 
-const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange, error }) => {
+const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange, error, forceShowError, submitAttempted }) => {
+  const [touched, setTouched] = useState(false);
+  
+  useEffect(() => {
+    if (!editing) setTouched(false);
+  }, [editing]);
+
   const val = editing ? (form[name] || '') : (value || '');
+  const displayError = (touched || forceShowError || submitAttempted) && error ? error : null;
+
   return (
     <div className="col-md-6">
       <div className="d-flex align-items-center gap-3 p-3" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)", border: "1px solid var(--gray-100)", minHeight: 56 }}>
@@ -26,14 +34,14 @@ const Field = ({ label, value, icon, name, type = 'text', options = null, editin
           {editing ? (
             <>
               {options ? (
-                <select name={name} value={val} onChange={onChange} className={`form-select form-select-sm ${error ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }}>
+                <select name={name} value={val} onChange={onChange} onBlur={() => setTouched(true)} className={`form-select form-select-sm ${displayError ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }}>
                   <option value="">Select...</option>
                   {options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : (
-                <input type={type} name={name} value={val} onChange={onChange} className={`form-control form-control-sm ${error ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }} />
+                <input type={type} name={name} value={val} onChange={onChange} onBlur={() => setTouched(true)} className={`form-control form-control-sm ${displayError ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }} />
               )}
-              {error && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{error}</div>}
+              {displayError && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{displayError}</div>}
             </>
           ) : (
             <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--gray-700)", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -56,7 +64,14 @@ function Profile() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [touchedFields, setTouchedFields] = useState({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleFieldBlur = (e) => {
+    const { name } = e.target;
+    setTouchedFields(prev => ({ ...prev, [name]: true }));
+  };
   const [toast, setToast] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -143,51 +158,105 @@ function Profile() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const errors = {};
-  if (editing) {
-    if (!form.FullName?.trim()) errors.FullName = 'Full Name is required';
-    if (!form.Email?.trim()) {
-      errors.Email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.Email)) {
-      errors.Email = 'Invalid email format';
+  const validateForm = (formData) => {
+    const errs = {};
+    if (!formData.Title?.trim()) {
+      errs.Title = 'Title is required.';
     }
-    if (!form.Phone?.trim()) {
-      errors.Phone = 'Phone is required';
-    } else if (form.Phone.length !== 10) {
-      errors.Phone = 'Phone must be exactly 10 digits';
+
+    if (!formData.FullName?.trim()) {
+      errs.FullName = 'Full Name is required';
+    } else if (/[^A-Za-z\s]/.test(formData.FullName)) {
+      errs.FullName = 'Full Name can only contain letters and spaces';
     }
-    if (form.EmergencyContactPhone && form.EmergencyContactPhone.length !== 10) {
-      errors.EmergencyContactPhone = 'Phone must be exactly 10 digits';
+    
+    if (!formData.Email?.trim()) {
+      errs.Email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.Email)) {
+      errs.Email = 'Invalid email format';
     }
-  }
-  const hasErrors = Object.keys(errors).length > 0;
+    
+    const phone = formData.Phone?.trim() || '';
+    if (!phone) {
+      errs.Phone = 'Phone is required';
+    } else if (phone.length > 10) {
+      errs.Phone = 'Phone number cannot exceed 10 digits';
+      errs._PhoneForce = true;
+    } else if (phone.length > 0 && !/^[6-9]/.test(phone)) {
+      errs.Phone = 'Please enter a valid Indian mobile number.';
+      errs._PhoneForce = true;
+    } else if (phone.length < 10) {
+      errs.Phone = 'Phone must be exactly 10 digits';
+    } else if (!/^\d{10}$/.test(phone)) {
+      errs.Phone = 'Phone must be exactly 10 digits';
+      errs._PhoneForce = true;
+    }
+
+    const addr = formData.Address?.trim() || '';
+    if (!addr) {
+      errs.Address = 'Address is required.';
+    } else if (addr.length < 10) {
+      errs.Address = 'Address must contain at least 10 characters.';
+    } else if (addr.length > 250) {
+      errs.Address = 'Address cannot exceed 250 characters.';
+    }
+    
+    const ecPhone = formData.EmergencyContactPhone?.trim() || '';
+    if (ecPhone) {
+      if (ecPhone.length > 10) {
+        errs.EmergencyContactPhone = 'Phone number cannot exceed 10 digits';
+        errs._ECPhoneForce = true;
+      } else if (!/^[6-9]/.test(ecPhone)) {
+        errs.EmergencyContactPhone = 'Please enter a valid Indian mobile number.';
+        errs._ECPhoneForce = true;
+      } else if (ecPhone.length < 10) {
+        errs.EmergencyContactPhone = 'Phone must be exactly 10 digits';
+      } else if (!/^\d{10}$/.test(ecPhone)) {
+        errs.EmergencyContactPhone = 'Phone must be exactly 10 digits';
+        errs._ECPhoneForce = true;
+      }
+    }
+
+    if (formData.EmergencyContactName && /[^A-Za-z\s]/.test(formData.EmergencyContactName)) {
+      errs.EmergencyContactName = 'Name can only contain letters and spaces';
+    }
+
+    if (formData.EmergencyContactRelation && /[^A-Za-z\s]/.test(formData.EmergencyContactRelation)) {
+      errs.EmergencyContactRelation = 'Relation can only contain letters and spaces';
+    }
+    return errs;
+  };
+
+  const errors = editing ? validateForm(form) : {};
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    let newValue = value;
-
-    if (name === 'Phone' || name === 'EmergencyContactPhone') {
-      newValue = value.replace(/\D/g, '').slice(0, 10);
-    } else if (name === 'EmergencyContactName' || name === 'EmergencyContactRelation') {
-      newValue = value.replace(/[^A-Za-z\s]/g, '').trimStart();
-    } else {
-      newValue = value.trimStart();
-    }
-
-    setForm({ ...form, [name]: newValue });
+    setForm({ ...form, [name]: value });
   };
 
   const handleSave = async () => {
-    if (hasErrors) return;
-
-    setIsLoading(true);
-
+    setSubmitAttempted(true);
+    
     const trimmedForm = { ...form };
     Object.keys(trimmedForm).forEach(key => {
       if (typeof trimmedForm[key] === 'string') {
         trimmedForm[key] = trimmedForm[key].trim();
       }
     });
+    
+    setForm(trimmedForm);
+    
+    const finalErrors = validateForm(trimmedForm);
+    const realErrors = Object.keys(finalErrors).filter(k => !k.startsWith('_'));
+    if (realErrors.length > 0) {
+      setTimeout(() => {
+        const firstInvalid = document.querySelector('.is-invalid');
+        if (firstInvalid) firstInvalid.focus();
+      }, 0);
+      return;
+    }
+
+    setIsLoading(true);
     try {
       if (role === 'admin') {
         const payload = {
@@ -441,7 +510,7 @@ function Profile() {
             <div className="d-flex gap-2">
               {editing ? (
                 <>
-                  <button className="btn-custom-success d-flex align-items-center gap-2" onClick={handleSave} disabled={isLoading || (editing && hasErrors)}>
+                  <button className="btn-custom-success d-flex align-items-center gap-2" onClick={handleSave} disabled={isLoading}>
                     <i className="bi bi-check-lg" /> {isLoading ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button className="btn-custom-outline d-flex align-items-center gap-2" onClick={handleCancel}>
@@ -571,13 +640,13 @@ function Profile() {
                   Personal Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Title" value={emp?.Title} icon="bi-person-badge" name="Title" options={['Mr', 'Ms', 'Mrs', 'Manager']} editing={editing} form={form} onChange={handleChange} error={errors.Title} />
-                  <Field label="Full Name" value={emp?.FullName} icon="bi-person" name="FullName" editing={editing} form={form} onChange={handleChange} error={errors.FullName} />
-                  <Field label="Date of Birth" value={emp?.DateOfBirth} icon="bi-calendar" name="DateOfBirth" type="date" editing={editing} form={form} onChange={handleChange} error={errors.DateOfBirth} />
-                  <Field label="Blood Group" value={emp?.BloodGroup} icon="bi-droplet" name="BloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} error={errors.BloodGroup} />
-                  <Field label="Phone" value={emp?.Phone} icon="bi-telephone" name="Phone" editing={editing} form={form} onChange={handleChange} error={errors.Phone} />
-                  <Field label="Email" value={emp?.Email} icon="bi-envelope" name="Email" type="email" editing={false} form={form} onChange={handleChange} error={errors.Email} />
-                  <Field label="Address" value={emp?.Address} icon="bi-geo-alt" name="Address" editing={editing} form={form} onChange={handleChange} error={errors.Address} />
+                  <Field label="Title" value={emp?.Title} icon="bi-person-badge" name="Title" options={['Mr', 'Ms', 'Mrs']} editing={editing} form={form} onChange={handleChange} error={errors.Title} submitAttempted={submitAttempted} />
+                  <Field label="Full Name" value={emp?.FullName} icon="bi-person" name="FullName" editing={editing} form={form} onChange={handleChange} error={errors.FullName} submitAttempted={submitAttempted} />
+                  <Field label="Date of Birth" value={emp?.DateOfBirth} icon="bi-calendar" name="DateOfBirth" type="date" editing={editing} form={form} onChange={handleChange} error={errors.DateOfBirth} submitAttempted={submitAttempted} />
+                  <Field label="Blood Group" value={emp?.BloodGroup} icon="bi-droplet" name="BloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} error={errors.BloodGroup} submitAttempted={submitAttempted} />
+                  <Field label="Phone" value={emp?.Phone} icon="bi-telephone" name="Phone" editing={editing} form={form} onChange={handleChange} error={errors.Phone} forceShowError={errors._PhoneForce} submitAttempted={submitAttempted} />
+                  <Field label="Email" value={emp?.Email} icon="bi-envelope" name="Email" type="email" editing={false} form={form} onChange={handleChange} error={errors.Email} submitAttempted={submitAttempted} />
+                  <Field label="Address" value={emp?.Address} icon="bi-geo-alt" name="Address" editing={editing} form={form} onChange={handleChange} error={errors.Address} submitAttempted={submitAttempted} />
                 </div>
               </div>
 
@@ -608,8 +677,8 @@ function Profile() {
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Name</small>
                         {editing ? (
                           <>
-                            <input name="EmergencyContactName" value={form.EmergencyContactName} onChange={handleChange} className={`form-control form-control-sm ${errors.EmergencyContactName ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
-                            {errors.EmergencyContactName && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactName}</div>}
+                            <input name="EmergencyContactName" onBlur={handleFieldBlur} value={form.EmergencyContactName} onChange={handleChange} className={`form-control form-control-sm ${(touchedFields.EmergencyContactName || submitAttempted) && errors.EmergencyContactName ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
+                            {(touchedFields.EmergencyContactName || submitAttempted) && errors.EmergencyContactName && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactName}</div>}
                           </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactName || '—'}</div>
@@ -619,8 +688,8 @@ function Profile() {
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Phone</small>
                         {editing ? (
                           <>
-                            <input name="EmergencyContactPhone" value={form.EmergencyContactPhone} onChange={handleChange} className={`form-control form-control-sm ${errors.EmergencyContactPhone ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
-                            {errors.EmergencyContactPhone && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactPhone}</div>}
+                            <input name="EmergencyContactPhone" onBlur={handleFieldBlur} value={form.EmergencyContactPhone} onChange={handleChange} className={`form-control form-control-sm ${(touchedFields.EmergencyContactPhone || errors._ECPhoneForce || submitAttempted) && errors.EmergencyContactPhone ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
+                            {(touchedFields.EmergencyContactPhone || errors._ECPhoneForce || submitAttempted) && errors.EmergencyContactPhone && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactPhone}</div>}
                           </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactPhone || '—'}</div>
@@ -630,8 +699,8 @@ function Profile() {
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Relation</small>
                         {editing ? (
                           <>
-                            <input name="EmergencyContactRelation" value={form.EmergencyContactRelation} onChange={handleChange} className={`form-control form-control-sm ${errors.EmergencyContactRelation ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
-                            {errors.EmergencyContactRelation && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactRelation}</div>}
+                            <input name="EmergencyContactRelation" onBlur={handleFieldBlur} value={form.EmergencyContactRelation} onChange={handleChange} className={`form-control form-control-sm ${(touchedFields.EmergencyContactRelation || submitAttempted) && errors.EmergencyContactRelation ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
+                            {(touchedFields.EmergencyContactRelation || submitAttempted) && errors.EmergencyContactRelation && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactRelation}</div>}
                           </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactRelation || '—'}</div>
