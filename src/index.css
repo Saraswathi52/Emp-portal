@@ -143,7 +143,7 @@ body {
 .stat-card {
   border: 1px solid rgba(0, 0, 0, 0.03);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1rem !important;
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -157,29 +157,34 @@ body {
 }
 
 .stat-card .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  color: #fff;
-  margin-bottom: 0.75rem;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.stat-card .stat-icon svg, .stat-card .stat-icon i {
+  font-size: 1.1rem !important;
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .stat-card .stat-label {
-  font-size: 0.8rem;
-  color: var(--gray-500);
+  font-size: 0.75rem !important;
+  color: var(--gray-600) !important;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 2px !important;
 }
 
 .stat-card .stat-value {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
   line-height: 1.2;
 }
 

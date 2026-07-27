@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getTimesheets, addTimesheet, updateTimesheet, deleteTimesheet, getEmployees } from "../services/dataService";
+import { addNotification } from "../services/notificationService";
 
 function Timesheets() {
   const user = getCurrentUser();
@@ -35,6 +36,7 @@ function Timesheets() {
   const [filterDate, setFilterDate] = useState("All Dates");
   const [filterEmployee, setFilterEmployee] = useState("All");
   const [filterDepartment, setFilterDepartment] = useState("All");
+  const [activeTab, setActiveTab] = useState("records");
 
   useEffect(() => {
     loadTimesheets();
@@ -43,6 +45,41 @@ function Timesheets() {
     window.addEventListener('dataSync', handleSync);
     return () => window.removeEventListener('dataSync', handleSync);
   }, []);
+
+  const formatIsoDate = (d) => {
+    let month = '' + (d.getMonth() + 1);
+    let day = '' + d.getDate();
+    const year = d.getFullYear();
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+    return [year, month, day].join('-');
+  };
+
+  const getMonday = (d) => {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(date.setDate(diff));
+  };
+
+  useEffect(() => {
+    if (period === 'This Week') {
+      const today = new Date();
+      const monday = getMonday(today);
+      setCustomStartDate(formatIsoDate(monday));
+      setCustomEndDate(formatIsoDate(today));
+    } else if (period === 'Last Week') {
+      const today = new Date();
+      const lastWeekMonday = getMonday(today);
+      lastWeekMonday.setDate(lastWeekMonday.getDate() - 7);
+      
+      const lastWeekSunday = new Date(lastWeekMonday);
+      lastWeekSunday.setDate(lastWeekSunday.getDate() + 6);
+      
+      setCustomStartDate(formatIsoDate(lastWeekMonday));
+      setCustomEndDate(formatIsoDate(lastWeekSunday));
+    }
+  }, [period]);
 
   const loadTimesheets = () => {
     const allTs = getTimesheets();
@@ -54,7 +91,8 @@ function Timesheets() {
       return {
         ...ts,
         employeeName: emp ? (emp.FullName || emp.name || emp.empid || ts.empid) : ts.empid,
-        department: emp ? (emp.Department || emp.department) : "Unknown"
+        department: emp ? (emp.Department || emp.department) : "Unknown",
+        managerName: emp ? (emp.Manager || "None") : "None"
       };
     });
 
@@ -90,6 +128,16 @@ function Timesheets() {
     return matchesSearch && matchesPeriod && matchesStatus && matchesDate && matchesEmployee && matchesDepartment;
   });
 
+  const reportTotalHours = filteredTimesheets.reduce((sum, ts) => sum + (parseFloat(ts.hours) || 0), 0);
+  const reportPending = filteredTimesheets.filter(ts => ts.status === 'Pending').length;
+  const reportApproved = filteredTimesheets.filter(ts => ts.status === 'Approved').length;
+  const reportRejected = filteredTimesheets.filter(ts => ts.status === 'Rejected').length;
+
+  const chartDaily = filteredTimesheets.filter(ts => ts.period === 'Daily' || !ts.period).length;
+  const chartWeekly = filteredTimesheets.filter(ts => ts.period === 'Weekly' || ts.period === 'This Week' || ts.period === 'Last Week').length;
+  const chartMonthly = filteredTimesheets.filter(ts => ts.period === 'Monthly').length;
+  const maxChart = Math.max(chartDaily, chartWeekly, chartMonthly, 1);
+
   const handleEdit = (ts) => {
     setEditingTimesheetId(ts.id);
     
@@ -120,6 +168,14 @@ function Timesheets() {
 
   const handleApprove = (ts) => {
     updateTimesheet({ ...ts, status: 'Approved' });
+    
+    addNotification(ts.empid, {
+      title: "Timesheet Approved",
+      text: `Your ${ts.period || 'Daily'} timesheet has been approved.`,
+      iconType: 'leave-approve',
+      color: '#10b981',
+      bg: '#ecfdf5'
+    });
   };
 
   const handleReject = (ts) => {
@@ -129,6 +185,15 @@ function Timesheets() {
   const confirmRejection = () => {
     if (!approvalModal.ts) return;
     updateTimesheet({ ...approvalModal.ts, status: 'Rejected', managerComments });
+    
+    addNotification(approvalModal.ts.empid, {
+      title: "Timesheet Rejected",
+      text: `Your ${approvalModal.ts.period || 'Daily'} timesheet has been rejected.`,
+      iconType: 'leave-reject',
+      color: '#ef4444',
+      bg: '#fef2f2'
+    });
+    
     setApprovalModal({ show: false, ts: null, action: null });
     setManagerComments("");
   };
@@ -156,14 +221,19 @@ function Timesheets() {
   const handleSave = () => {
     if (!project || !task || !hours || !description) return;
     
+    const parsedHours = parseFloat(hours);
+    if (isNaN(parsedHours) || parsedHours < 6 || parsedHours > 9) {
+      return;
+    }
+    
     if (period === 'Daily' && !customStartDate) return;
-    if (period === 'Weekly' && (!customStartDate || !customEndDate)) return;
+    if ((period === 'This Week' || period === 'Last Week' || period === 'Custom') && (!customStartDate || !customEndDate)) return;
     if (period === 'Monthly' && (!month || !year)) return;
     
     let finalDate = "";
     if (period === 'Daily') {
       finalDate = formatCustomDate(customStartDate);
-    } else if (period === 'Weekly') {
+    } else if (period === 'This Week' || period === 'Last Week' || period === 'Custom') {
       finalDate = `${formatCustomDate(customStartDate)} to ${formatCustomDate(customEndDate)}`;
     } else if (period === 'Monthly') {
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -188,6 +258,21 @@ function Timesheets() {
       updateTimesheet({ ...payload, id: editingTimesheetId });
     } else {
       addTimesheet(payload);
+      
+      const allEmployees = getEmployees();
+      const currentEmp = allEmployees.find(e => e.id === payload.empid || e.empid === payload.empid);
+      if (currentEmp) {
+        const managerId = currentEmp.ManagerEmpId || currentEmp.managerEmpId || currentEmp.managerId || currentEmp.Manager;
+        if (managerId) {
+          addNotification(managerId, {
+            title: "Timesheet Submitted",
+            text: `A new ${period} timesheet has been submitted for your review.`,
+            iconType: 'document',
+            color: '#3b82f6',
+            bg: '#eff6ff'
+          });
+        }
+      }
     }
 
     resetForm();
@@ -206,14 +291,34 @@ function Timesheets() {
       <div className="main-content">
         <Navbar userName={userName} role={role} />
         <div className="page-content">
-          <div className="section-header mb-4">
+          <div className="section-header mb-4 d-flex justify-content-between align-items-center">
             <h4 className="fw-bold mb-1" style={{ color: "var(--gray-800)" }}>Timesheets</h4>
+            {role === 'admin' && (
+              <div className="d-flex" style={{ gap: '0.5rem', background: 'var(--gray-100)', padding: '0.25rem', borderRadius: 'var(--radius)' }}>
+                <button 
+                  className={`btn btn-sm ${activeTab === 'records' ? 'btn-white shadow-sm' : 'btn-light text-muted'}`} 
+                  style={{ border: 'none', fontWeight: 600, borderRadius: 'var(--radius)' }}
+                  onClick={() => setActiveTab('records')}
+                >
+                  Records
+                </button>
+                <button 
+                  className={`btn btn-sm ${activeTab === 'reports' ? 'btn-white shadow-sm' : 'btn-light text-muted'}`} 
+                  style={{ border: 'none', fontWeight: 600, borderRadius: 'var(--radius)' }}
+                  onClick={() => setActiveTab('reports')}
+                >
+                  Reports
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="row g-3 mb-4">
-            <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#eff6ff", padding: "1rem" }}>
-                <div className="stat-icon" style={{ background: "#3b82f6", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", color: "white" }}>
+          {activeTab === 'records' ? (
+            <>
+              <div className="row g-3 mb-4">
+                <div className="col-xl-3 col-md-6">
+                  <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#eff6ff", padding: "1rem" }}>
+                    <div className="stat-icon" style={{ background: "#3b82f6", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", color: "white" }}>
                   <i className="bi bi-file-earmark-text" style={{ fontSize: "1.1rem" }}></i>
                 </div>
                 <div>
@@ -294,12 +399,14 @@ function Timesheets() {
                 </>
               )}
               <div className={role === 'admin' ? "col-md-2" : "col-md-3"}>
-                <select className="form-select" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)}>
-                  <option value="All">All Periods</option>
-                  <option value="Daily">Daily</option>
-                  <option value="Weekly">Weekly</option>
-                  <option value="Monthly">Monthly</option>
-                </select>
+                  <select className="form-select" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)}>
+                    <option value="All">All Periods</option>
+                    <option value="Daily">Daily</option>
+                    <option value="This Week">This Week</option>
+                    <option value="Last Week">Last Week</option>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Custom">Custom</option>
+                  </select>
               </div>
               <div className={role === 'admin' ? "col-md-2" : "col-md-3"}>
                 <select className="form-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
@@ -331,6 +438,7 @@ function Timesheets() {
                     <th>Task</th>
                     <th>Hours Worked</th>
                     <th>Status</th>
+                    {role === 'admin' && <th>Manager Name</th>}
                     {role === 'admin' && <th>Manager Comments</th>}
                     {role !== 'admin' && <th>Actions</th>}
                   </tr>
@@ -338,7 +446,7 @@ function Timesheets() {
                 <tbody>
                   {filteredTimesheets.length === 0 ? (
                     <tr>
-                      <td colSpan={(role === 'admin' || role === 'manager') ? "10" : "7"} className="text-center py-5">
+                      <td colSpan={(role === 'admin' || role === 'manager') ? (role === 'admin' ? "11" : "10") : "7"} className="text-center py-5">
                         <p className="text-muted mb-0">No timesheets found.</p>
                       </td>
                     </tr>
@@ -358,6 +466,7 @@ function Timesheets() {
                             {ts.status}
                           </span>
                         </td>
+                        {role === 'admin' && <td>{ts.managerName}</td>}
                         {role === 'admin' && (
                           <td>
                             <div style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ts.managerComments}>
@@ -400,8 +509,99 @@ function Timesheets() {
                 </tbody>
               </table>
             </div>
-            
           </div>
+            </>
+          ) : (
+            <div className="card-dashboard p-4">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="fw-bold mb-0">Timesheet Reports</h5>
+              </div>
+              
+              <div className="row g-3 mb-4">
+                <div className="col-md-4">
+                  <select className="form-select" value={filterEmployee} onChange={(e) => setFilterEmployee(e.target.value)}>
+                    <option value="All">All Employees</option>
+                    {uniqueEmployees.filter(e => e !== 'All').map(e => <option key={e} value={e}>{e}</option>)}
+                  </select>
+                </div>
+                <div className="col-md-4">
+                  <select className="form-select" value={filterDepartment} onChange={(e) => setFilterDepartment(e.target.value)}>
+                    <option value="All">All Departments</option>
+                    {uniqueDepartments.filter(d => d !== 'All').map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div className="col-md-4">
+                  <select className="form-select" value={filterDate} onChange={(e) => setFilterDate(e.target.value)}>
+                    {uniqueDates.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="row g-3 mb-5">
+                <div className="col-xl-2 col-md-4">
+                  <div className="stat-card card-dashboard d-flex flex-column justify-content-center align-items-center text-center h-100" style={{ background: "#eff6ff", padding: "1.5rem" }}>
+                    <div className="stat-label" style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginBottom: "0.5rem" }}>Total Timesheets</div>
+                    <div className="stat-value fw-bold" style={{ color: "#3b82f6", fontSize: "1.75rem" }}>{filteredTimesheets.length}</div>
+                  </div>
+                </div>
+                <div className="col-xl-2 col-md-4">
+                  <div className="stat-card card-dashboard d-flex flex-column justify-content-center align-items-center text-center h-100" style={{ background: "#f3e8ff", padding: "1.5rem" }}>
+                    <div className="stat-label" style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginBottom: "0.5rem" }}>Total Hours</div>
+                    <div className="stat-value fw-bold" style={{ color: "#9333ea", fontSize: "1.75rem" }}>{reportTotalHours}</div>
+                  </div>
+                </div>
+                <div className="col-xl-2 col-md-4">
+                  <div className="stat-card card-dashboard d-flex flex-column justify-content-center align-items-center text-center h-100" style={{ background: "#fffbeb", padding: "1.5rem" }}>
+                    <div className="stat-label" style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginBottom: "0.5rem" }}>Pending</div>
+                    <div className="stat-value fw-bold" style={{ color: "#f59e0b", fontSize: "1.75rem" }}>{reportPending}</div>
+                  </div>
+                </div>
+                <div className="col-xl-2 col-md-4">
+                  <div className="stat-card card-dashboard d-flex flex-column justify-content-center align-items-center text-center h-100" style={{ background: "#ecfdf5", padding: "1.5rem" }}>
+                    <div className="stat-label" style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginBottom: "0.5rem" }}>Approved</div>
+                    <div className="stat-value fw-bold" style={{ color: "#10b981", fontSize: "1.75rem" }}>{reportApproved}</div>
+                  </div>
+                </div>
+                <div className="col-xl-2 col-md-4">
+                  <div className="stat-card card-dashboard d-flex flex-column justify-content-center align-items-center text-center h-100" style={{ background: "#fef2f2", padding: "1.5rem" }}>
+                    <div className="stat-label" style={{ fontSize: "0.85rem", color: "var(--gray-600)", marginBottom: "0.5rem" }}>Rejected</div>
+                    <div className="stat-value fw-bold" style={{ color: "#ef4444", fontSize: "1.75rem" }}>{reportRejected}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-2">
+                <h6 className="fw-bold mb-4" style={{ color: "var(--gray-800)" }}>Submissions by Period</h6>
+                <div className="d-flex align-items-end" style={{ gap: '2rem', height: '200px', paddingBottom: '1rem', borderBottom: '1px solid var(--gray-200)' }}>
+                  <div className="d-flex flex-column align-items-center" style={{ flex: 1, height: '100%' }}>
+                    <div className="d-flex flex-column justify-content-end align-items-center w-100" style={{ flex: 1, position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: -25, fontSize: '0.85rem', fontWeight: 600, color: '#3b82f6' }}>{chartDaily}</div>
+                      <div style={{ width: '60%', height: `${(chartDaily / maxChart) * 100}%`, background: '#3b82f6', borderRadius: '4px 4px 0 0', minHeight: '4px', transition: 'height 0.3s ease' }}></div>
+                    </div>
+                    <div className="mt-2" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--gray-600)' }}>Daily</div>
+                  </div>
+                  
+                  <div className="d-flex flex-column align-items-center" style={{ flex: 1, height: '100%' }}>
+                    <div className="d-flex flex-column justify-content-end align-items-center w-100" style={{ flex: 1, position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: -25, fontSize: '0.85rem', fontWeight: 600, color: '#10b981' }}>{chartWeekly}</div>
+                      <div style={{ width: '60%', height: `${(chartWeekly / maxChart) * 100}%`, background: '#10b981', borderRadius: '4px 4px 0 0', minHeight: '4px', transition: 'height 0.3s ease' }}></div>
+                    </div>
+                    <div className="mt-2" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--gray-600)' }}>Weekly</div>
+                  </div>
+
+                  <div className="d-flex flex-column align-items-center" style={{ flex: 1, height: '100%' }}>
+                    <div className="d-flex flex-column justify-content-end align-items-center w-100" style={{ flex: 1, position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: -25, fontSize: '0.85rem', fontWeight: 600, color: '#8b5cf6' }}>{chartMonthly}</div>
+                      <div style={{ width: '60%', height: `${(chartMonthly / maxChart) * 100}%`, background: '#8b5cf6', borderRadius: '4px 4px 0 0', minHeight: '4px', transition: 'height 0.3s ease' }}></div>
+                    </div>
+                    <div className="mt-2" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--gray-600)' }}>Monthly</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -419,8 +619,10 @@ function Timesheets() {
                     <label className="form-label text-muted small fw-bold">Period</label>
                     <select className="form-select" value={period} onChange={(e) => setPeriod(e.target.value)}>
                       <option value="Daily">Daily</option>
-                      <option value="Weekly">Weekly</option>
+                      <option value="This Week">This Week</option>
+                      <option value="Last Week">Last Week</option>
                       <option value="Monthly">Monthly</option>
+                      <option value="Custom">Custom</option>
                     </select>
                   </div>
                   
@@ -431,15 +633,15 @@ function Timesheets() {
                     </div>
                   )}
 
-                  {period === 'Weekly' && (
+                  {(period === 'This Week' || period === 'Last Week' || period === 'Custom') && (
                     <div className="row mb-3">
                       <div className="col-6">
                         <label className="form-label text-muted small fw-bold">Start Date</label>
-                        <input type="date" className="form-control" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} />
+                        <input type="date" className="form-control" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} disabled={period !== 'Custom'} />
                       </div>
                       <div className="col-6">
                         <label className="form-label text-muted small fw-bold">End Date</label>
-                        <input type="date" className="form-control" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} />
+                        <input type="date" className="form-control" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} disabled={period !== 'Custom'} />
                       </div>
                     </div>
                   )}
@@ -492,7 +694,10 @@ function Timesheets() {
                   </div>
                   <div className="mb-3">
                     <label className="form-label text-muted small fw-bold">Hours Worked</label>
-                    <input type="number" className="form-control" placeholder="e.g. 8" value={hours} onChange={(e) => setHours(e.target.value)} />
+                    <input type="number" className="form-control" placeholder="e.g. 8" min="6" max="9" step="0.5" value={hours} onChange={(e) => setHours(e.target.value)} />
+                    {hours && (parseFloat(hours) < 6 || parseFloat(hours) > 9) && (
+                      <div className="text-danger small mt-1">Hours worked must be between 6 and 9.</div>
+                    )}
                   </div>
                   <div className="mb-3">
                     <label className="form-label text-muted small fw-bold">Description</label>
@@ -502,7 +707,7 @@ function Timesheets() {
               </div>
               <div className="modal-footer border-0 pt-0">
                 <button type="button" className="btn btn-light" onClick={resetForm}>Cancel</button>
-                <button type="button" className="btn btn-primary" onClick={handleSave}>Save</button>
+                <button type="button" className="btn btn-primary" onClick={handleSave} disabled={hours && (parseFloat(hours) < 6 || parseFloat(hours) > 9)}>Save</button>
               </div>
             </div>
           </div>

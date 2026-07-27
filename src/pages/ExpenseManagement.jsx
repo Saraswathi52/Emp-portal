@@ -437,15 +437,13 @@ function ExpenseManagement() {
               { label: "Total Amount", value: `₹${totalAmount.toLocaleString()}`, icon: "bi-currency-rupee", color: "#8b5cf6", bg: "#f5f3ff" },
             ].map((s) => (
               <div key={s.label} className="col-6 col-xl-3">
-                <div className="card border-0 shadow-sm rounded-4 h-100 p-4 transition-hover" style={{ background: s.bg }}>
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ background: s.color, width: "48px", height: "48px", color: "white", fontSize: "1.2rem", boxShadow: `0 4px 12px ${s.color}40` }}>
-                      <i className={`bi ${s.icon}`} />
-                    </div>
-                    <div>
-                      <div className="text-muted small fw-semibold text-uppercase tracking-wider">{s.label}</div>
-                      <div className="fw-bold mt-1" style={{ color: s.color, fontSize: "1.5rem", lineHeight: "1" }}>{s.value}</div>
-                    </div>
+                <div className="stat-card card-dashboard h-100 d-flex align-items-center gap-2" style={{ background: s.bg }}>
+                  <div className="stat-icon" style={{ background: s.color }}>
+                    <i className={`bi ${s.icon}`} />
+                  </div>
+                  <div>
+                    <div className="stat-label">{s.label}</div>
+                    <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
                   </div>
                 </div>
               </div>

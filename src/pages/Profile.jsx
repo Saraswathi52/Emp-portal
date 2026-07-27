@@ -3,6 +3,16 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployee, saveEmployee, getAllLeaveRequests, getAllExpenses, updateLeaveStatus, updateExpenseStatus, getManagerProfile, updateManagerProfile, getAdminProfile, updateAdminProfile } from "../services/dataService";
 
+const formatDateDisplay = (d) => {
+  if (!d) return '';
+  if (d.includes('T')) d = d.split('T')[0];
+  const parts = d.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return d;
+};
+
 const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange, error }) => {
   const val = editing ? (form[name] || '') : (value || '');
   return (
@@ -27,7 +37,8 @@ const Field = ({ label, value, icon, name, type = 'text', options = null, editin
             </>
           ) : (
             <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--gray-700)", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {type === 'url' && val ? <a href={val} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>{val}</a> : (val || '—')}
+              {type === 'url' && val ? <a href={val} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>{val}</a> : 
+               (type === 'date' && val ? formatDateDisplay(val) : (val || '—'))}
             </div>
           )}
         </div>
