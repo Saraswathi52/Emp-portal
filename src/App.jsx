@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Departments from "./pages/Departments";
 import Reports from "./pages/Reports";
 import Monitor from "./pages/Monitor";
+import Timesheets from "./pages/Timesheets";
 
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
       <Route path="/employees" element={<EmployeeManagement />} />
       <Route path="/departments" element={<Departments />} />
       <Route path="/expenses" element={<ExpenseManagement />} />
+      <Route path="/timesheets" element={<Timesheets />} />
       <Route path="/documents" element={<DocumentManagement />} />
 
       <Route path="/employee-dashboard" element={<EmployeeDashboard />} />

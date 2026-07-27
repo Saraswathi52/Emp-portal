@@ -5,6 +5,7 @@ const menuConfig = {
   employee: [
     { label: "Dashboard", path: "/employee-dashboard", icon: Gauge },
     { label: "Leave Management", path: "/leave", icon: CalendarCheck },
+    { label: "Timesheets", path: "/timesheets", icon: Activity },
     { label: "Expense Management", path: "/expenses", icon: Wallet },
     { label: "Documents", path: "/documents", icon: FolderOpen },
   ],
@@ -12,6 +13,7 @@ const menuConfig = {
     { label: "Dashboard", path: "/manager-dashboard", icon: Gauge },
     { label: "Employees", path: "/employees", icon: Users },
     { label: "Leave Management", path: "/leave", icon: CalendarCheck },
+    { label: "Timesheets", path: "/timesheets", icon: Activity },
     { label: "Expense Management", path: "/expenses", icon: Wallet },
     { label: "Documents", path: "/documents", icon: FolderOpen },
   ],
@@ -19,6 +21,7 @@ const menuConfig = {
     { label: "Dashboard", path: "/admin-dashboard", icon: Gauge },
     { label: "Employees", path: "/employees", icon: Users },
     { label: "Departments", path: "/departments", icon: Building },
+    { label: "Timesheets", path: "/timesheets", icon: Activity },
     { label: "Documents", path: "/documents", icon: FolderOpen },
     { label: "Reports", path: "/reports", icon: FileBarChart },
   ],

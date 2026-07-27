@@ -1146,3 +1146,34 @@ export const getManagerReport = () => fetchReport('manager');
 export const getDepartmentReport = () => fetchReport('departement');
 export const getLeaveReport = () => fetchReport('leave');
 export const getExpenseReport = () => fetchReport('expenses');
+
+// Timesheet Service (Local Storage Only)
+export function getTimesheets() {
+  const ts = localStorage.getItem("timesheets");
+  return ts ? JSON.parse(ts) : [];
+}
+
+export function addTimesheet(timesheet) {
+  const ts = getTimesheets();
+  timesheet.id = `TS${Date.now()}`;
+  timesheet.status = 'Pending';
+  ts.push(timesheet);
+  localStorage.setItem("timesheets", JSON.stringify(ts));
+  emitDataSync();
+  return timesheet;
+}
+
+export function updateTimesheet(updatedTimesheet) {
+  let ts = getTimesheets();
+  ts = ts.map(t => t.id === updatedTimesheet.id ? { ...t, ...updatedTimesheet } : t);
+  localStorage.setItem("timesheets", JSON.stringify(ts));
+  emitDataSync();
+  return updatedTimesheet;
+}
+
+export function deleteTimesheet(id) {
+  let ts = getTimesheets();
+  ts = ts.filter(t => t.id !== id);
+  localStorage.setItem("timesheets", JSON.stringify(ts));
+  emitDataSync();
+}

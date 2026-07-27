@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { getCurrentUser, getEmployee, getTodayAttendance, getAttendance, getLeaveBalances, getLeaveRequests, getHolidays } from "../services/dataService";
-import { CalendarCheck, PiggyBank, Clock, Home } from "lucide-react";
+import { CalendarCheck, PiggyBank, Clock, Home, Activity } from "lucide-react";
 
 function EmployeeDashboard() {
   const navigate = useNavigate();
@@ -211,6 +211,23 @@ function EmployeeDashboard() {
                   </div>
                   <small style={{ color: "var(--gray-400)", fontSize: "0.65rem" }}>{leaveBal.wfhUsed} used of {leaveBal.wfh}</small>
                 </div>
+              </div>
+            </div>
+            <div className="col-xl-3 col-md-6">
+              <div className="stat-card card-dashboard d-flex flex-column justify-content-between h-100" style={{ background: "#f8fafc", padding: "1rem" }}>
+                <div className="d-flex align-items-center gap-2 mb-2">
+                  <div className="stat-icon" style={{ background: "#64748b", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", borderRadius: "50%" }}>
+                    <Activity size={18} />
+                  </div>
+                  <div className="stat-label fw-bold" style={{ fontSize: "0.9rem", color: "var(--gray-800)" }}>Timesheets</div>
+                </div>
+                <div className="mb-2">
+                  <div style={{ fontSize: "0.8rem", color: "var(--gray-600)" }}>Hours This Month: <span className="fw-bold" style={{ color: "var(--gray-800)" }}>0 hrs</span></div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--gray-600)" }}>Pending Timesheets: <span className="fw-bold" style={{ color: "var(--gray-800)" }}>0</span></div>
+                </div>
+                <button className="btn btn-primary btn-sm w-100" onClick={() => navigate('/timesheets')} style={{ fontSize: "0.75rem", padding: "0.4rem" }}>
+                  Go to Timesheets
+                </button>
               </div>
             </div>
           </div>
