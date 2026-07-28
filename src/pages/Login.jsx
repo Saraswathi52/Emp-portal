@@ -149,14 +149,15 @@ function Login() {
           <form onSubmit={handleChangePassword} className="form-custom">
             <div className="mb-4">
               <label className="form-label">New Password</label>
-              <div className="input-group-custom">
-                <i className="bi bi-lock"></i>
+              <div className="input-group-custom position-relative">
+                <i className="bi bi-lock position-absolute" style={{ left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--gray-500)" }}></i>
                 <input
                   type="password"
                   className={`form-control ${errors.newPassword ? "is-invalid" : ""}`}
                   placeholder="Enter new password"
                   value={newPassword}
                   onChange={(e) => { setNewPassword(e.target.value); setErrors({ ...errors, newPassword: null }); }}
+                  style={{ paddingLeft: "2.5rem" }}
                 />
               </div>
               {errors.newPassword && <div className="invalid-feedback d-block">{errors.newPassword}</div>}
@@ -164,14 +165,15 @@ function Login() {
 
             <div className="mb-4">
               <label className="form-label">Confirm New Password</label>
-              <div className="input-group-custom">
-                <i className="bi bi-lock-fill"></i>
+              <div className="input-group-custom position-relative">
+                <i className="bi bi-lock-fill position-absolute" style={{ left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--gray-500)" }}></i>
                 <input
                   type="password"
                   className={`form-control ${errors.confirmPassword ? "is-invalid" : ""}`}
                   placeholder="Confirm new password"
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); setErrors({ ...errors, confirmPassword: null }); }}
+                  style={{ paddingLeft: "2.5rem" }}
                 />
               </div>
               {errors.confirmPassword && <div className="invalid-feedback d-block">{errors.confirmPassword}</div>}
@@ -186,14 +188,15 @@ function Login() {
           <form onSubmit={handleLogin} className="form-custom">
             <div className="mb-4">
               <label className="form-label">Employee ID</label>
-              <div className="input-group-custom">
-                <i className="bi bi-person"></i>
+              <div className="input-group-custom position-relative">
+                <i className="bi bi-person position-absolute" style={{ left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--gray-500)" }}></i>
                 <input
                   type="text"
                   className={`form-control ${errors.employeeId ? "is-invalid" : ""}`}
                   placeholder={`Enter your ${roleLabel} ID`}
                   value={employeeId}
                   onChange={(e) => { setEmployeeId(e.target.value); setErrors({ ...errors, employeeId: null }); }}
+                  style={{ paddingLeft: "2.5rem" }}
                 />
               </div>
               {errors.employeeId && <div className="invalid-feedback d-block">{errors.employeeId}</div>}
@@ -203,21 +206,21 @@ function Login() {
               <div className="d-flex justify-content-between align-items-center mb-1">
                 <label className="form-label mb-0">Password</label>
               </div>
-              <div className="input-group-custom" style={{ position: "relative" }}>
-                <i className="bi bi-lock"></i>
+              <div className="input-group-custom position-relative">
+                <i className="bi bi-lock position-absolute" style={{ left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--gray-500)" }}></i>
                 <input
                   type={showPassword ? "text" : "password"}
                   className={`form-control ${errors.password ? "is-invalid" : ""}`}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setErrors({ ...errors, password: null }); }}
-                  style={{ paddingRight: "40px" }}
+                  style={{ paddingLeft: "2.5rem", paddingRight: "2.5rem" }}
                 />
                 <button 
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="btn btn-link p-0 position-absolute end-0 top-50 translate-middle-y me-3"
-                  style={{ zIndex: 10, textDecoration: "none" }}
+                  className="btn btn-link p-0 position-absolute"
+                  style={{ right: "1rem", top: "50%", transform: "translateY(-50%)", zIndex: 10, textDecoration: "none" }}
                   tabIndex="-1"
                 >
                   <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} style={{ color: "var(--gray-500)", fontSize: "1.1rem" }} />

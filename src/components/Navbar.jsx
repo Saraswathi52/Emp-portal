@@ -415,56 +415,106 @@ function Navbar({ onToggleSidebar }) {
         <>
           <div className="modal-backdrop show" style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1040, position: "fixed", inset: 0 }}></div>
           <div className="modal show d-block" tabIndex="-1" style={{ zIndex: 1050, position: "fixed", inset: 0, overflow: "hidden" }}>
-            <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: "480px", margin: "auto", height: "100%" }}>
-              <div className="modal-content shadow-lg" style={{ borderRadius: "16px", border: "none", backgroundColor: "#fff", padding: "0.5rem", maxHeight: "90vh" }}>
-                <div className="modal-header border-0 pb-0 pt-3 px-4 flex-shrink-0">
-                  <h5 className="modal-title fw-bold" style={{ color: "var(--gray-800)", fontSize: "1.25rem" }}>
-                    <i className="bi bi-shield-lock me-2 text-primary"></i>
+            <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: "420px", margin: "auto", height: "100%" }}>
+              <div className="modal-content shadow-lg" style={{ borderRadius: "24px", border: "none", backgroundColor: "#fff", padding: "0.5rem", maxHeight: "90vh" }}>
+                <div className="modal-header border-0 pb-2 pt-4 px-4 position-relative d-flex justify-content-center">
+                  <h5 className="modal-title fw-bold text-center w-100" style={{ color: "var(--gray-800)", fontSize: "1.3rem", letterSpacing: "-0.5px" }}>
                     Change Password
                   </h5>
-                  <button type="button" className="btn-close" onClick={handlePasswordCancel}></button>
+                  <button type="button" className="btn-close position-absolute" style={{ right: "1.5rem", top: "1.5rem", fontSize: "0.85rem" }} onClick={handlePasswordCancel}></button>
                 </div>
-                <div className="modal-body px-4 pt-3 pb-2 overflow-auto">
+                <div className="modal-body px-4 pt-2 pb-3 overflow-auto">
                   {pwdSuccess && (
-                    <div className="alert alert-success d-flex align-items-center mb-4 py-2 px-3" style={{ fontSize: "0.85rem", borderRadius: "8px", border: "1px solid #badbcc" }}>
-                      <i className="bi bi-check-circle-fill me-2 text-success"></i>
+                    <div className="alert alert-success d-flex align-items-center mb-4 py-2 px-3" style={{ fontSize: "0.85rem", borderRadius: "12px", border: "1px solid #badbcc", backgroundColor: "#f0fdf4", color: "#166534" }}>
+                      <i className="bi bi-check-circle-fill me-2 fs-5"></i>
                       <div>{pwdSuccess}</div>
                     </div>
                   )}
-                  <div className="mb-3">
-                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Current Password</label>
-                    <div className="input-group">
-                      <input type={showPwd ? "text" : "password"} className={`form-control ${pwdErrors.current ? 'is-invalid' : ''}`} value={pwdForm.current} onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })} style={{ fontSize: "0.9rem" }} />
-                      <button className="btn btn-outline-secondary" type="button" onClick={() => setShowPwd(!showPwd)}>
-                        <i className={`bi ${showPwd ? "bi-eye-slash" : "bi-eye"}`}></i>
+                  
+                  <div className="mb-4">
+                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--gray-700)", marginBottom: "0.4rem" }}>Current Password</label>
+                    <div className="position-relative">
+                      <i className="bi bi-lock position-absolute" style={{ left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--gray-500)", fontSize: "1.1rem" }}></i>
+                      <input 
+                        type={showPwd ? "text" : "password"} 
+                        className={`form-control ${pwdErrors.current ? 'is-invalid' : ''}`} 
+                        placeholder="Enter current password"
+                        value={pwdForm.current} 
+                        onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })} 
+                        style={{ fontSize: "0.95rem", padding: "0.75rem 2.5rem", borderRadius: "14px", border: pwdErrors.current ? "1.5px solid var(--danger)" : "1.5px solid var(--gray-200)", transition: "all 0.2s ease", backgroundColor: "var(--gray-50)" }} 
+                        onFocus={(e) => { e.target.style.backgroundColor = "#fff"; e.target.style.borderColor = "var(--primary)"; e.target.style.boxShadow = "0 0 0 4px rgba(37,99,235,0.1)"; }}
+                        onBlur={(e) => { e.target.style.backgroundColor = "var(--gray-50)"; e.target.style.borderColor = pwdErrors.current ? "var(--danger)" : "var(--gray-200)"; e.target.style.boxShadow = "none"; }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPwd(!showPwd)}
+                        className="btn btn-link p-0 position-absolute"
+                        style={{ right: "1rem", top: "50%", transform: "translateY(-50%)", zIndex: 10, textDecoration: "none" }}
+                        tabIndex="-1"
+                      >
+                        <i className={`bi ${showPwd ? "bi-eye-slash" : "bi-eye"}`} style={{ color: "var(--gray-500)", fontSize: "1.1rem" }}></i>
                       </button>
-                      {pwdErrors.current && <div className="invalid-feedback d-block" style={{ fontSize: "0.75rem" }}>{pwdErrors.current}</div>}
                     </div>
+                    {pwdErrors.current && <div className="text-danger mt-1 ms-1" style={{ fontSize: "0.8rem", fontWeight: 500 }}>{pwdErrors.current}</div>}
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>New Password</label>
-                    <div className="input-group">
-                      <input type={showNewPwd ? "text" : "password"} className={`form-control ${pwdErrors.new ? 'is-invalid' : ''}`} value={pwdForm.new} onChange={(e) => setPwdForm({ ...pwdForm, new: e.target.value })} style={{ fontSize: "0.9rem" }} />
-                      <button className="btn btn-outline-secondary" type="button" onClick={() => setShowNewPwd(!showNewPwd)}>
-                        <i className={`bi ${showNewPwd ? "bi-eye-slash" : "bi-eye"}`}></i>
+
+                  <div className="mb-4">
+                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--gray-700)", marginBottom: "0.4rem" }}>New Password</label>
+                    <div className="position-relative">
+                      <i className="bi bi-lock position-absolute" style={{ left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--gray-500)", fontSize: "1.1rem" }}></i>
+                      <input 
+                        type={showNewPwd ? "text" : "password"} 
+                        className={`form-control ${pwdErrors.new ? 'is-invalid' : ''}`} 
+                        placeholder="Enter new password"
+                        value={pwdForm.new} 
+                        onChange={(e) => setPwdForm({ ...pwdForm, new: e.target.value })} 
+                        style={{ fontSize: "0.95rem", padding: "0.75rem 2.5rem", borderRadius: "14px", border: pwdErrors.new ? "1.5px solid var(--danger)" : "1.5px solid var(--gray-200)", transition: "all 0.2s ease", backgroundColor: "var(--gray-50)" }} 
+                        onFocus={(e) => { e.target.style.backgroundColor = "#fff"; e.target.style.borderColor = "var(--primary)"; e.target.style.boxShadow = "0 0 0 4px rgba(37,99,235,0.1)"; }}
+                        onBlur={(e) => { e.target.style.backgroundColor = "var(--gray-50)"; e.target.style.borderColor = pwdErrors.new ? "var(--danger)" : "var(--gray-200)"; e.target.style.boxShadow = "none"; }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowNewPwd(!showNewPwd)}
+                        className="btn btn-link p-0 position-absolute"
+                        style={{ right: "1rem", top: "50%", transform: "translateY(-50%)", zIndex: 10, textDecoration: "none" }}
+                        tabIndex="-1"
+                      >
+                        <i className={`bi ${showNewPwd ? "bi-eye-slash" : "bi-eye"}`} style={{ color: "var(--gray-500)", fontSize: "1.1rem" }}></i>
                       </button>
-                      {pwdErrors.new && <div className="invalid-feedback d-block" style={{ fontSize: "0.75rem" }}>{pwdErrors.new}</div>}
                     </div>
+                    {pwdErrors.new && <div className="text-danger mt-1 ms-1" style={{ fontSize: "0.8rem", fontWeight: 500 }}>{pwdErrors.new}</div>}
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Confirm New Password</label>
-                    <div className="input-group">
-                      <input type={showConfPwd ? "text" : "password"} className={`form-control ${pwdErrors.confirm ? 'is-invalid' : ''}`} value={pwdForm.confirm} onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })} style={{ fontSize: "0.9rem" }} />
-                      <button className="btn btn-outline-secondary" type="button" onClick={() => setShowConfPwd(!showConfPwd)}>
-                        <i className={`bi ${showConfPwd ? "bi-eye-slash" : "bi-eye"}`}></i>
+
+                  <div className="mb-4">
+                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--gray-700)", marginBottom: "0.4rem" }}>Confirm New Password</label>
+                    <div className="position-relative">
+                      <i className="bi bi-lock-fill position-absolute" style={{ left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--gray-500)", fontSize: "1.1rem" }}></i>
+                      <input 
+                        type={showConfPwd ? "text" : "password"} 
+                        className={`form-control ${pwdErrors.confirm ? 'is-invalid' : ''}`} 
+                        placeholder="Confirm new password"
+                        value={pwdForm.confirm} 
+                        onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })} 
+                        style={{ fontSize: "0.95rem", padding: "0.75rem 2.5rem", borderRadius: "14px", border: pwdErrors.confirm ? "1.5px solid var(--danger)" : "1.5px solid var(--gray-200)", transition: "all 0.2s ease", backgroundColor: "var(--gray-50)" }} 
+                        onFocus={(e) => { e.target.style.backgroundColor = "#fff"; e.target.style.borderColor = "var(--primary)"; e.target.style.boxShadow = "0 0 0 4px rgba(37,99,235,0.1)"; }}
+                        onBlur={(e) => { e.target.style.backgroundColor = "var(--gray-50)"; e.target.style.borderColor = pwdErrors.confirm ? "var(--danger)" : "var(--gray-200)"; e.target.style.boxShadow = "none"; }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowConfPwd(!showConfPwd)}
+                        className="btn btn-link p-0 position-absolute"
+                        style={{ right: "1rem", top: "50%", transform: "translateY(-50%)", zIndex: 10, textDecoration: "none" }}
+                        tabIndex="-1"
+                      >
+                        <i className={`bi ${showConfPwd ? "bi-eye-slash" : "bi-eye"}`} style={{ color: "var(--gray-500)", fontSize: "1.1rem" }}></i>
                       </button>
-                      {pwdErrors.confirm && <div className="invalid-feedback d-block" style={{ fontSize: "0.75rem" }}>{pwdErrors.confirm}</div>}
                     </div>
+                    {pwdErrors.confirm && <div className="text-danger mt-1 ms-1" style={{ fontSize: "0.8rem", fontWeight: 500 }}>{pwdErrors.confirm}</div>}
                   </div>
                 </div>
-                <div className="modal-footer border-0 px-4 pb-4 pt-2 flex-shrink-0">
-                  <button type="button" className="btn btn-light" onClick={handlePasswordCancel} style={{ borderRadius: "8px", fontSize: "0.95rem", padding: "0.5rem 1rem", fontWeight: 500 }}>Cancel</button>
-                  <button type="button" className="btn btn-primary" onClick={handlePasswordSave} style={{ borderRadius: "8px", fontSize: "0.95rem", padding: "0.5rem 1.5rem", fontWeight: 600 }}>Save Changes</button>
+                <div className="modal-footer border-0 px-4 pb-4 pt-1 flex-shrink-0 d-flex gap-2 justify-content-center">
+                  <button type="button" className="btn btn-light w-50" onClick={handlePasswordCancel} style={{ borderRadius: "12px", fontSize: "0.95rem", padding: "0.7rem", fontWeight: 600, backgroundColor: "var(--gray-100)", color: "var(--gray-700)", border: "none", transition: "all 0.2s ease" }} onMouseEnter={(e) => e.target.style.backgroundColor = "var(--gray-200)"} onMouseLeave={(e) => e.target.style.backgroundColor = "var(--gray-100)"}>Cancel</button>
+                  <button type="button" className="btn btn-primary w-50" onClick={handlePasswordSave} style={{ borderRadius: "12px", fontSize: "0.95rem", padding: "0.7rem", fontWeight: 600, border: "none", background: "var(--primary)", transition: "all 0.2s ease" }} onMouseEnter={(e) => { e.target.style.transform = "translateY(-1px)"; e.target.style.boxShadow = "0 4px 12px rgba(37,99,235,0.3)"; }} onMouseLeave={(e) => { e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "none"; }}>Save Changes</button>
                 </div>
               </div>
             </div>
