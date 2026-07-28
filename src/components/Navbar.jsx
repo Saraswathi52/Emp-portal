@@ -249,12 +249,12 @@ function Navbar({ onToggleSidebar }) {
         </div>
 
         <div className="dropdown position-relative" ref={profileRef}>
-          <div className="d-flex align-items-center">
+          <div className="d-flex align-items-stretch">
             <button
               className="btn d-flex align-items-center gap-2 border-0"
               onClick={() => navigate("/profile")}
               type="button"
-              style={{ background: "var(--gray-50)", borderRadius: "50px 0 0 50px", padding: "0.35rem 0.5rem 0.35rem 1rem" }}
+              style={{ background: "var(--gray-50)", borderRadius: "50px 0 0 50px", padding: "0.25rem 0.25rem 0.25rem 0.5rem" }}
             >
               {employee?.profileImage ? (
                 <img
@@ -288,7 +288,7 @@ function Navbar({ onToggleSidebar }) {
                   {getInitial()}
                 </div>
               )}
-              <span className="d-none d-sm-inline" style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--gray-700)" }}>
+              <span className="d-none d-sm-inline text-truncate" style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--gray-700)", maxWidth: "160px" }}>
                 {getName()}
               </span>
             </button>
@@ -299,7 +299,7 @@ function Navbar({ onToggleSidebar }) {
                 if (showNotif) setShowNotif(false);
               }}
               type="button"
-              style={{ background: "var(--gray-50)", borderRadius: "0 50px 50px 0", padding: "0.35rem 0.75rem 0.35rem 0.25rem" }}
+              style={{ background: "var(--gray-50)", borderRadius: "0 50px 50px 0", padding: "0.25rem 0.75rem 0.25rem 0.35rem", display: "flex", alignItems: "center" }}
             >
               <i className="bi bi-chevron-down" style={{ fontSize: "0.7rem", color: "var(--gray-400)" }} />
             </button>

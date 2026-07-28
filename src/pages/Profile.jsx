@@ -13,15 +13,9 @@ const formatDateDisplay = (d) => {
   return d;
 };
 
-const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange, error, forceShowError, submitAttempted }) => {
-  const [touched, setTouched] = useState(false);
-  
-  useEffect(() => {
-    if (!editing) setTouched(false);
-  }, [editing]);
-
+const Field = ({ label, value, icon, name, type = 'text', options = null, editing, form, onChange, onBlur, error }) => {
   const val = editing ? (form[name] || '') : (value || '');
-  const displayError = (touched || forceShowError || submitAttempted) && error ? error : null;
+  const displayError = error ? error : null;
 
   return (
     <div className="col-md-6">
@@ -34,12 +28,12 @@ const Field = ({ label, value, icon, name, type = 'text', options = null, editin
           {editing ? (
             <>
               {options ? (
-                <select name={name} value={val} onChange={onChange} onBlur={() => setTouched(true)} className={`form-select form-select-sm ${displayError ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }}>
+                <select name={name} value={val} onChange={onChange} onBlur={onBlur} className={`form-select form-select-sm ${displayError ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }}>
                   <option value="">Select...</option>
                   {options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : (
-                <input type={type} name={name} value={val} onChange={onChange} onBlur={() => setTouched(true)} className={`form-control form-control-sm ${displayError ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }} />
+                <input type={type} name={name} value={val} onChange={onChange} onBlur={onBlur} className={`form-control form-control-sm ${displayError ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem", padding: "0.2rem 0.5rem", marginTop: 2 }} />
               )}
               {displayError && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{displayError}</div>}
             </>
@@ -64,16 +58,17 @@ function Profile() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [touchedFields, setTouchedFields] = useState({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleFieldBlur = (e) => {
-    const { name } = e.target;
-    setTouchedFields(prev => ({ ...prev, [name]: true }));
-  };
   const [toast, setToast] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleBlur = () => {
+    if (submitAttempted) {
+      setValidationErrors(validateForm(form));
+    }
+  };
 
   useEffect(() => {
     async function fetchEmp() {
@@ -160,14 +155,17 @@ function Profile() {
 
   const validateForm = (formData) => {
     const errs = {};
-    if (!formData.Title?.trim()) {
-      errs.Title = 'Title is required.';
-    }
 
-    if (!formData.FullName?.trim()) {
-      errs.FullName = 'Full Name is required';
-    } else if (/[^A-Za-z\s]/.test(formData.FullName)) {
-      errs.FullName = 'Full Name can only contain letters and spaces';
+
+    const fullName = formData.FullName?.trim() || '';
+    if (!fullName) {
+      errs.FullName = 'Full Name is required.';
+    } else if (fullName.length < 3) {
+      errs.FullName = 'Full Name must contain at least 3 characters.';
+    } else if (fullName.length > 50) {
+      errs.FullName = 'Full Name cannot exceed 50 characters.';
+    } else if (/[^A-Za-z\s]/.test(fullName)) {
+      errs.FullName = 'Full Name can contain only alphabets and spaces.';
     }
     
     if (!formData.Email?.trim()) {
@@ -179,17 +177,12 @@ function Profile() {
     const phone = formData.Phone?.trim() || '';
     if (!phone) {
       errs.Phone = 'Phone is required';
+    } else if (/[^\d]/.test(phone)) {
+      errs.Phone = 'Phone number must contain only digits.';
     } else if (phone.length > 10) {
-      errs.Phone = 'Phone number cannot exceed 10 digits';
-      errs._PhoneForce = true;
-    } else if (phone.length > 0 && !/^[6-9]/.test(phone)) {
-      errs.Phone = 'Please enter a valid Indian mobile number.';
-      errs._PhoneForce = true;
-    } else if (phone.length < 10) {
-      errs.Phone = 'Phone must be exactly 10 digits';
-    } else if (!/^\d{10}$/.test(phone)) {
-      errs.Phone = 'Phone must be exactly 10 digits';
-      errs._PhoneForce = true;
+      errs.Phone = 'Phone number cannot exceed 10 digits.';
+    } else if (phone.length < 10 || !/^[6-9]/.test(phone)) {
+      errs.Phone = 'Please enter a valid mobile number.';
     }
 
     const addr = formData.Address?.trim() || '';
@@ -199,39 +192,95 @@ function Profile() {
       errs.Address = 'Address must contain at least 10 characters.';
     } else if (addr.length > 250) {
       errs.Address = 'Address cannot exceed 250 characters.';
+    } else if (!/^[a-zA-Z0-9\s,\.\-\/]+$/.test(addr)) {
+      errs.Address = 'Address contains invalid characters. Only letters, numbers, spaces, commas, periods, hyphens, and forward slashes are allowed.';
     }
     
     const ecPhone = formData.EmergencyContactPhone?.trim() || '';
     if (ecPhone) {
-      if (ecPhone.length > 10) {
-        errs.EmergencyContactPhone = 'Phone number cannot exceed 10 digits';
-        errs._ECPhoneForce = true;
-      } else if (!/^[6-9]/.test(ecPhone)) {
-        errs.EmergencyContactPhone = 'Please enter a valid Indian mobile number.';
-        errs._ECPhoneForce = true;
-      } else if (ecPhone.length < 10) {
-        errs.EmergencyContactPhone = 'Phone must be exactly 10 digits';
-      } else if (!/^\d{10}$/.test(ecPhone)) {
-        errs.EmergencyContactPhone = 'Phone must be exactly 10 digits';
-        errs._ECPhoneForce = true;
+      if (/[^\d]/.test(ecPhone)) {
+        errs.EmergencyContactPhone = 'Phone number must contain only digits.';
+      } else if (ecPhone.length > 10) {
+        errs.EmergencyContactPhone = 'Phone number cannot exceed 10 digits.';
+      } else if (ecPhone.length < 10 || !/^[6-9]/.test(ecPhone)) {
+        errs.EmergencyContactPhone = 'Please enter a valid mobile number.';
       }
     }
 
-    if (formData.EmergencyContactName && /[^A-Za-z\s]/.test(formData.EmergencyContactName)) {
-      errs.EmergencyContactName = 'Name can only contain letters and spaces';
+    const ecName = formData.EmergencyContactName?.trim() || '';
+    if (!ecName) {
+      errs.EmergencyContactName = 'Emergency Contact Name is required.';
+    } else if (ecName.length < 3) {
+      errs.EmergencyContactName = 'Name must contain at least 3 characters.';
+    } else if (ecName.length > 50) {
+      errs.EmergencyContactName = 'Name cannot exceed 50 characters.';
+    } else if (/[^A-Za-z\s]/.test(ecName)) {
+      errs.EmergencyContactName = 'Name can only contain letters and spaces.';
     }
 
     if (formData.EmergencyContactRelation && /[^A-Za-z\s]/.test(formData.EmergencyContactRelation)) {
       errs.EmergencyContactRelation = 'Relation can only contain letters and spaces';
     }
+    const edu = formData.Education?.trim() || '';
+    if (!edu) {
+      errs.Education = 'Graduation is required.';
+    } else if (edu.length < 2) {
+      errs.Education = 'Graduation must contain at least 2 characters.';
+    } else if (edu.length > 100) {
+      errs.Education = 'Graduation cannot exceed 100 characters.';
+    } else if (/[^a-zA-Z0-9\s,\.&()\-]/.test(edu)) {
+      errs.Education = 'Graduation can only contain alphabets, numbers, spaces, commas, periods, ampersands, hyphens, and parentheses.';
+    }
+
+    if (formData.Skills !== undefined) {
+      const skillsStr = formData.Skills;
+      if (typeof skillsStr === 'string') {
+        const rawSkills = skillsStr.split(',');
+        const parsedSkills = rawSkills.map(s => s.trim());
+        
+        if (parsedSkills.length === 0 || (parsedSkills.length === 1 && parsedSkills[0] === '')) {
+          errs.Skills = 'At least one skill is required.';
+        } else if (rawSkills.some(s => s.trim() === '')) {
+          errs.Skills = 'Skills cannot be empty or contain only spaces.';
+        } else {
+          const lowerCaseSkills = parsedSkills.map(s => s.toLowerCase());
+          const uniqueSkills = new Set(lowerCaseSkills);
+          if (uniqueSkills.size !== parsedSkills.length) {
+            errs.Skills = 'This skill has already been added.';
+          } else {
+            for (const skill of parsedSkills) {
+              if (skill.length < 2 || skill.length > 30) {
+                errs.Skills = 'Each skill must be between 2 and 30 characters.';
+                break;
+              }
+              if (/[^a-zA-Z0-9\s+#\-\.]/.test(skill)) {
+                errs.Skills = 'Skills can only contain alphabets, numbers, spaces, +, #, -, and .';
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
     return errs;
   };
-
-  const errors = editing ? validateForm(form) : {};
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
+    
+    if (submitAttempted && validationErrors[name]) {
+      const tempForm = { ...form, [name]: value };
+      const tempErrors = validateForm(tempForm);
+      if (!tempErrors[name]) {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -247,6 +296,7 @@ function Profile() {
     setForm(trimmedForm);
     
     const finalErrors = validateForm(trimmedForm);
+    setValidationErrors(finalErrors);
     const realErrors = Object.keys(finalErrors).filter(k => !k.startsWith('_'));
     if (realErrors.length > 0) {
       setTimeout(() => {
@@ -309,6 +359,7 @@ function Profile() {
         const refreshed = await getManagerProfile(user.employeeId);
         setEmp(refreshed);
       } else {
+        delete trimmedForm.DateOfBirth;
         const updated = {
           ...emp,
           ...trimmedForm,
@@ -355,6 +406,8 @@ function Profile() {
       });
     }
     setEditing(false);
+    setSubmitAttempted(false);
+    setValidationErrors({});
   };
 
   const handleResumeUpload = (e) => {
@@ -488,6 +541,34 @@ function Profile() {
     }
   };
 
+  const handleRemoveResume = async () => {
+    if (window.confirm("Are you sure you want to remove your resume?")) {
+      try {
+        if (isManager) {
+          const payload = { resumeName: null, resumeContent: null };
+          await updateManagerProfile(user.employeeId, payload);
+          const refreshed = await getManagerProfile(user.employeeId);
+          setEmp(refreshed);
+        } else if (role === 'admin') {
+          const payload = { resume: null, resumeName: null };
+          const { updateAdminProfile, getAdminProfile } = await import('../services/dataService');
+          await updateAdminProfile(user.employeeId, payload);
+          const refreshed = await getAdminProfile(user.employeeId);
+          setEmp(refreshed);
+        } else {
+          const updated = { ...emp, resume: null, resumeName: null };
+          await saveEmployee(updated);
+          const refreshed = await getEmployee(updated.empid || user?.employeeId);
+          setEmp(refreshed || updated);
+        }
+        showToast("Resume removed successfully!");
+      } catch (error) {
+        console.error("Resume removal error:", error);
+        showToast("Failed to remove resume", "warning");
+      }
+    }
+  };
+
   return (
     <div className="dashboard-wrapper">
       {toast && (
@@ -518,7 +599,7 @@ function Profile() {
                   </button>
                 </>
               ) : (
-                <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={() => setEditing(true)}>
+                <button className="btn-custom-primary d-flex align-items-center gap-2" onClick={() => { setEditing(true); setSubmitAttempted(false); setValidationErrors({}); }}>
                   <i className="bi bi-pencil-square" /> Edit Profile
                 </button>
               )}
@@ -552,7 +633,7 @@ function Profile() {
                       </div>
                     )}
                     <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleProfileImageUpload} disabled={isLoading} />
-                    <div style={{
+                    <div title="Change Profile Photo" style={{
                       position: "absolute", bottom: "5px", right: "5px",
                       background: "var(--primary)", color: "#fff",
                       width: "32px", height: "32px", borderRadius: "50%",
@@ -566,9 +647,11 @@ function Profile() {
                 <h5 className="fw-bold mb-1" style={{ color: "var(--gray-800)" }}>{displayName}</h5>
                 <p className="mb-2" style={{ color: "var(--primary)", fontSize: "0.9rem", fontWeight: 500 }}>{emp?.Designation || emp?.Role || ''}</p>
                 <span className="badge-status badge-approved d-inline-block mb-2">{emp?.empid || ''}</span>
-                <div style={{ color: "var(--gray-500)", fontSize: "0.85rem" }}>
-                  <i className="bi bi-geo-alt me-1" /> {emp?.location || ''}
-                </div>
+                {emp?.location && (
+                  <div style={{ color: "var(--gray-500)", fontSize: "0.85rem" }}>
+                    <i className="bi bi-geo-alt me-1" /> {emp.location}
+                  </div>
+                )}
 
                 <div className="mt-4 pt-3" style={{ borderTop: "1px solid var(--gray-100)" }}>
                   <h6 className="fw-bold mb-2" style={{ color: "var(--gray-700)", fontSize: "0.85rem" }}>
@@ -576,13 +659,22 @@ function Profile() {
                   </h6>
                   {emp?.resume ? (
                     <div className="d-flex align-items-center justify-content-between p-2" style={{ background: "var(--gray-50)", borderRadius: "var(--radius-sm)" }}>
-                      <div className="d-flex align-items-center gap-2">
-                        <i className="bi bi-filetype-pdf" style={{ color: "var(--danger)", fontSize: "1.2rem" }} />
-                        <small style={{ color: "var(--gray-600)" }}>{emp.resumeName || 'Resume'}</small>
+                      <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                        <i className="bi bi-filetype-pdf" style={{ color: "var(--danger)", fontSize: "1.2rem", flexShrink: 0 }} />
+                        <a href={emp.resume} download={emp.resumeName} target="_blank" rel="noopener noreferrer" title={emp.resumeName || 'Resume'} style={{ color: "var(--gray-600)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "none", fontSize: "0.875em" }}>
+                          {emp.resumeName || 'Resume'}
+                        </a>
                       </div>
-                      <a href={emp.resume} download={emp.resumeName} className="btn btn-sm btn-custom-outline" style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem" }}>
-                        <i className="bi bi-download" />
-                      </a>
+                      <div className="d-flex gap-1 flex-shrink-0">
+                        <a href={emp.resume} download={emp.resumeName} target="_blank" rel="noopener noreferrer" title="Download Resume" className="btn btn-sm btn-custom-outline" style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem" }}>
+                          <i className="bi bi-download" />
+                        </a>
+                        {editing && (
+                          <button onClick={handleRemoveResume} title="Remove Resume" className="btn btn-sm btn-custom-outline text-danger" style={{ padding: "0.2rem 0.5rem", fontSize: "0.75rem", border: "1px solid var(--danger)", background: "transparent" }}>
+                            <i className="bi bi-trash" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <p style={{ color: "var(--gray-400)", fontSize: "0.82rem" }}>No resume uploaded</p>
@@ -591,7 +683,7 @@ function Profile() {
                     <i className="bi bi-cloud-upload" /> {emp?.resume ? 'Update Resume' : 'Upload Resume'}
                     <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} style={{ display: 'none' }} disabled={isLoading} />
                   </label>
-                  <small style={{ color: "var(--gray-400)", fontSize: "0.7rem", display: "block", marginTop: "0.25rem" }}>Supported: PDF, DOC, DOCX</small>
+                  <small style={{ color: "var(--gray-400)", fontSize: "0.7rem", display: "block", marginTop: "0.25rem" }}>Supported Formats: PDF, DOC, DOCX</small>
                 </div>
 
                 <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--gray-100)" }}>
@@ -602,30 +694,26 @@ function Profile() {
                     <div className="d-flex flex-column gap-2">
                       <div className="input-group input-group-sm">
                         <span className="input-group-text" style={{ fontSize: "0.75rem", background: "var(--gray-50)" }}><i className="bi bi-linkedin" /></span>
-                        <input type="url" name="LinkedIn" value={form.LinkedIn} onChange={handleChange} className={`form-control form-control-sm ${errors.LinkedIn ? 'is-invalid' : ''}`} placeholder="LinkedIn URL" style={{ fontSize: "0.8rem" }} />
-                        {errors.LinkedIn && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.LinkedIn}</div>}
+                        <input type="url" name="LinkedIn" value={form.LinkedIn} onChange={handleChange} onBlur={handleBlur} className={`form-control form-control-sm ${validationErrors.LinkedIn ? 'is-invalid' : ''}`} placeholder="LinkedIn URL" style={{ fontSize: "0.8rem" }} />
+                        {validationErrors.LinkedIn && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{validationErrors.LinkedIn}</div>}
                       </div>
                       <div className="input-group input-group-sm">
                         <span className="input-group-text" style={{ fontSize: "0.75rem", background: "var(--gray-50)" }}><i className="bi bi-github" /></span>
-                        <input type="url" name="GitHub" value={form.GitHub} onChange={handleChange} className={`form-control form-control-sm ${errors.GitHub ? 'is-invalid' : ''}`} placeholder="GitHub URL" style={{ fontSize: "0.8rem" }} />
-                        {errors.GitHub && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.GitHub}</div>}
+                        <input type="url" name="GitHub" value={form.GitHub} onChange={handleChange} onBlur={handleBlur} className={`form-control form-control-sm ${validationErrors.GitHub ? 'is-invalid' : ''}`} placeholder="GitHub URL" style={{ fontSize: "0.8rem" }} />
+                        {validationErrors.GitHub && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{validationErrors.GitHub}</div>}
                       </div>
                     </div>
                   ) : (
                     <div className="d-flex justify-content-center gap-3">
-                      {emp?.LinkedIn ? (
+                      {emp?.LinkedIn && (
                         <a href={emp.LinkedIn} target="_blank" rel="noopener noreferrer" className="btn btn-sm" style={{ color: "#0a66c2", background: "#f0f4ff", borderRadius: "50px", padding: "0.3rem 0.8rem", fontSize: "0.8rem" }}>
                           <i className="bi bi-linkedin me-1" /> LinkedIn
                         </a>
-                      ) : (
-                        <span style={{ color: "var(--gray-400)", fontSize: "0.8rem" }}><i className="bi bi-linkedin me-1" /> Not set</span>
                       )}
-                      {emp?.GitHub ? (
+                      {emp?.GitHub && (
                         <a href={emp.GitHub} target="_blank" rel="noopener noreferrer" className="btn btn-sm" style={{ color: "#333", background: "#f0f0f0", borderRadius: "50px", padding: "0.3rem 0.8rem", fontSize: "0.8rem" }}>
                           <i className="bi bi-github me-1" /> GitHub
                         </a>
-                      ) : (
-                        <span style={{ color: "var(--gray-400)", fontSize: "0.8rem" }}><i className="bi bi-github me-1" /> Not set</span>
                       )}
                     </div>
                   )}
@@ -640,13 +728,13 @@ function Profile() {
                   Personal Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Title" value={emp?.Title} icon="bi-person-badge" name="Title" options={['Mr', 'Ms', 'Mrs']} editing={editing} form={form} onChange={handleChange} error={errors.Title} submitAttempted={submitAttempted} />
-                  <Field label="Full Name" value={emp?.FullName} icon="bi-person" name="FullName" editing={editing} form={form} onChange={handleChange} error={errors.FullName} submitAttempted={submitAttempted} />
-                  <Field label="Date of Birth" value={emp?.DateOfBirth} icon="bi-calendar" name="DateOfBirth" type="date" editing={editing} form={form} onChange={handleChange} error={errors.DateOfBirth} submitAttempted={submitAttempted} />
-                  <Field label="Blood Group" value={emp?.BloodGroup} icon="bi-droplet" name="BloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} error={errors.BloodGroup} submitAttempted={submitAttempted} />
-                  <Field label="Phone" value={emp?.Phone} icon="bi-telephone" name="Phone" editing={editing} form={form} onChange={handleChange} error={errors.Phone} forceShowError={errors._PhoneForce} submitAttempted={submitAttempted} />
-                  <Field label="Email" value={emp?.Email} icon="bi-envelope" name="Email" type="email" editing={false} form={form} onChange={handleChange} error={errors.Email} submitAttempted={submitAttempted} />
-                  <Field label="Address" value={emp?.Address} icon="bi-geo-alt" name="Address" editing={editing} form={form} onChange={handleChange} error={errors.Address} submitAttempted={submitAttempted} />
+                  <Field label="Title" value={emp?.Title} icon="bi-person-badge" name="Title" options={['Mr', 'Ms', 'Mrs']} editing={editing} form={form} onChange={handleChange} onBlur={handleBlur} error={validationErrors.Title} />
+                  <Field label="Full Name" value={emp?.FullName} icon="bi-person" name="FullName" editing={editing} form={form} onChange={handleChange} onBlur={handleBlur} error={validationErrors.FullName} />
+                  <Field label="Date of Birth" value={emp?.DateOfBirth} icon="bi-calendar" name="DateOfBirth" type="date" editing={false} form={form} onChange={handleChange} error={validationErrors.DateOfBirth} />
+                  <Field label="Blood Group" value={emp?.BloodGroup} icon="bi-droplet" name="BloodGroup" options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']} editing={editing} form={form} onChange={handleChange} onBlur={handleBlur} error={validationErrors.BloodGroup} />
+                  <Field label="Phone" value={emp?.Phone} icon="bi-telephone" name="Phone" editing={editing} form={form} onChange={handleChange} onBlur={handleBlur} error={validationErrors.Phone} />
+                  <Field label="Email" value={emp?.Email} icon="bi-envelope" name="Email" type="email" editing={false} form={form} onChange={handleChange} error={validationErrors.Email} />
+                  <Field label="Address" value={emp?.Address} icon="bi-geo-alt" name="Address" editing={editing} form={form} onChange={handleChange} onBlur={handleBlur} error={validationErrors.Address} />
                 </div>
               </div>
 
@@ -656,12 +744,12 @@ function Profile() {
                   Official Details
                 </h5>
                 <div className="row g-3">
-                  <Field label="Employee ID" value={emp?.empid} icon="bi-person-badge" name="empid" editing={false} form={form} onChange={handleChange} error={errors.empid} />
-                  <Field label="Department" value={emp?.Department} icon="bi-building" name="Department" editing={false} form={form} onChange={handleChange} error={errors.Department} />
-                  <Field label="Designation" value={emp?.Designation} icon="bi-briefcase" name="Designation" editing={false} form={form} onChange={handleChange} error={errors.Designation} />
-                  <Field label="Joining Date" value={emp?.JoiningDate} icon="bi-calendar-check" name="JoiningDate" type="date" editing={false} form={form} onChange={handleChange} error={errors.JoiningDate} />
-                  <Field label="Manager" value={emp?.Manager} icon="bi-person-up" name="Manager" editing={false} form={form} onChange={handleChange} error={errors.Manager} />
-                  <Field label="Status" value={emp?.Status} icon="bi-check-circle" name="Status" options={['Active', 'Inactive', 'On Leave']} editing={isManager ? editing : false} form={form} onChange={handleChange} error={errors.Status} />
+                  <Field label="Employee ID" value={emp?.empid} icon="bi-person-badge" name="empid" editing={false} form={form} onChange={handleChange} error={validationErrors.empid} />
+                  <Field label="Department" value={emp?.Department} icon="bi-building" name="Department" editing={false} form={form} onChange={handleChange} error={validationErrors.Department} />
+                  <Field label="Designation" value={emp?.Designation} icon="bi-briefcase" name="Designation" editing={false} form={form} onChange={handleChange} error={validationErrors.Designation} />
+                  <Field label="Joining Date" value={emp?.JoiningDate} icon="bi-calendar-check" name="JoiningDate" type="date" editing={false} form={form} onChange={handleChange} error={validationErrors.JoiningDate} />
+                  <Field label="Manager" value={emp?.Manager} icon="bi-person-up" name="Manager" editing={false} form={form} onChange={handleChange} error={validationErrors.Manager} />
+                  <Field label="Status" value={emp?.Status} icon="bi-check-circle" name="Status" options={['Active', 'Inactive', 'On Leave']} editing={isManager ? editing : false} form={form} onChange={handleChange} onBlur={handleBlur} error={validationErrors.Status} />
                 </div>
               </div>
 
@@ -677,8 +765,8 @@ function Profile() {
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Name</small>
                         {editing ? (
                           <>
-                            <input name="EmergencyContactName" onBlur={handleFieldBlur} value={form.EmergencyContactName} onChange={handleChange} className={`form-control form-control-sm ${(touchedFields.EmergencyContactName || submitAttempted) && errors.EmergencyContactName ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
-                            {(touchedFields.EmergencyContactName || submitAttempted) && errors.EmergencyContactName && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactName}</div>}
+                            <input name="EmergencyContactName" value={form.EmergencyContactName} onChange={handleChange} onBlur={handleBlur} className={`form-control form-control-sm ${validationErrors.EmergencyContactName ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
+                            {validationErrors.EmergencyContactName && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{validationErrors.EmergencyContactName}</div>}
                           </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactName || '—'}</div>
@@ -688,8 +776,8 @@ function Profile() {
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Phone</small>
                         {editing ? (
                           <>
-                            <input name="EmergencyContactPhone" onBlur={handleFieldBlur} value={form.EmergencyContactPhone} onChange={handleChange} className={`form-control form-control-sm ${(touchedFields.EmergencyContactPhone || errors._ECPhoneForce || submitAttempted) && errors.EmergencyContactPhone ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
-                            {(touchedFields.EmergencyContactPhone || errors._ECPhoneForce || submitAttempted) && errors.EmergencyContactPhone && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactPhone}</div>}
+                            <input name="EmergencyContactPhone" value={form.EmergencyContactPhone} onChange={handleChange} onBlur={handleBlur} className={`form-control form-control-sm ${validationErrors.EmergencyContactPhone ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
+                            {validationErrors.EmergencyContactPhone && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{validationErrors.EmergencyContactPhone}</div>}
                           </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactPhone || '—'}</div>
@@ -699,8 +787,8 @@ function Profile() {
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Relation</small>
                         {editing ? (
                           <>
-                            <input name="EmergencyContactRelation" onBlur={handleFieldBlur} value={form.EmergencyContactRelation} onChange={handleChange} className={`form-control form-control-sm ${(touchedFields.EmergencyContactRelation || submitAttempted) && errors.EmergencyContactRelation ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
-                            {(touchedFields.EmergencyContactRelation || submitAttempted) && errors.EmergencyContactRelation && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{errors.EmergencyContactRelation}</div>}
+                            <input name="EmergencyContactRelation" value={form.EmergencyContactRelation} onChange={handleChange} onBlur={handleBlur} className={`form-control form-control-sm ${validationErrors.EmergencyContactRelation ? 'is-invalid' : ''}`} style={{ fontSize: "0.85rem" }} />
+                            {validationErrors.EmergencyContactRelation && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{validationErrors.EmergencyContactRelation}</div>}
                           </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.EmergencyContactRelation || '—'}</div>
@@ -713,13 +801,16 @@ function Profile() {
                   <div className="card-dashboard p-4">
                     <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)", fontSize: "0.95rem" }}>
                       <i className="bi bi-mortarboard me-2" style={{ color: "var(--primary)" }} />
-                      Education & Skills
+                      Graduation & Skills
                     </h5>
                     <div className="d-flex flex-column gap-3">
                       <div>
-                        <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Education</small>
+                        <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Graduation</small>
                         {editing ? (
-                          <textarea name="Education" value={form.Education} onChange={handleChange} className="form-control form-control-sm" rows="2" style={{ fontSize: "0.85rem" }} />
+                          <>
+                            <textarea name="Education" value={form.Education} onChange={handleChange} onBlur={handleBlur} className={`form-control form-control-sm ${validationErrors.Education ? 'is-invalid' : ''}`} rows="2" style={{ fontSize: "0.85rem" }} />
+                            {validationErrors.Education && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{validationErrors.Education}</div>}
+                          </>
                         ) : (
                           <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>{emp?.Education || '—'}</div>
                         )}
@@ -727,7 +818,10 @@ function Profile() {
                       <div>
                         <small style={{ color: "var(--gray-500)", fontSize: "0.7rem", textTransform: "uppercase" }}>Skills</small>
                         {editing ? (
-                          <textarea name="Skills" value={form.Skills} onChange={handleChange} className="form-control form-control-sm" rows="2" placeholder="React, Node.js, Python" style={{ fontSize: "0.85rem" }} />
+                          <>
+                            <textarea name="Skills" value={form.Skills} onChange={handleChange} onBlur={handleBlur} className={`form-control form-control-sm ${validationErrors.Skills ? 'is-invalid' : ''}`} rows="2" placeholder="React, Node.js, Python" style={{ fontSize: "0.85rem" }} />
+                            {validationErrors.Skills && <div className="invalid-feedback d-block" style={{ fontSize: "0.7rem", marginTop: "2px" }}>{validationErrors.Skills}</div>}
+                          </>
                         ) : (
                           <div className="d-flex flex-wrap gap-1 mt-1">
                             {Array.isArray(emp?.Skills) && emp.Skills.length > 0 ? emp.Skills.map((s, i) => (
