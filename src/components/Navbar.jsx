@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Bell, Gift, CalendarCheck, CalendarX, IndianRupee, CheckCircle2 } from "lucide-react";
 import { getEmployee, getLeaveRequests, getHolidays } from "../services/dataService";
@@ -11,6 +12,63 @@ function Navbar({ onToggleSidebar }) {
   const [showProfile, setShowProfile] = useState(false);
   const [notifications, setNotifications] = useState([]);
   
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfPwd, setShowConfPwd] = useState(false);
+  const [pwdForm, setPwdForm] = useState({ current: '', new: '', confirm: '' });
+  const [pwdErrors, setPwdErrors] = useState({});
+  const [pwdSuccess, setPwdSuccess] = useState('');
+  
+  useEffect(() => {
+    if (showPasswordModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [showPasswordModal]);
+  
+  const handlePasswordCancel = () => {
+    setShowPasswordModal(false);
+    setPwdForm({ current: '', new: '', confirm: '' });
+    setPwdErrors({});
+    setPwdSuccess('');
+    setShowPwd(false);
+    setShowNewPwd(false);
+    setShowConfPwd(false);
+  };
+
+  const handlePasswordSave = () => {
+    const errs = {};
+    if (!pwdForm.current) {
+      errs.current = 'Current Password is required.';
+    }
+    
+    if (!pwdForm.new) {
+      errs.new = 'New Password is required.';
+    } else {
+      if (pwdForm.new.length < 8 || pwdForm.new.length > 20) {
+        errs.new = 'New Password must be between 8 and 20 characters.';
+      } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(pwdForm.new)) {
+        errs.new = 'New Password must include at least one uppercase letter, one lowercase letter, one number, and one special character.';
+      }
+    }
+
+    if (!pwdForm.confirm) {
+      errs.confirm = 'Confirm New Password is required.';
+    } else if (pwdForm.new !== pwdForm.confirm) {
+      errs.confirm = 'Confirm Password must exactly match the New Password.';
+    }
+
+    setPwdErrors(errs);
+    if (Object.keys(errs).length === 0) {
+      setPwdSuccess('Password changed successfully!');
+    } else {
+      setPwdSuccess('');
+    }
+  };
+
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
@@ -331,22 +389,20 @@ function Navbar({ onToggleSidebar }) {
                   <small className="text-muted">{getRole()}</small>
                 </div>
               </div>
-              <div style={{ fontSize: "0.85rem", color: "var(--gray-600)" }}>
-                <div className="mb-1"><i className="bi bi-person-vcard me-2" style={{ color: "var(--primary)" }} />{employee?.empid || employee?.id || userData?.employeeId || 'ID not available'}</div>
-                <div className="mb-1"><i className="bi bi-envelope me-2" style={{ color: "var(--primary)" }} />{employee?.Email || employee?.email || 'Email not available'}</div>
-                <div className="mb-1"><i className="bi bi-telephone me-2" style={{ color: "var(--primary)" }} />{employee?.Phone || employee?.phone || 'Phone not available'}</div>
-                <div className="mb-1"><i className="bi bi-building me-2" style={{ color: "var(--primary)" }} />{employee?.Department || employee?.department || 'Department not available'}</div>
-                <div><i className="bi bi-geo-alt me-2" style={{ color: "var(--primary)" }} />{employee?.Address || employee?.location || 'Location not available'}</div>
-              </div>
             </li>
             <li><hr className="dropdown-divider" /></li>
             <li>
               <button className="dropdown-item d-flex align-items-center gap-2" onClick={() => navigate("/profile")} style={{ borderRadius: "6px", fontSize: "0.88rem" }}>
-                <i className="bi bi-person" /> View Full Profile
+                <i className="bi bi-person" /> My Profile
               </button>
             </li>
             <li>
-              <button className="dropdown-item d-flex align-items-center gap-2 text-danger" onClick={handleLogout} style={{ borderRadius: "6px", fontSize: "0.88rem" }}>
+              <button className="dropdown-item d-flex align-items-center gap-2" onClick={() => { setShowPasswordModal(true); setShowProfile(false); }} style={{ borderRadius: "6px", fontSize: "0.88rem" }}>
+                <i className="bi bi-shield-lock" /> Change Password
+              </button>
+            </li>
+            <li>
+              <button className="dropdown-item d-flex align-items-center gap-2 text-danger" onClick={handleLogout} style={{ borderRadius: "6px", fontSize: "0.88rem", marginTop: "4px" }}>
                 <i className="bi bi-box-arrow-right" /> Logout
               </button>
             </li>
@@ -354,6 +410,67 @@ function Navbar({ onToggleSidebar }) {
           )}
         </div>
       </div>
+      
+      {showPasswordModal && createPortal(
+        <>
+          <div className="modal-backdrop show" style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1040, position: "fixed", inset: 0 }}></div>
+          <div className="modal show d-block" tabIndex="-1" style={{ zIndex: 1050, position: "fixed", inset: 0, overflow: "hidden" }}>
+            <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: "480px", margin: "auto", height: "100%" }}>
+              <div className="modal-content shadow-lg" style={{ borderRadius: "16px", border: "none", backgroundColor: "#fff", padding: "0.5rem", maxHeight: "90vh" }}>
+                <div className="modal-header border-0 pb-0 pt-3 px-4 flex-shrink-0">
+                  <h5 className="modal-title fw-bold" style={{ color: "var(--gray-800)", fontSize: "1.25rem" }}>
+                    <i className="bi bi-shield-lock me-2 text-primary"></i>
+                    Change Password
+                  </h5>
+                  <button type="button" className="btn-close" onClick={handlePasswordCancel}></button>
+                </div>
+                <div className="modal-body px-4 pt-3 pb-2 overflow-auto">
+                  {pwdSuccess && (
+                    <div className="alert alert-success d-flex align-items-center mb-4 py-2 px-3" style={{ fontSize: "0.85rem", borderRadius: "8px", border: "1px solid #badbcc" }}>
+                      <i className="bi bi-check-circle-fill me-2 text-success"></i>
+                      <div>{pwdSuccess}</div>
+                    </div>
+                  )}
+                  <div className="mb-3">
+                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Current Password</label>
+                    <div className="input-group">
+                      <input type={showPwd ? "text" : "password"} className={`form-control ${pwdErrors.current ? 'is-invalid' : ''}`} value={pwdForm.current} onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })} style={{ fontSize: "0.9rem" }} />
+                      <button className="btn btn-outline-secondary" type="button" onClick={() => setShowPwd(!showPwd)}>
+                        <i className={`bi ${showPwd ? "bi-eye-slash" : "bi-eye"}`}></i>
+                      </button>
+                      {pwdErrors.current && <div className="invalid-feedback d-block" style={{ fontSize: "0.75rem" }}>{pwdErrors.current}</div>}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>New Password</label>
+                    <div className="input-group">
+                      <input type={showNewPwd ? "text" : "password"} className={`form-control ${pwdErrors.new ? 'is-invalid' : ''}`} value={pwdForm.new} onChange={(e) => setPwdForm({ ...pwdForm, new: e.target.value })} style={{ fontSize: "0.9rem" }} />
+                      <button className="btn btn-outline-secondary" type="button" onClick={() => setShowNewPwd(!showNewPwd)}>
+                        <i className={`bi ${showNewPwd ? "bi-eye-slash" : "bi-eye"}`}></i>
+                      </button>
+                      {pwdErrors.new && <div className="invalid-feedback d-block" style={{ fontSize: "0.75rem" }}>{pwdErrors.new}</div>}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label" style={{ fontSize: "0.85rem", fontWeight: 600 }}>Confirm New Password</label>
+                    <div className="input-group">
+                      <input type={showConfPwd ? "text" : "password"} className={`form-control ${pwdErrors.confirm ? 'is-invalid' : ''}`} value={pwdForm.confirm} onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })} style={{ fontSize: "0.9rem" }} />
+                      <button className="btn btn-outline-secondary" type="button" onClick={() => setShowConfPwd(!showConfPwd)}>
+                        <i className={`bi ${showConfPwd ? "bi-eye-slash" : "bi-eye"}`}></i>
+                      </button>
+                      {pwdErrors.confirm && <div className="invalid-feedback d-block" style={{ fontSize: "0.75rem" }}>{pwdErrors.confirm}</div>}
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer border-0 px-4 pb-4 pt-2 flex-shrink-0">
+                  <button type="button" className="btn btn-light" onClick={handlePasswordCancel} style={{ borderRadius: "8px", fontSize: "0.95rem", padding: "0.5rem 1rem", fontWeight: 500 }}>Cancel</button>
+                  <button type="button" className="btn btn-primary" onClick={handlePasswordSave} style={{ borderRadius: "8px", fontSize: "0.95rem", padding: "0.5rem 1.5rem", fontWeight: 600 }}>Save Changes</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>, document.body
+      )}
     </nav>
   );
 }
