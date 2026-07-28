@@ -32,6 +32,7 @@ function EmployeeManagement() {
   const [designation, setDesignation] = useState("");
   const [manager, setManager] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [joiningDate, setJoiningDate] = useState(new Date().toISOString().split('T')[0]);
   const [email, setEmail] = useState("");
   const [editId, setEditId] = useState(null);
@@ -100,6 +101,7 @@ function EmployeeManagement() {
     setDesignation("");
     setManager("");
     setPhoneNumber("");
+    setDateOfBirth("");
     setJoiningDate(new Date().toISOString().split('T')[0]);
     setEmail("");
     setEditId(null);
@@ -116,6 +118,20 @@ function EmployeeManagement() {
     if (!phoneNumber.trim() || !/^\d{10}$/.test(phoneNumber)) newErrors.phoneNumber = true;
     if (empRole.trim() === "Employee" && !manager.trim()) newErrors.manager = true;
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) newErrors.email = true;
+    
+    if (!dateOfBirth) {
+      newErrors.dateOfBirth = "Date of Birth is required.";
+    } else {
+      const dob = new Date(dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      if (age < 16) {
+        newErrors.dateOfBirth = "Employee must be at least 16 years old.";
+      }
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -137,7 +153,7 @@ function EmployeeManagement() {
       setIsLoading(true);
       try {
         const fullPayload = {
-          empid: employeeId.trim(), Title: "", FullName: employeeName.trim(), DateOfBirth: "",
+          empid: employeeId.trim(), Title: "", FullName: employeeName.trim(), DateOfBirth: dateOfBirth,
           BloodGroup: "", Phone: phoneNumber.trim(), Email: email.trim(), Address: "", Department: department.trim(),
           Designation: designation.trim(), JoiningDate: joiningDate, Manager: manager, Status: "Active", EmergencyContactName: "",
           EmergencyContactPhone: "", EmergencyContactRelation: "", Education: "", Skills: [],
@@ -191,7 +207,7 @@ function EmployeeManagement() {
         setIsLoading(false);
       }
     } else {
-      const newEmployee = { id: employeeId.trim(), name: employeeName.trim(), department: department.trim(), role: empRole.trim(), Designation: designation.trim(), Email: email.trim(), Phone: phoneNumber.trim(), JoiningDate: joiningDate, Manager: manager, Password: `${employeeId.trim()}@123`, Status: "Active" };
+      const newEmployee = { id: employeeId.trim(), name: employeeName.trim(), department: department.trim(), role: empRole.trim(), Designation: designation.trim(), Email: email.trim(), Phone: phoneNumber.trim(), DateOfBirth: dateOfBirth, JoiningDate: joiningDate, Manager: manager, Password: `${employeeId.trim()}@123`, Status: "Active" };
 
       if (editId) {
         setEmployees(employees.map(emp => emp.id === editId ? newEmployee : emp));
@@ -253,6 +269,7 @@ function EmployeeManagement() {
     setDesignation(emp.Designation?.S || emp.Designation || "");
     setManager(emp.Manager?.S || emp.Manager || "");
     setPhoneNumber(emp.Phone?.S || emp.Phone || "");
+    setDateOfBirth(emp.DateOfBirth?.S || emp.DateOfBirth || "");
     setJoiningDate(emp.JoiningDate?.S || emp.JoiningDate || new Date().toISOString().split('T')[0]);
     setEmail(emp.Email?.S || emp.email?.S || emp.Email || emp.email || "");
     setEditId(emp.id || emp.empid?.S || emp.empid);
@@ -443,6 +460,11 @@ function EmployeeManagement() {
                   <label className="form-label">Phone Number</label>
                   <input type="text" className={`form-control ${errors.phoneNumber ? "is-invalid" : ""}`} placeholder="1234567890" value={phoneNumber} onChange={(e) => { setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10)); setErrors({ ...errors, phoneNumber: false }); }} />
                   {errors.phoneNumber && <small className="text-danger">Must be exactly 10 digits</small>}
+                </div>
+                <div className="col-md-3">
+                  <label className="form-label">Date of Birth</label>
+                  <input type="date" className={`form-control ${errors.dateOfBirth ? "is-invalid" : ""}`} value={dateOfBirth} max={new Date().toISOString().split('T')[0]} onChange={(e) => { setDateOfBirth(e.target.value); setErrors({ ...errors, dateOfBirth: false }); }} />
+                  {errors.dateOfBirth && <small className="text-danger">{errors.dateOfBirth}</small>}
                 </div>
                 <div className="col-md-3">
                   <label className="form-label">Joining Date</label>

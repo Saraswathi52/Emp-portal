@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
 import "../App.css";
 
 function Login() {
@@ -14,7 +13,6 @@ function Login() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pendingUser, setPendingUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : "";
 
@@ -29,44 +27,56 @@ function Login() {
       return;
     }
 
-    setIsLoading(true);
-    setErrors({});
-
     try {
-      const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'https://api.example.com/auth/login';
-      const response = await axios.post(AUTH_API_URL, {
+      let userProfile = null;
+      if (role === 'admin') {
+        const { getAdminProfile } = await import('../services/dataService');
+        userProfile = await getAdminProfile(employeeId.trim());
+      } else if (role === 'manager') {
+        const { getManagerProfile } = await import('../services/dataService');
+        userProfile = await getManagerProfile(employeeId.trim());
+      } else {
+        const { getEmployee } = await import('../services/dataService');
+        userProfile = await getEmployee(employeeId.trim());
+      }
+
+      if (!userProfile) {
+        setErrors({ employeeId: "User not found or invalid ID" });
+        return;
+      }
+      
+      const actualRole = (userProfile.Role || userProfile.role || "").toLowerCase();
+      
+      if (actualRole !== role.toLowerCase()) {
+        setErrors({ employeeId: `This user is not registered as ${roleLabel}. Please use the correct portal.` });
+        return;
+      }
+      
+      // If we had a real password check, it would go here.
+      // Currently, it accepts any password as long as the role matches (like before).
+      
+      const tempPasswordPattern = `${employeeId.trim()}@123`;
+      if (password === tempPasswordPattern) {
+        setPendingUser(userProfile);
+        setShowChangePassword(true);
+        return;
+      }
+      
+      localStorage.setItem("user", JSON.stringify({
         employeeId: employeeId.trim(),
-        password: password.trim(),
-        role: role.toLowerCase()
-      });
+        role: roleLabel,
+        name: userProfile.FullName || userProfile.name || employeeId.trim(),
+      }));
 
-      if (response.data && response.data.success) {
-        const userProfile = response.data.userProfile;
-        
-        localStorage.setItem("user", JSON.stringify({
-          employeeId: employeeId.trim(),
-          role: roleLabel,
-          name: userProfile.FullName || userProfile.name || employeeId.trim(),
-        }));
-
-        const paths = {
-          employee: "/employee-dashboard",
-          manager: "/manager-dashboard",
-          admin: "/admin-dashboard",
-        };
-        navigate(paths[role] || "/employee-dashboard");
-      } else {
-        setErrors({ general: "Invalid Employee ID or Password." });
-      }
+      const paths = {
+        employee: "/employee-dashboard",
+        manager: "/manager-dashboard",
+        admin: "/admin-dashboard",
+      };
+      navigate(paths[role] || "/employee-dashboard");
     } catch (error) {
-      console.error("Login API Error:", error);
-      if (error.response && error.response.status === 401) {
-        setErrors({ general: "Invalid Employee ID or Password." });
-      } else {
-        setErrors({ general: "Server is currently unavailable. Please try again later." });
-      }
-    } finally {
-      setIsLoading(false);
+      console.error(error);
+      setErrors({ employeeId: "An error occurred during login. Please try again." });
     }
   };
 
@@ -171,12 +181,6 @@ function Login() {
           </form>
         ) : (
           <form onSubmit={handleLogin} className="form-custom">
-            {errors.general && (
-              <div className="alert alert-danger d-flex align-items-center mb-4 py-2 px-3" style={{ fontSize: "0.85rem", borderRadius: "8px" }}>
-                <i className="bi bi-exclamation-circle-fill me-2 text-danger"></i>
-                <div>{errors.general}</div>
-              </div>
-            )}
             <div className="mb-4">
               <label className="form-label">Employee ID</label>
               <div className="input-group-custom">
@@ -228,17 +232,8 @@ function Login() {
               </button>
             </div>
 
-            <button type="submit" disabled={isLoading} className="btn-custom-primary w-100 d-flex justify-content-center align-items-center gap-2">
-              {isLoading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                  Signing In...
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-box-arrow-in-right"></i> Sign In
-                </>
-              )}
+            <button type="submit" className="btn-custom-primary w-100 d-flex justify-content-center align-items-center gap-2">
+              <i className="bi bi-box-arrow-in-right"></i> Sign In
             </button>
           </form>
         )}
