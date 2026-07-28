@@ -41,7 +41,7 @@ function Login() {
       }
 
       if (!userProfile) {
-        setErrors({ employeeId: "User not found or invalid ID" });
+        setErrors({ employeeId: "Employee ID not found." });
         return;
       }
       
@@ -52,8 +52,11 @@ function Login() {
         return;
       }
       
-      // If we had a real password check, it would go here.
-      // Currently, it accepts any password as long as the role matches (like before).
+      const storedPassword = userProfile.Password?.S || userProfile.Password;
+      if (password !== storedPassword) {
+        setErrors({ password: "Password is incorrect." });
+        return;
+      }
       
       const tempPasswordPattern = `${employeeId.trim()}@123`;
       if (password === tempPasswordPattern) {
@@ -200,7 +203,7 @@ function Login() {
               <div className="d-flex justify-content-between align-items-center mb-1">
                 <label className="form-label mb-0">Password</label>
               </div>
-              <div className="input-group-custom">
+              <div className="input-group-custom" style={{ position: "relative" }}>
                 <i className="bi bi-lock"></i>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -208,14 +211,16 @@ function Login() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setErrors({ ...errors, password: null }); }}
+                  style={{ paddingRight: "40px" }}
                 />
                 <button 
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="btn btn-link p-0 ms-2"
+                  className="btn btn-link p-0 position-absolute end-0 top-50 translate-middle-y me-3"
+                  style={{ zIndex: 10, textDecoration: "none" }}
                   tabIndex="-1"
                 >
-                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} style={{ color: "var(--gray-400)" }} />
+                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} style={{ color: "var(--gray-500)", fontSize: "1.1rem" }} />
                 </button>
               </div>
               {errors.password && <div className="invalid-feedback d-block">{errors.password}</div>}
