@@ -342,7 +342,44 @@ function Leave() {
   const approvedCount = displayLeaves.filter(l => l.status === 'Approved').length;
   const rejectedCount = displayLeaves.filter(l => l.status === 'Rejected').length;
 
-  const totalLeaveBal = (leaveBal.annual - leaveBal.annualUsed) + (leaveBal.sick - leaveBal.sickUsed) + (leaveBal.personal - leaveBal.personalUsed);
+  const calculateDays = (start, end, duration) => {
+    if (!start || !end) return 1;
+    if (duration === 'Half Day') return 0.5;
+    const s = new Date(start);
+    const e = new Date(end);
+    const diffTime = Math.abs(e - s);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  let annualUsedDynamic = 0, sickUsedDynamic = 0, personalUsedDynamic = 0, wfhUsedDynamic = 0;
+  
+  employeeLeaves.forEach(l => {
+    if (l.status === 'Approved') {
+      const days = calculateDays(l.fromDate || l.startDate, l.toDate || l.endDate, l.duration);
+      if (l.leaveType?.includes('WFH') || l.wfh) {
+        wfhUsedDynamic += days;
+      } else if (l.leaveType?.includes('Sick')) {
+        sickUsedDynamic += days;
+      } else if (l.leaveType?.includes('Personal')) {
+        personalUsedDynamic += days;
+      } else {
+        annualUsedDynamic += days;
+      }
+    }
+  });
+
+  const leaveBalDynamic = {
+    annual: leaveBal.annual || 18,
+    sick: leaveBal.sick || 12,
+    personal: leaveBal.personal || 5,
+    wfh: leaveBal.wfh || 10,
+    annualUsed: annualUsedDynamic,
+    sickUsed: sickUsedDynamic,
+    personalUsed: personalUsedDynamic,
+    wfhUsed: wfhUsedDynamic
+  };
+
+  const totalLeaveBal = (leaveBalDynamic.annual - leaveBalDynamic.annualUsed) + (leaveBalDynamic.sick - leaveBalDynamic.sickUsed) + (leaveBalDynamic.personal - leaveBalDynamic.personalUsed);
 
   const statusBadge = (status) => {
     const map = { Pending: "badge-pending", Approved: "badge-approved", Rejected: "badge-rejected" };
@@ -381,10 +418,10 @@ function Leave() {
 
           <div className="row g-3 mb-4">
             {[
-              { label: "Pending", value: pendingCount, color: "#f59e0b", bg: "#fffbeb", icon: "bi-clock" },
-              { label: "Approved", value: approvedCount, color: "#10b981", bg: "#ecfdf5", icon: "bi-check-circle" },
-              { label: "Rejected", value: rejectedCount, color: "#ef4444", bg: "#fef2f2", icon: "bi-x-circle" },
-              { label: "Total", value: displayLeaves.length, color: "#3b82f6", bg: "#eff6ff", icon: "bi-calculator" },
+              { label: "Pending", value: pendingCount, color: "#f59e0b", bg: "#fffbeb", icon: "bi-clock-fill" },
+              { label: "Approved", value: approvedCount, color: "#10b981", bg: "#ecfdf5", icon: "bi-check-circle-fill" },
+              { label: "Rejected", value: rejectedCount, color: "#ef4444", bg: "#fef2f2", icon: "bi-x-circle-fill" },
+              { label: "Total", value: displayLeaves.length, color: "#3b82f6", bg: "#eff6ff", icon: "bi-calculator-fill" },
             ].map((s) => (
               <div key={s.label} className="col-6 col-xl-3">
                 <div
@@ -406,9 +443,13 @@ function Leave() {
                       fontSize: "1.3rem",
                       marginRight: "18px",
                       flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: "50%"
                     }}
                   >
-                    <i className={`bi ${s.icon}`} />
+                    <i className={`bi ${s.icon}`} style={{ color: "white" }} />
                   </div>
                   <div className="flex-grow-1 ms-3">
 
@@ -451,54 +492,33 @@ function Leave() {
                     <i className="bi bi-piggy-bank me-2" style={{ color: "var(--primary)" }} />
                     Leave Balance
                   </h5>
-                  <div className="row g-3">
+                  <div className="row g-2">
                     {[
-                      { label: 'Annual Leave', used: leaveBal.annualUsed, total: leaveBal.annual, color: '#3b82f6', bg: '#eff6ff', icon: 'bi-sun' },
-                      { label: 'Sick Leave', used: leaveBal.sickUsed, total: leaveBal.sick, color: '#10b981', bg: '#ecfdf5', icon: 'bi-heart-pulse' },
-                      { label: 'Personal Leave', used: leaveBal.personalUsed, total: leaveBal.personal, color: '#f59e0b', bg: '#fffbeb', icon: 'bi-person' },
-                      { label: 'WFH Days', used: leaveBal.wfhUsed, total: leaveBal.wfh, color: '#8b5cf6', bg: '#f5f3ff', icon: 'bi-house-door' },
+                      { label: 'Annual Leave', used: leaveBalDynamic.annualUsed, total: leaveBalDynamic.annual, color: '#3b82f6', bg: '#eff6ff', icon: 'bi-sun' },
+                      { label: 'Sick Leave', used: leaveBalDynamic.sickUsed, total: leaveBalDynamic.sick, color: '#10b981', bg: '#ecfdf5', icon: 'bi-heart-pulse' },
+                      { label: 'Personal Leave', used: leaveBalDynamic.personalUsed, total: leaveBalDynamic.personal, color: '#f59e0b', bg: '#fffbeb', icon: 'bi-person' },
+                      { label: 'WFH Days', used: leaveBalDynamic.wfhUsed, total: leaveBalDynamic.wfh, color: '#8b5cf6', bg: '#f5f3ff', icon: 'bi-house-door' },
                     ].map((b) => {
                       const remaining = b.total - b.used;
                       const pct = b.total > 0 ? (b.used / b.total) * 100 : 0;
                       return (
                         <div key={b.label} className="col-sm-6">
-                          <div className="leave-bal-card" style={{
-                            background: "#fff",
-                            borderRadius: "16px",
-                            border: `1px solid ${b.color}20`,
-                            padding: "1.25rem 1.25rem 1rem",
-                            transition: "all 0.3s ease",
-                            cursor: "default",
-                            position: "relative",
-                            overflow: "hidden",
-                          }}
-                            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 25px ${b.color}20`; e.currentTarget.style.transform = 'translateY(-3px)' }}
-                            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}>
-                            <div className="d-flex align-items-center gap-3 mb-3">
-                              <div style={{
-                                width: 46, height: 46, borderRadius: "14px",
-                                background: b.bg, color: b.color,
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                fontSize: "1.25rem", flexShrink: 0
-                              }}>
-                                <i className={`bi ${b.icon}`} />
-                              </div>
-                              <div>
-                                <div style={{ fontSize: "0.72rem", color: "var(--gray-500)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "2px" }}>
-                                  {b.label}
-                                </div>
-                                <div style={{ fontSize: "1.65rem", fontWeight: 700, color: b.color, lineHeight: 1.2 }}>
-                                  {remaining}
-                                  <span style={{ fontSize: "0.65rem", color: "var(--gray-400)", fontWeight: 400, marginLeft: "6px" }}>remaining</span>
-                                </div>
-                              </div>
+                          <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: b.bg, position: "relative", overflow: "hidden", padding: "0.5rem 0.75rem", borderRadius: "12px", minHeight: "62px" }}>
+                            <div className="stat-icon" style={{ background: b.color, width: 28, height: 28, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", flexShrink: 0 }}>
+                              <i className={`bi ${b.icon}`} style={{ color: "white", fontSize: "14px" }} />
                             </div>
-                            <div className="progress" style={{ height: "7px", borderRadius: "10px", background: "#e5e7eb", overflow: "hidden", marginBottom: "6px" }}>
-                              <div className="progress-bar" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${b.color}, ${b.color}cc)`, borderRadius: "10px", transition: "width 0.6s ease" }} />
-                            </div>
-                            <div className="d-flex justify-content-between align-items-center">
-                              <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{b.used} used</small>
-                              <small style={{ color: "var(--gray-400)", fontSize: "0.7rem" }}>{b.total} total</small>
+                            <div className="d-flex flex-column justify-content-center" style={{ flex: 1, minWidth: 0 }}>
+                              <div className="stat-label text-truncate" style={{ fontSize: "0.65rem", fontWeight: 600, color: "var(--gray-600)", marginBottom: "1px", lineHeight: 1.1 }}>{b.label}</div>
+                              <div className="stat-value d-flex align-items-baseline gap-1 text-truncate" style={{ color: "var(--gray-800)", fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.1 }}>
+                                {remaining}
+                                <span style={{ fontSize: "0.55rem", color: "var(--gray-500)", fontWeight: 500 }}>remaining</span>
+                              </div>
+                              <div className="progress mt-1 mb-1" style={{ height: "3px", borderRadius: "10px", background: "#ffffff" }}>
+                                <div className="progress-bar" style={{ width: `${pct}%`, background: b.color, borderRadius: "10px" }} />
+                              </div>
+                              <small className="text-truncate" style={{ color: "var(--gray-500)", fontSize: "0.6rem", fontWeight: 500, lineHeight: 1.1 }}>
+                                {b.used} used of {b.total}
+                              </small>
                             </div>
                           </div>
                         </div>

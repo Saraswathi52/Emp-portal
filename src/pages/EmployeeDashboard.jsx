@@ -2,24 +2,28 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { getCurrentUser, getEmployee, getTodayAttendance, getAttendance, getLeaveBalances, getLeaveRequests, getHolidays } from "../services/dataService";
+import { getCurrentUser, getEmployee, getTodayAttendance, getAttendance, getEmployeeLeaveRequests, getHolidays, getTimesheets } from "../services/dataService";
 import { CalendarCheck, PiggyBank, Clock, Home, Activity } from "lucide-react";
 
 function EmployeeDashboard() {
   const navigate = useNavigate();
   const user = getCurrentUser();
   const [employee, setEmployee] = useState(null);
+  const [leaveData, setLeaveData] = useState([]);
 
   useEffect(() => {
-    async function fetchEmp() {
-      const data = await getEmployee(user?.employeeId || "EMP1001");
-      setEmployee(data);
+    async function fetchData() {
+      const empid = user?.employeeId || "EMP1001";
+      const empData = await getEmployee(empid);
+      setEmployee(empData);
+      
+      const reqs = await getEmployeeLeaveRequests(empid);
+      setLeaveData(reqs || []);
     }
-    fetchEmp();
+    fetchData();
   }, [user?.employeeId]);
+
   const todayAtt = getTodayAttendance(user?.employeeId);
-  const leaveBal = getLeaveBalances(user?.employeeId);
-  const leaveReqs = getLeaveRequests(user?.employeeId);
   const attRecords = getAttendance(user?.employeeId);
   const holidays = getHolidays();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -30,10 +34,96 @@ function EmployeeDashboard() {
   const presentDays = attRecords.filter(a => a.status === 'Present').length;
   const absentDays = attRecords.filter(a => a.status === 'Absent').length;
   const totalDays = attRecords.filter(a => a.status !== 'Weekend').length;
-  const attendancePct = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+  
+  const getWorkingDaysInMonth = (year, month) => {
+    let count = 0;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month, i).getDay();
+      if (d !== 0 && d !== 6) count++;
+    }
+    return count;
+  };
 
-  const pendingLeaves = leaveReqs.filter(l => l.status === 'Pending').length;
-  const approvedLeaves = leaveReqs.filter(l => l.status === 'Approved').length;
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  const expectedWorkingHours = getWorkingDaysInMonth(currentYear, currentMonth) * 8;
+
+  const calculateDays = (start, end, duration) => {
+    if (!start || !end) return 1;
+    if (duration === 'Half Day') return 0.5;
+    const s = new Date(start);
+    const e = new Date(end);
+    const diffTime = Math.abs(e - s);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const defaultLeaves = { annual: 18, sick: 12, personal: 5, wfh: 10 };
+  let annualUsed = 0, sickUsed = 0, personalUsed = 0, wfhUsed = 0;
+  let pendingLeaves = 0, approvedLeaves = 0;
+
+  leaveData.forEach(l => {
+    if (l.status === 'Pending') pendingLeaves++;
+    if (l.status === 'Approved') {
+      const days = calculateDays(l.fromDate || l.startDate, l.toDate || l.endDate, l.duration);
+      if (l.leaveType?.includes('WFH') || l.wfh) {
+        wfhUsed += days;
+      } else {
+        approvedLeaves++;
+        if (l.leaveType?.includes('Sick')) sickUsed += days;
+        else if (l.leaveType?.includes('Personal')) personalUsed += days;
+        else annualUsed += days;
+      }
+    }
+  });
+
+  const leaveBalDynamic = {
+    annual: defaultLeaves.annual,
+    sick: defaultLeaves.sick,
+    personal: defaultLeaves.personal,
+    wfh: defaultLeaves.wfh,
+    annualUsed,
+    sickUsed,
+    personalUsed,
+    wfhUsed
+  };
+
+  const allTimesheets = getTimesheets();
+  const myTimesheets = allTimesheets.filter(t => (t.empid === user?.employeeId || t.empid === "EMP1001" || t.employeeId === user?.employeeId));
+  
+  let hasDataForMonth = false;
+  let attendedHours = 0;
+
+  myTimesheets.forEach(t => {
+    let isCurrentMonth = false;
+    if (t.period === 'Monthly') {
+       if (parseInt(t.month) === currentMonth + 1 && parseInt(t.year) === currentYear) isCurrentMonth = true;
+    } else if (t.customStartDate) {
+       const tsd = new Date(t.customStartDate);
+       if (tsd.getMonth() === currentMonth && tsd.getFullYear() === currentYear) isCurrentMonth = true;
+    }
+    
+    if (isCurrentMonth) {
+       hasDataForMonth = true;
+       if (t.status === 'Approved') {
+         attendedHours += parseFloat(t.hours || 0);
+       }
+    }
+  });
+
+  leaveData.forEach(l => {
+    if (!l.fromDate && !l.startDate) return;
+    const ld = new Date(l.fromDate || l.startDate);
+    if (ld.getMonth() === currentMonth && ld.getFullYear() === currentYear) {
+      hasDataForMonth = true;
+      if (l.status === 'Approved') {
+        const days = calculateDays(l.fromDate || l.startDate, l.toDate || l.endDate, l.duration);
+        attendedHours += (days * 8);
+      }
+    }
+  });
+
+  const attendanceDynamicPct = expectedWorkingHours > 0 ? Math.min(100, Math.round((attendedHours / expectedWorkingHours) * 100)) : 0;
 
   const calcHours = (inTime, outTime) => {
     if (!inTime || !outTime) return '—';
@@ -67,7 +157,7 @@ function EmployeeDashboard() {
 
           </div>
 
-          <div className="row g-3 mb-4">
+          <div className="row g-3 mb-2">
             <div className="col-12">
               <div className="card-dashboard p-3 h-100">
                 <h5 className="fw-bold mb-3" style={{ color: "var(--gray-800)", fontSize: "0.95rem" }}>
@@ -152,80 +242,88 @@ function EmployeeDashboard() {
             </div>
           </div>
 
-          <div className="row g-3 mb-4">
+          <div className="row g-2 mb-3">
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#eff6ff", padding: "1rem" }}>
-                <div className="stat-icon" style={{ background: "#3b82f6", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <CalendarCheck size={18} />
+              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#eff6ff", padding: "0.5rem 0.75rem", borderRadius: "12px", minHeight: "62px" }}>
+                <div className="stat-icon" style={{ background: "#3b82f6", width: 28, height: 28, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", flexShrink: 0 }}>
+                  <CalendarCheck size={14} color="white" />
                 </div>
-                <div>
-                  <div className="stat-label" style={{ fontSize: "0.7rem" }}>Attendance</div>
-                  <div className="stat-value" style={{ color: "#3b82f6", fontSize: "1.25rem" }}>{attendancePct}%</div>
-                  <small style={{ color: "var(--gray-400)", fontSize: "0.65rem" }}>{presentDays}/{totalDays} days</small>
+                <div className="d-flex flex-column justify-content-center" style={{ minWidth: 0, paddingRight: "4px" }}>
+                  <div className="stat-label text-truncate" style={{ fontSize: "0.65rem", fontWeight: 600, color: "var(--gray-600)", marginBottom: "1px", lineHeight: 1.1 }}>Attendance</div>
+                  {hasDataForMonth ? (
+                    <>
+                      <div className="stat-value text-truncate" style={{ color: "#1e3a8a", fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.1 }}>{attendanceDynamicPct}%</div>
+                      <small className="text-truncate" style={{ color: "var(--gray-500)", fontSize: "0.6rem", fontWeight: 500, lineHeight: 1.1 }}>{attendedHours}/{expectedWorkingHours} hrs</small>
+                    </>
+                  ) : (
+                    <div className="stat-value" style={{ color: "var(--gray-500)", fontSize: "0.6rem", fontWeight: 500, lineHeight: 1.1, whiteSpace: "normal" }}>No attendance data available</div>
+                  )}
                 </div>
               </div>
             </div>
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#ecfdf5", position: "relative", overflow: "hidden", padding: "1rem" }}>
-                <div className="stat-icon" style={{ background: "#10b981", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <PiggyBank size={18} />
+              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#ecfdf5", position: "relative", overflow: "hidden", padding: "0.5rem 0.75rem", borderRadius: "12px", minHeight: "62px" }}>
+                <div className="stat-icon" style={{ background: "#10b981", width: 28, height: 28, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", flexShrink: 0 }}>
+                  <PiggyBank size={14} color="white" />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div className="stat-label" style={{ fontSize: "0.7rem" }}>Leave Balance</div>
-                  <div className="stat-value d-flex align-items-baseline gap-1" style={{ color: "#10b981", fontSize: "1.25rem" }}>
-                    {(leaveBal.annual - leaveBal.annualUsed) + (leaveBal.sick - leaveBal.sickUsed) + (leaveBal.personal - leaveBal.personalUsed)}
-                    <span style={{ fontSize: "0.6rem", color: "var(--gray-400)", fontWeight: 400 }}>remaining</span>
+                <div className="d-flex flex-column justify-content-center" style={{ flex: 1, minWidth: 0 }}>
+                  <div className="stat-label text-truncate" style={{ fontSize: "0.65rem", fontWeight: 600, color: "var(--gray-600)", marginBottom: "1px", lineHeight: 1.1 }}>Leave Balance</div>
+                  <div className="stat-value d-flex align-items-baseline gap-1 text-truncate" style={{ color: "#064e3b", fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.1 }}>
+                    {(leaveBalDynamic.annual - leaveBalDynamic.annualUsed) + (leaveBalDynamic.sick - leaveBalDynamic.sickUsed) + (leaveBalDynamic.personal - leaveBalDynamic.personalUsed)}
+                    <span style={{ fontSize: "0.55rem", color: "var(--gray-500)", fontWeight: 500 }}>remaining</span>
                   </div>
-                  <div className="progress" style={{ height: "3px", borderRadius: "10px", background: "#d1fae5", marginTop: "4px", marginBottom: "4px" }}>
-                    <div className="progress-bar" style={{ width: `${((leaveBal.annualUsed + leaveBal.sickUsed + leaveBal.personalUsed) / (leaveBal.annual + leaveBal.sick + leaveBal.personal) * 100)}%`, background: "#10b981", borderRadius: "10px" }} />
+                  <div className="progress mt-1 mb-1" style={{ height: "3px", borderRadius: "10px", background: "#d1fae5" }}>
+                    <div className="progress-bar" style={{ width: `${((leaveBalDynamic.annualUsed + leaveBalDynamic.sickUsed + leaveBalDynamic.personalUsed) / (leaveBalDynamic.annual + leaveBalDynamic.sick + leaveBalDynamic.personal) * 100)}%`, background: "#10b981", borderRadius: "10px" }} />
                   </div>
-                  <small style={{ color: "var(--gray-400)", fontSize: "0.65rem" }}>{leaveBal.annual - leaveBal.annualUsed} Ann | {leaveBal.sick - leaveBal.sickUsed} Sic | {leaveBal.personal - leaveBal.personalUsed} Per</small>
+                  <small className="text-truncate" style={{ color: "var(--gray-500)", fontSize: "0.6rem", fontWeight: 500, lineHeight: 1.1 }}>
+                    {leaveBalDynamic.annualUsed + leaveBalDynamic.sickUsed + leaveBalDynamic.personalUsed} used of {leaveBalDynamic.annual + leaveBalDynamic.sick + leaveBalDynamic.personal}
+                  </small>
                 </div>
               </div>
             </div>
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#fffbeb", padding: "1rem" }}>
-                <div className="stat-icon" style={{ background: "#f59e0b", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Clock size={18} />
+              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#fffbeb", padding: "0.5rem 0.75rem", borderRadius: "12px", minHeight: "62px" }}>
+                <div className="stat-icon" style={{ background: "#f59e0b", width: 28, height: 28, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", flexShrink: 0 }}>
+                  <Clock size={14} color="white" />
                 </div>
-                <div>
-                  <div className="stat-label" style={{ fontSize: "0.7rem" }}>Pending Leaves</div>
-                  <div className="stat-value" style={{ color: "#f59e0b", fontSize: "1.25rem" }}>{pendingLeaves}</div>
-                  <small style={{ color: "var(--gray-400)", fontSize: "0.65rem" }}>{approvedLeaves} approved</small>
-                </div>
-              </div>
-            </div>
-            <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#f5f3ff", position: "relative", overflow: "hidden", padding: "1rem" }}>
-                <div className="stat-icon" style={{ background: "#8b5cf6", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Home size={18} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div className="stat-label" style={{ fontSize: "0.7rem" }}>WFH Balance</div>
-                  <div className="stat-value d-flex align-items-baseline gap-1" style={{ color: "#8b5cf6", fontSize: "1.25rem" }}>
-                    {leaveBal.wfh - leaveBal.wfhUsed}
-                    <span style={{ fontSize: "0.6rem", color: "var(--gray-400)", fontWeight: 400 }}>remaining</span>
-                  </div>
-                  <div className="progress" style={{ height: "3px", borderRadius: "10px", background: "#ede9fe", marginTop: "4px", marginBottom: "4px" }}>
-                    <div className="progress-bar" style={{ width: `${(leaveBal.wfhUsed / leaveBal.wfh * 100)}%`, background: "#8b5cf6", borderRadius: "10px" }} />
-                  </div>
-                  <small style={{ color: "var(--gray-400)", fontSize: "0.65rem" }}>{leaveBal.wfhUsed} used of {leaveBal.wfh}</small>
+                <div className="d-flex flex-column justify-content-center" style={{ minWidth: 0 }}>
+                  <div className="stat-label text-truncate" style={{ fontSize: "0.65rem", fontWeight: 600, color: "var(--gray-600)", marginBottom: "1px", lineHeight: 1.1 }}>Pending Leaves</div>
+                  <div className="stat-value text-truncate" style={{ color: "#78350f", fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.1 }}>{pendingLeaves}</div>
+                  <small className="text-truncate" style={{ color: "var(--gray-500)", fontSize: "0.6rem", fontWeight: 500, lineHeight: 1.1 }}>awaiting approval</small>
                 </div>
               </div>
             </div>
             <div className="col-xl-3 col-md-6">
-              <div className="stat-card card-dashboard d-flex flex-column justify-content-between h-100" style={{ background: "#f8fafc", padding: "1rem" }}>
-                <div className="d-flex align-items-center gap-2 mb-2">
-                  <div className="stat-icon" style={{ background: "#64748b", width: 38, height: 38, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", borderRadius: "50%" }}>
-                    <Activity size={18} />
+              <div className="stat-card card-dashboard d-flex align-items-center gap-2 h-100" style={{ background: "#f5f3ff", position: "relative", overflow: "hidden", padding: "0.5rem 0.75rem", borderRadius: "12px", minHeight: "62px" }}>
+                <div className="stat-icon" style={{ background: "#8b5cf6", width: 28, height: 28, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", flexShrink: 0 }}>
+                  <Home size={14} color="white" />
+                </div>
+                <div className="d-flex flex-column justify-content-center" style={{ flex: 1, minWidth: 0 }}>
+                  <div className="stat-label text-truncate" style={{ fontSize: "0.65rem", fontWeight: 600, color: "var(--gray-600)", marginBottom: "1px", lineHeight: 1.1 }}>WFH Balance</div>
+                  <div className="stat-value d-flex align-items-baseline gap-1 text-truncate" style={{ color: "#4c1d95", fontSize: "0.95rem", fontWeight: 700, lineHeight: 1.1 }}>
+                    {leaveBalDynamic.wfh - leaveBalDynamic.wfhUsed}
+                    <span style={{ fontSize: "0.55rem", color: "var(--gray-500)", fontWeight: 500 }}>remaining</span>
                   </div>
-                  <div className="stat-label fw-bold" style={{ fontSize: "0.9rem", color: "var(--gray-800)" }}>Timesheets</div>
+                  <div className="progress mt-1 mb-1" style={{ height: "3px", borderRadius: "10px", background: "#ede9fe" }}>
+                    <div className="progress-bar" style={{ width: `${(leaveBalDynamic.wfhUsed / leaveBalDynamic.wfh * 100)}%`, background: "#8b5cf6", borderRadius: "10px" }} />
+                  </div>
+                  <small className="text-truncate" style={{ color: "var(--gray-500)", fontSize: "0.6rem", fontWeight: 500, lineHeight: 1.1 }}>{leaveBalDynamic.wfhUsed} used of {leaveBalDynamic.wfh}</small>
                 </div>
-                <div className="mb-2">
-                  <div style={{ fontSize: "0.8rem", color: "var(--gray-600)" }}>Hours This Month: <span className="fw-bold" style={{ color: "var(--gray-800)" }}>0 hrs</span></div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--gray-600)" }}>Pending Timesheets: <span className="fw-bold" style={{ color: "var(--gray-800)" }}>0</span></div>
+              </div>
+            </div>
+            <div className="col-xl-3 col-md-6">
+              <div className="stat-card card-dashboard d-flex flex-column justify-content-center h-100" style={{ background: "#f8fafc", padding: "0.5rem 0.75rem", borderRadius: "12px", minHeight: "62px" }}>
+                <div className="d-flex align-items-center gap-1 mb-1">
+                  <div className="stat-icon" style={{ background: "#64748b", width: 20, height: 20, margin: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", borderRadius: "50%", flexShrink: 0 }}>
+                    <Activity size={10} />
+                  </div>
+                  <div className="stat-label fw-bold text-truncate" style={{ fontSize: "0.7rem", color: "var(--gray-800)", lineHeight: 1.1 }}>Timesheets</div>
                 </div>
-                <button className="btn btn-primary btn-sm w-100" onClick={() => navigate('/timesheets')} style={{ fontSize: "0.75rem", padding: "0.4rem" }}>
+                <div className="mb-1 d-flex flex-column gap-0" style={{ lineHeight: 1.1 }}>
+                  <div className="text-truncate" style={{ fontSize: "0.6rem", color: "var(--gray-600)" }}>Hours This Month: <span className="fw-bold" style={{ color: "var(--gray-800)" }}>0 hrs</span></div>
+                  <div className="text-truncate" style={{ fontSize: "0.6rem", color: "var(--gray-600)" }}>Pending Timesheets: <span className="fw-bold" style={{ color: "var(--gray-800)" }}>0</span></div>
+                </div>
+                <button className="btn btn-primary btn-sm w-100" onClick={() => navigate('/timesheets')} style={{ fontSize: "0.6rem", padding: "0.15rem 0.4rem", lineHeight: 1.2 }}>
                   Go to Timesheets
                 </button>
               </div>
